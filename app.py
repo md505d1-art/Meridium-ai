@@ -510,6 +510,7 @@ def save_user_data():
         "use_web_toggle": bool(st.session_state.get("use_web_toggle", True)),
         "chats": safe_chats,
         "current_chat_id": st.session_state.get("current_chat_id"),
+        "meridium_playlist": st.session_state.get("meridium_playlist") or [],
         "saved_at": datetime.now().isoformat(),
     }
     raw = json.dumps(payload, ensure_ascii=False, indent=2)
@@ -538,6 +539,7 @@ def load_user_data(username: str) -> bool:
         st.session_state.show_spotify = data.get("show_spotify", False)
         st.session_state.use_wiki_toggle = data.get("use_wiki_toggle", True)
         st.session_state.use_web_toggle = data.get("use_web_toggle", True)
+        st.session_state.meridium_playlist = data.get("meridium_playlist") or []
         chats = data.get("chats") or {}
         if isinstance(chats, dict) and chats:
             st.session_state.chats = chats
@@ -590,6 +592,8 @@ defaults = {
     "provider": "groq",
     "model_name": "Smart · Llama 3.3 70B",
     "api_key_val": "",
+    "meridium_playlist": [],
+    "music_status": "",
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -742,11 +746,14 @@ def current_track(sp):
         if not data or not data.get("item"):
             return None
         item = data["item"]
+        images = (item.get("album") or {}).get("images") or []
         return {
             "name": item["name"],
             "artists": ", ".join(a["name"] for a in item["artists"]),
             "playing": data["is_playing"],
             "device": (data.get("device") or {}).get("name", ""),
+            "art": images[0]["url"] if images else None,
+            "uri": item.get("uri"),
         }
     except Exception:
         return None
@@ -763,24 +770,26 @@ def render_spotify_panel(key_prefix="sp"):
         st.info("Connect Spotify once to control playback.")
         if url:
             st.link_button("🔗 Connect Spotify", url, use_container_width=True)
-        st.caption("After approving, you'll return here. Then play a song in the Spotify app.")
+        st.caption("After approving, return here, then play a song in the Spotify app.")
         return False
     track = current_track(sp)
     if not track:
-        st.caption("♫ Connected · play a song in Spotify on any device")
+        st.caption("♫ Connected · play a song in Spotify on any device, then refresh")
         if st.button("↻ Refresh", key=f"{key_prefix}_ref0", use_container_width=True):
             st.rerun()
         return True
-    st.caption(f"♫ **{track['name']}** — {track['artists']}" + (f" · {track['device']}" if track.get("device") else ""))
+    art = track.get("art")
+    if art:
+        st.image(art, width=180)
+    st.markdown(f"### {track['name']}")
+    st.caption(track["artists"] + (f" · {track['device']}" if track.get("device") else ""))
     p1, p2, p3, p4 = st.columns(4)
     with p1:
         if st.button("⏮", key=f"{key_prefix}_prev", use_container_width=True):
             try:
-                sp.previous_track()
-                time.sleep(0.35)
-                st.rerun()
+                sp.previous_track(); time.sleep(0.35); st.rerun()
             except Exception as e:
-                st.caption(f"Prev failed: {e}")
+                st.caption(str(e))
     with p2:
         icon = "⏸" if track["playing"] else "▶"
         if st.button(icon, key=f"{key_prefix}_play", use_container_width=True):
@@ -789,18 +798,15 @@ def render_spotify_panel(key_prefix="sp"):
                     sp.pause_playback()
                 else:
                     sp.start_playback()
-                time.sleep(0.35)
-                st.rerun()
+                time.sleep(0.35); st.rerun()
             except Exception as e:
-                st.caption(f"Play failed (Premium + active device needed): {e}")
+                st.caption(f"Needs Premium + active device: {e}")
     with p3:
         if st.button("⏭", key=f"{key_prefix}_next", use_container_width=True):
             try:
-                sp.next_track()
-                time.sleep(0.35)
-                st.rerun()
+                sp.next_track(); time.sleep(0.35); st.rerun()
             except Exception as e:
-                st.caption(f"Next failed: {e}")
+                st.caption(str(e))
     with p4:
         if st.button("↻", key=f"{key_prefix}_ref", use_container_width=True):
             st.rerun()
@@ -1078,7 +1084,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # Nav
-n1, n2, n3, n4 = st.columns(4)
+n1, n2, n3, n4, n5 = st.columns(5)
 with n1:
     if st.button("⌂ Home", use_container_width=True, key="n_home"):
         st.session_state.view = "home"
@@ -1088,13 +1094,85 @@ with n2:
         st.session_state.view = "chat"
         st.rerun()
 with n3:
+    if st.button("♫ Music", use_container_width=True, key="n_music"):
+        st.session_state.view = "music"
+        st.rerun()
+with n4:
     if st.button("◎ Listen", use_container_width=True, key="n_listen"):
         st.session_state.view = "listen"
         st.rerun()
-with n4:
+with n5:
     if st.button("☰ Menu", use_container_width=True, key="n_menu"):
         st.session_state.popup = True
         st.rerun()
+
+
+# MUSIC — dedicated player + Meridium playlist
+if st.session_state.view == "music":
+    st.markdown("""
+    <div class="panel" style="text-align:center;max-width:420px;margin:0 auto 12px;">
+      <div class="panel-label">Music</div>
+      <div class="hero" style="font-size:1.5rem;">Now playing</div>
+      <div class="ridge"></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.session_state.show_spotify = True
+    render_spotify_panel("musicpage")
+
+    st.markdown("---")
+    st.markdown("### Meridium playlist")
+    st.caption("Your personal queue inside Meridium — add tracks by name.")
+
+    # Add to playlist
+    add_col1, add_col2 = st.columns([3, 1])
+    with add_col1:
+        new_track = st.text_input("Add track", placeholder="e.g. Nemzzz - Prince of the Scene", key="pl_add", label_visibility="collapsed")
+    with add_col2:
+        if st.button("Add", use_container_width=True, key="pl_add_btn"):
+            t = (new_track or "").strip()
+            if t:
+                pl = list(st.session_state.get("meridium_playlist") or [])
+                pl.append({"title": t, "added": datetime.now().isoformat()})
+                st.session_state.meridium_playlist = pl
+                save_user_data()
+                st.rerun()
+
+    playlist = st.session_state.get("meridium_playlist") or []
+    if not playlist:
+        st.caption("Playlist empty — add songs above.")
+    else:
+        for i, item in enumerate(playlist):
+            c1, c2 = st.columns([5, 1])
+            with c1:
+                st.markdown(f"**{i+1}.** {item.get('title', 'Track')}")
+            with c2:
+                if st.button("✕", key=f"pl_del_{i}", help="Remove"):
+                    pl = list(playlist)
+                    pl.pop(i)
+                    st.session_state.meridium_playlist = pl
+                    save_user_data()
+                    st.rerun()
+
+        # Try play via Spotify search if connected
+        sp = get_spotify()
+        if sp and st.button("▶ Play first track on Spotify", use_container_width=True, key="pl_play"):
+            try:
+                q = playlist[0].get("title", "")
+                results = sp.search(q=q, type="track", limit=1)
+                tracks = (results.get("tracks") or {}).get("items") or []
+                if tracks:
+                    uri = tracks[0]["uri"]
+                    sp.start_playback(uris=[uri])
+                    time.sleep(0.4)
+                    st.success(f"Playing: {tracks[0]['name']}")
+                    st.rerun()
+                else:
+                    st.warning("No Spotify match found for that title.")
+            except Exception as e:
+                st.error(f"Playback failed (Premium + active Spotify device required): {e}")
+
+    st.stop()
 
 # LISTEN
 if st.session_state.view == "listen":
