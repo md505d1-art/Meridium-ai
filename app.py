@@ -12,618 +12,344 @@ from spotipy.oauth2 import SpotifyOAuth
 st.set_page_config(
     page_title="Meridium",
     page_icon="◈",
-    layout="centered",
+    layout="wide",
     initial_sidebar_state="collapsed",
 )
 
 # ============================================================
-# COLOR PALETTES — same glass UI, different colors
+# FONTS
 # ============================================================
-THEMES = {
-    "Violet": {
-        "bg": "linear-gradient(165deg, #0b0614 0%, #160e28 40%, #0d0818 100%)",
-        "bg_solid": "#0d0818",
-        "text": "#f2eefc",
-        "muted": "#9ca3af",
-        "accent": "#a78bfa",
-        "accent2": "#7c3aed",
-        "accent_soft": "rgba(167,139,250,0.15)",
-        "accent_border": "rgba(167,139,250,0.35)",
-        "glass": "rgba(255,255,255,0.05)",
-        "glass_border": "rgba(255,255,255,0.08)",
-        "chip_text": "#c4b5fd",
-        "tagline": "#ddd6fe",
-        "orb": "radial-gradient(circle at 35% 35%, #c4b5fd, #7c3aed 55%, #2e1065 100%)",
-        "orb_glow": "rgba(124, 58, 237, 0.55)",
-        "mode": "dark",
-    },
-    "Peach": {
-        "bg": "linear-gradient(165deg, #1a1010 0%, #2a1814 40%, #140e0c 100%)",
-        "bg_solid": "#140e0c",
-        "text": "#faf0eb",
-        "muted": "#a89088",
-        "accent": "#ff9f7a",
-        "accent2": "#e87a5a",
-        "accent_soft": "rgba(255,159,122,0.15)",
-        "accent_border": "rgba(255,159,122,0.35)",
-        "glass": "rgba(255,255,255,0.05)",
-        "glass_border": "rgba(255,200,180,0.1)",
-        "chip_text": "#ffc4a8",
-        "tagline": "#f5d5c8",
-        "orb": "radial-gradient(circle at 35% 35%, #ffc4a8, #ff9f7a 55%, #5c2a1a 100%)",
-        "orb_glow": "rgba(255, 159, 122, 0.5)",
-        "mode": "dark",
-    },
-    "Lavender": {
-        "bg": "linear-gradient(165deg, #120e1a 0%, #1c1628 40%, #0e0a14 100%)",
-        "bg_solid": "#0e0a14",
-        "text": "#f3eefc",
-        "muted": "#9a90b0",
-        "accent": "#c4b5fd",
-        "accent2": "#a78bfa",
-        "accent_soft": "rgba(196,181,253,0.15)",
-        "accent_border": "rgba(196,181,253,0.35)",
-        "glass": "rgba(255,255,255,0.05)",
-        "glass_border": "rgba(200,180,255,0.1)",
-        "chip_text": "#ddd6fe",
-        "tagline": "#e9e5f8",
-        "orb": "radial-gradient(circle at 35% 35%, #ddd6fe, #c4b5fd 55%, #3b0764 100%)",
-        "orb_glow": "rgba(196, 181, 253, 0.55)",
-        "mode": "dark",
-    },
-    "Mint": {
-        "bg": "linear-gradient(165deg, #0a1210 0%, #0f1c18 40%, #081210 100%)",
-        "bg_solid": "#081210",
-        "text": "#e8f5f0",
-        "muted": "#7a9a90",
-        "accent": "#5eead4",
-        "accent2": "#2dd4bf",
-        "accent_soft": "rgba(94,234,212,0.12)",
-        "accent_border": "rgba(94,234,212,0.35)",
-        "glass": "rgba(255,255,255,0.05)",
-        "glass_border": "rgba(150,255,220,0.1)",
-        "chip_text": "#99f6e4",
-        "tagline": "#ccfbf1",
-        "orb": "radial-gradient(circle at 35% 35%, #99f6e4, #5eead4 55%, #134e4a 100%)",
-        "orb_glow": "rgba(94, 234, 212, 0.5)",
-        "mode": "dark",
-    },
-    "Ocean": {
-        "bg": "linear-gradient(165deg, #061018 0%, #0c1a28 40%, #050e14 100%)",
-        "bg_solid": "#050e14",
-        "text": "#e8f4fc",
-        "muted": "#7a9ab0",
-        "accent": "#38bdf8",
-        "accent2": "#0ea5e9",
-        "accent_soft": "rgba(56,189,248,0.12)",
-        "accent_border": "rgba(56,189,248,0.35)",
-        "glass": "rgba(255,255,255,0.05)",
-        "glass_border": "rgba(100,200,255,0.1)",
-        "chip_text": "#7dd3fc",
-        "tagline": "#bae6fd",
-        "orb": "radial-gradient(circle at 35% 35%, #7dd3fc, #38bdf8 55%, #0c4a6e 100%)",
-        "orb_glow": "rgba(56, 189, 248, 0.5)",
-        "mode": "dark",
-    },
-    "Rose": {
-        "bg": "linear-gradient(165deg, #160a10 0%, #241018 40%, #10080c 100%)",
-        "bg_solid": "#10080c",
-        "text": "#fdf2f8",
-        "muted": "#a08090",
-        "accent": "#f472b6",
-        "accent2": "#ec4899",
-        "accent_soft": "rgba(244,114,182,0.14)",
-        "accent_border": "rgba(244,114,182,0.35)",
-        "glass": "rgba(255,255,255,0.05)",
-        "glass_border": "rgba(255,150,200,0.1)",
-        "chip_text": "#f9a8d4",
-        "tagline": "#fbcfe8",
-        "orb": "radial-gradient(circle at 35% 35%, #f9a8d4, #f472b6 55%, #831843 100%)",
-        "orb_glow": "rgba(244, 114, 182, 0.5)",
-        "mode": "dark",
-    },
-    "Soft Dark": {
-        "bg": "linear-gradient(165deg, #0c0c10 0%, #141418 40%, #0a0a0c 100%)",
-        "bg_solid": "#0a0a0c",
-        "text": "#f0f0f4",
-        "muted": "#8b8b9a",
-        "accent": "#a1a1aa",
-        "accent2": "#71717a",
-        "accent_soft": "rgba(161,161,170,0.12)",
-        "accent_border": "rgba(161,161,170,0.3)",
-        "glass": "rgba(255,255,255,0.04)",
-        "glass_border": "rgba(255,255,255,0.08)",
-        "chip_text": "#d4d4d8",
-        "tagline": "#e4e4e7",
-        "orb": "radial-gradient(circle at 35% 35%, #d4d4d8, #a1a1aa 55%, #27272a 100%)",
-        "orb_glow": "rgba(161, 161, 170, 0.4)",
-        "mode": "dark",
-    },
-    "Cloud": {
-        "bg": "linear-gradient(165deg, #f4f5f9 0%, #e8eaf2 50%, #f0f1f6 100%)",
-        "bg_solid": "#eef0f5",
-        "text": "#1a1a22",
-        "muted": "#6b6b7b",
-        "accent": "#7c6cf0",
-        "accent2": "#6c5ce7",
-        "accent_soft": "rgba(124,108,240,0.12)",
-        "accent_border": "rgba(124,108,240,0.3)",
-        "glass": "rgba(255,255,255,0.7)",
-        "glass_border": "rgba(0,0,0,0.06)",
-        "chip_text": "#5b4cdb",
-        "tagline": "#3f3f50",
-        "orb": "radial-gradient(circle at 35% 35%, #c4b5fd, #7c6cf0 55%, #4c1d95 100%)",
-        "orb_glow": "rgba(124, 108, 240, 0.35)",
-        "mode": "light",
-    },
-    "Newspaper": {
-        "bg": "linear-gradient(165deg, #f7f4ef 0%, #efeae2 50%, #f5f2eb 100%)",
-        "bg_solid": "#f0ebe3",
-        "text": "#1a1a1a",
-        "muted": "#5c5c5c",
-        "accent": "#333333",
-        "accent2": "#111111",
-        "accent_soft": "rgba(0,0,0,0.06)",
-        "accent_border": "rgba(0,0,0,0.15)",
-        "glass": "rgba(255,255,255,0.85)",
-        "glass_border": "rgba(0,0,0,0.08)",
-        "chip_text": "#333333",
-        "tagline": "#2a2a2a",
-        "orb": "radial-gradient(circle at 35% 35%, #d6d0c4, #8a8580 55%, #3a3a3a 100%)",
-        "orb_glow": "rgba(0,0,0,0.2)",
-        "mode": "light",
-    },
+FONTS = {
+    "Inter": "'Inter', system-ui, sans-serif",
+    "Space Grotesk": "'Space Grotesk', system-ui, sans-serif",
+    "Outfit": "'Outfit', system-ui, sans-serif",
+    "JetBrains Mono": "'JetBrains Mono', ui-monospace, monospace",
+    "Mojangles": "'Press Start 2P', cursive",
+    "Newsreader": "'Newsreader', Georgia, serif",
 }
 
-def inject_css(theme_name: str = "Violet"):
-    t = THEMES.get(theme_name, THEMES["Violet"])
+# Design 1 shell colours (Caelestia)
+SHELL = {
+    "bg": "#0c0c10",
+    "panel": "rgba(24, 24, 32, 0.75)",
+    "panel_solid": "#16161e",
+    "border": "rgba(255,255,255,0.08)",
+    "text": "#e8e6f0",
+    "muted": "#8b8798",
+    "accent": "#c4a7e7",
+    "accent2": "#9d7cd8",
+    "accent_soft": "rgba(196, 167, 231, 0.16)",
+}
+
+def inject_css(font_name: str, popup_open: bool = False):
+    font = FONTS.get(font_name, FONTS["Inter"])
+    moj = "0.7" if font_name == "Mojangles" else "1"
     st.markdown(f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Press+Start+2P&family=Newsreader:opsz,wght@6..72,400;6..72,600&display=swap');
 
     html, body, [class*="css"] {{
-        font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+        font-family: {font} !important;
+        font-size: calc(15px * {moj});
     }}
-
     .stApp {{
-        background: {t["bg"]};
-        color: {t["text"]};
+        background:
+            radial-gradient(900px 480px at 15% -5%, rgba(196,167,231,0.12), transparent 55%),
+            radial-gradient(700px 400px at 95% 10%, rgba(157,124,216,0.08), transparent 50%),
+            {SHELL["bg"]};
+        color: {SHELL["text"]};
     }}
-
-    /* Override Streamlit default light surfaces everywhere */
-    [data-testid="stAppViewContainer"],
-    [data-testid="stHeader"],
-    [data-testid="stToolbar"],
-    [data-testid="stDecoration"] {{
-        background: transparent !important;
-        background-color: transparent !important;
-    }}
-    .stApp, .main, .block-container {{
-        color: {t["text"]} !important;
-    }}
-    /* Force all baseweb controls dark */
-    [data-baseweb="select"] > div,
-    [data-baseweb="select"] > div > div {{
-        background-color: {t["bg_solid"]} !important;
-        border-color: {t["glass_border"]} !important;
-    }}
-    [data-baseweb="popover"] > div,
-    [data-baseweb="popover"] ul,
-    [role="listbox"] {{
-        background-color: {t["bg_solid"]} !important;
-        color: {t["text"]} !important;
-    }}
-    [role="option"] {{
-        background-color: {t["bg_solid"]} !important;
-        color: {t["text"]} !important;
-    }}
-    [role="option"]:hover, [role="option"][aria-selected="true"] {{
-        background-color: {t["accent_soft"]} !important;
-    }}
-    /* Streamlit secondary / default button variants */
-    button[kind="secondary"],
-    button[kind="primary"],
-    button[data-testid="baseButton-secondary"],
-    button[data-testid="baseButton-primary"],
-    button[data-testid="baseButton-secondaryFormSubmit"] {{
-        background-color: {t["glass"]} !important;
-        background: {t["glass"]} !important;
-        color: {t["text"]} !important;
-        border: 1px solid {t["glass_border"]} !important;
-    }}
-
-
-    #MainMenu, footer, header, .stDeployButton {{
+    #MainMenu, footer, header, .stDeployButton, section[data-testid="stSidebar"] {{
         display: none !important;
     }}
-    section[data-testid="stSidebar"] {{
-        display: none !important;
+    .block-container {{
+        padding-top: 0.8rem !important;
+        padding-bottom: 5.5rem !important;
+        max-width: 1080px !important;
     }}
 
-    .glass {{
-        background: {t["glass"]};
-        border: 1px solid {t["glass_border"]};
-        border-radius: 20px;
-        backdrop-filter: blur(16px);
-        box-shadow: 0 8px 32px rgba(0,0,0,0.25);
-    }}
-
-    .home-wrap {{
-        max-width: 420px;
-        margin: 0 auto;
-        padding: 12px 8px 40px;
-        animation: fadeUp 0.55s ease both;
-    }}
-    .top-row {{
+    /* ===== DESIGN 1 — Caelestia Shell ===== */
+    .waybar {{
         display: flex;
+        align-items: center;
         justify-content: space-between;
-        align-items: center;
-        margin-bottom: 28px;
-    }}
-    .avatar-pill {{
-        width: 40px; height: 40px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, {t["accent"]}, {t["accent2"]});
-        display: flex; align-items: center; justify-content: center;
-        font-size: 1.1rem;
-        box-shadow: 0 4px 16px {t["orb_glow"]};
-        color: #fff;
-    }}
-    .premium-chip {{
-        background: {t["accent_soft"]};
-        border: 1px solid {t["accent_border"]};
-        color: {t["chip_text"]};
-        padding: 8px 14px;
-        border-radius: 999px;
-        font-size: 0.8rem;
-        font-weight: 500;
-    }}
-    .hello {{
-        font-size: 1.75rem;
-        font-weight: 700;
-        line-height: 1.25;
-        margin: 0 0 6px;
-        letter-spacing: -0.03em;
-        color: {t["text"]};
-        animation: fadeUp 0.6s ease 0.08s both;
-    }}
-    .hello span {{ color: {t["chip_text"]}; }}
-    .tagline {{
-        font-size: 1.35rem;
-        font-weight: 600;
-        color: {t["tagline"]};
-        margin: 0 0 22px;
-        animation: fadeUp 0.6s ease 0.14s both;
-    }}
-
-    .feat-grid {{
-        display: grid;
-        grid-template-columns: 1fr 1fr;
         gap: 12px;
-        margin: 18px 0 22px;
-    }}
-    .feat-card {{
-        background: {t["glass"]};
-        border: 1px solid {t["glass_border"]};
-        border-radius: 18px;
-        padding: 18px 14px;
-        min-height: 100px;
-        transition: transform 0.2s ease, border-color 0.2s;
-        animation: fadeUp 0.55s ease both;
-    }}
-    .feat-card:hover {{
-        transform: translateY(-3px);
-        border-color: {t["accent_border"]};
-    }}
-    .feat-icon {{
-        font-size: 1.35rem;
-        margin-bottom: 10px;
-        display: block;
-        color: {t["accent"]};
-    }}
-    .feat-title {{
-        font-size: 0.92rem;
-        font-weight: 600;
-        color: {t["text"]};
-    }}
-    .feat-sub {{
-        font-size: 0.75rem;
-        color: {t["muted"]};
-        margin-top: 4px;
-    }}
-
-    .hist-title {{
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: {t["muted"]};
-        margin: 8px 0 12px;
-        letter-spacing: 0.02em;
-    }}
-    .hist-item {{
-        background: {t["glass"]};
-        border: 1px solid {t["glass_border"]};
-        border-radius: 14px;
-        padding: 14px 16px;
-        margin-bottom: 10px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        animation: fadeUp 0.5s ease both;
-    }}
-    .hist-icon {{
-        width: 36px; height: 36px;
-        border-radius: 10px;
-        background: {t["accent_soft"]};
-        display: flex; align-items: center; justify-content: center;
-        font-size: 1rem;
-        flex-shrink: 0;
-        color: {t["accent"]};
-    }}
-    .hist-text {{
-        flex: 1;
-        font-size: 0.88rem;
-        color: {t["text"]};
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }}
-
-    .chat-top {{
-        text-align: center;
-        padding: 8px 0 12px;
-        font-weight: 600;
-        font-size: 1.05rem;
-        color: {t["text"]};
+        background: {SHELL["panel"]};
+        border: 1px solid {SHELL["border"]};
+        border-radius: 16px;
+        padding: 10px 16px;
+        margin-bottom: 16px;
+        backdrop-filter: blur(20px);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.25);
         animation: fadeUp 0.4s ease both;
     }}
+    .waybar-left, .waybar-right {{
+        display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }}
+    .logo-btn {{
+        width: 34px; height: 34px; border-radius: 10px;
+        background: linear-gradient(135deg, {SHELL["accent"]}, {SHELL["accent2"]});
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-weight: 700; font-size: 0.95rem;
+        box-shadow: 0 0 20px {SHELL["accent_soft"]};
+    }}
+    .brand {{ font-weight: 600; letter-spacing: -0.02em; }}
+    .chip {{
+        background: {SHELL["accent_soft"]};
+        color: {SHELL["accent"]};
+        border: 1px solid {SHELL["border"]};
+        border-radius: 999px;
+        padding: 4px 11px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }}
+    .clock {{ font-weight: 600; font-variant-numeric: tabular-nums; }}
+    .muted {{ color: {SHELL["muted"]}; font-size: 0.8rem; }}
+
+    .panel {{
+        background: {SHELL["panel"]};
+        border: 1px solid {SHELL["border"]};
+        border-radius: 18px;
+        padding: 20px;
+        backdrop-filter: blur(18px);
+        box-shadow: 0 10px 40px rgba(0,0,0,0.22);
+        animation: fadeUp 0.45s ease both;
+        margin-bottom: 12px;
+    }}
+    .panel-label {{
+        font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em;
+        color: {SHELL["muted"]}; margin-bottom: 10px; font-weight: 600;
+    }}
+    .hero {{
+        font-size: 2.1rem; font-weight: 700; letter-spacing: -0.03em;
+        margin: 0 0 6px; color: {SHELL["text"]};
+    }}
+    .hero span {{ color: {SHELL["accent"]}; }}
+    .sub {{ color: {SHELL["muted"]}; margin-bottom: 14px; font-size: 0.95rem; }}
+    .ridge {{
+        height: 1px; margin: 8px 0 16px;
+        background: linear-gradient(90deg, transparent, {SHELL["accent"]}, transparent);
+        opacity: 0.5;
+    }}
+
+    .grid4 {{
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }}
+    @media (min-width: 800px) {{
+        .grid4 {{ grid-template-columns: repeat(4, 1fr); }}
+        .hero {{ font-size: 2.35rem; }}
+    }}
+    .card {{
+        background: {SHELL["panel_solid"]};
+        border: 1px solid {SHELL["border"]};
+        border-radius: 16px;
+        padding: 16px;
+        transition: border-color 0.15s, transform 0.15s;
+    }}
+    .card:hover {{ border-color: {SHELL["accent"]}; transform: translateY(-2px); }}
+    .card-ico {{ color: {SHELL["accent"]}; font-size: 1.2rem; margin-bottom: 8px; }}
+    .card-t {{ font-weight: 600; font-size: 0.9rem; }}
+    .card-d {{ color: {SHELL["muted"]}; font-size: 0.72rem; margin-top: 3px; }}
+
+    .hist {{
+        display: flex; align-items: center; gap: 10px;
+        padding: 11px 12px; border-radius: 12px;
+        background: {SHELL["panel_solid"]};
+        border: 1px solid {SHELL["border"]};
+        margin-bottom: 8px;
+    }}
+    .hist-ico {{
+        width: 32px; height: 32px; border-radius: 9px;
+        background: {SHELL["accent_soft"]}; color: {SHELL["accent"]};
+        display: flex; align-items: center; justify-content: center;
+    }}
+    .hist-t {{
+        flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        font-size: 0.88rem;
+    }}
+
+    /* Chat */
     .stChatMessage {{
-        background: {t["glass"]} !important;
-        border: 1px solid {t["glass_border"]} !important;
-        border-radius: 18px !important;
-        padding: 12px 16px !important;
+        background: {SHELL["panel"]} !important;
+        border: 1px solid {SHELL["border"]} !important;
+        border-radius: 16px !important;
         margin-bottom: 10px !important;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-        animation: bubbleIn 0.35s ease both;
-        color: {t["text"]} !important;
+        animation: fadeUp 0.3s ease both;
     }}
     [data-testid="stChatMessageAvatarUser"],
     [data-testid="stChatMessageAvatarAssistant"],
-    [data-testid="stChatAvatar"] {{
-        display: none !important;
-    }}
-
-    /* Chat input — remove white bar */
+    [data-testid="stChatAvatar"] {{ display: none !important; }}
     .stChatInput > div {{
-        background: {t["glass"]} !important;
-        border: 1px solid {t["accent_border"]} !important;
+        background: {SHELL["panel_solid"]} !important;
+        border: 1px solid {SHELL["border"]} !important;
         border-radius: 999px !important;
-        box-shadow: 0 4px 24px rgba(0,0,0,0.15);
     }}
-    .stChatInput,
+    [data-testid="stBottomBlockContainer"],
+    [data-testid="stBottomBlockContainer"] > div,
     [data-testid="stChatInput"] {{
+        background: {SHELL["bg"]} !important;
+        background-color: {SHELL["bg"]} !important;
+    }}
+    [data-testid="stChatInput"] textarea {{
+        color: {SHELL["text"]} !important;
         background: transparent !important;
-        background-color: transparent !important;
     }}
-    .stChatInput textarea,
-    .stChatInput input,
-    [data-testid="stChatInput"] textarea,
-    [data-testid="stChatInput"] input {{
-        background: transparent !important;
-        color: {t["text"]} !important;
-        caret-color: {t["accent"]} !important;
-    }}
-    div[data-testid="stBottomBlockContainer"],
-    [data-testid="stBottom"],
-    .stBottom {{
-        background: {t["bg_solid"]} !important;
-        background-color: {t["bg_solid"]} !important;
-        border: none !important;
-        box-shadow: none !important;
-    }}
-    .stApp [data-testid="stBottomBlockContainer"] {{
-        background: {t["bg_solid"]} !important;
-        background-color: {t["bg_solid"]} !important;
-    }}
-    [data-testid="stChatInputSubmitButton"] {{
-        background: {t["accent_soft"]} !important;
-        color: {t["text"]} !important;
-        border: 1px solid {t["accent_border"]} !important;
-        border-radius: 999px !important;
-    }}
-    /* Placeholder colour */
-    .stChatInput textarea::placeholder,
-    [data-testid="stChatInput"] textarea::placeholder {{
-        color: {t["muted"]} !important;
-        opacity: 0.8;
-    }}
+    [data-testid="stChatInput"] textarea::placeholder {{ color: {SHELL["muted"]} !important; }}
 
-    /* ===== Buttons ===== */
+    /* Buttons */
     .stButton > button {{
-        background: {t["glass"]} !important;
-        color: {t["text"]} !important;
-        border: 1px solid {t["glass_border"]} !important;
-        border-radius: 999px !important;
+        background: {SHELL["panel_solid"]} !important;
+        color: {SHELL["text"]} !important;
+        border: 1px solid {SHELL["border"]} !important;
+        border-radius: 12px !important;
         font-weight: 500 !important;
-        transition: all 0.18s ease !important;
+        transition: all 0.15s ease !important;
+        min-height: 42px;
     }}
     .stButton > button:hover {{
-        background: {t["accent_soft"]} !important;
-        border-color: {t["accent_border"]} !important;
-        transform: translateY(-1px);
-    }}
-    .stButton > button:active {{
-        transform: scale(0.97);
+        border-color: {SHELL["accent"]} !important;
+        background: {SHELL["accent_soft"]} !important;
     }}
 
-    /* ===== Selectboxes / dropdowns (kill white) ===== */
-    div[data-baseweb="select"] > div {{
-        background-color: {t["bg_solid"]} !important;
-        background: {t["glass"]} !important;
-        border-color: {t["glass_border"]} !important;
-        color: {t["text"]} !important;
-        border-radius: 14px !important;
-    }}
-    div[data-baseweb="select"] * {{
-        color: {t["text"]} !important;
-    }}
-    /* Dropdown popover menu */
-    div[data-baseweb="popover"] {{
-        background-color: {t["bg_solid"]} !important;
-    }}
-    ul[data-baseweb="menu"] {{
-        background-color: {t["bg_solid"]} !important;
-        border: 1px solid {t["glass_border"]} !important;
+    /* Form widgets — no white */
+    [data-baseweb="select"] > div,
+    [data-baseweb="select"] > div > div {{
+        background: {SHELL["panel_solid"]} !important;
+        border-color: {SHELL["border"]} !important;
+        color: {SHELL["text"]} !important;
         border-radius: 12px !important;
     }}
-    ul[data-baseweb="menu"] li {{
-        background-color: {t["bg_solid"]} !important;
-        color: {t["text"]} !important;
+    [data-baseweb="select"] span, [data-baseweb="select"] div {{ color: {SHELL["text"]} !important; }}
+    div[data-baseweb="popover"], ul[role="listbox"], li[role="option"] {{
+        background: {SHELL["panel_solid"]} !important;
+        color: {SHELL["text"]} !important;
     }}
-    ul[data-baseweb="menu"] li:hover {{
-        background-color: {t["accent_soft"]} !important;
+    li[role="option"]:hover {{ background: {SHELL["accent_soft"]} !important; }}
+    .stTextInput input {{
+        background: {SHELL["panel_solid"]} !important;
+        color: {SHELL["text"]} !important;
+        border-color: {SHELL["border"]} !important;
+        border-radius: 12px !important;
     }}
-    /* Text inputs */
-    .stTextInput input, .stTextInput > div > div > input,
-    [data-testid="stTextInput"] input {{
-        background-color: {t["bg_solid"]} !important;
-        background: {t["glass"]} !important;
-        color: {t["text"]} !important;
-        border: 1px solid {t["glass_border"]} !important;
-        border-radius: 14px !important;
-    }}
-    .stTextInput > div > div {{
-        background-color: transparent !important;
-        border-color: {t["glass_border"]} !important;
-    }}
-    /* Labels & captions */
-    label, .stSelectbox label, .stTextInput label,
-    [data-testid="stWidgetLabel"] p {{
-        color: {t["muted"]} !important;
-    }}
-    .stCaption, [data-testid="stCaptionContainer"] {{
-        color: {t["muted"]} !important;
-    }}
-    /* Checkboxes */
-    .stCheckbox label p {{
-        color: {t["text"]} !important;
-    }}
-    /* Info / alert boxes */
+    label, [data-testid="stWidgetLabel"] p, .stCaption {{ color: {SHELL["muted"]} !important; }}
+    h1,h2,h3,h4,.stMarkdown,.stMarkdown p {{ color: {SHELL["text"]} !important; }}
+    .stCheckbox label p {{ color: {SHELL["text"]} !important; }}
     [data-testid="stAlert"] {{
-        background: {t["glass"]} !important;
-        color: {t["text"]} !important;
-        border: 1px solid {t["glass_border"]} !important;
-        border-radius: 14px !important;
-    }}
-    /* Markdown headings in menu */
-    h1, h2, h3, h4 {{
-        color: {t["text"]} !important;
-    }}
-    /* Number input / generic widgets */
-    [data-baseweb="input"] {{
-        background-color: {t["bg_solid"]} !important;
-    }}
-    [data-baseweb="input"] input {{
-        color: {t["text"]} !important;
+        background: {SHELL["panel"]} !important;
+        color: {SHELL["text"]} !important;
+        border: 1px solid {SHELL["border"]} !important;
+        border-radius: 12px !important;
     }}
 
-
-    .orb-wrap {{
-        text-align: center;
-        padding: 28px 12px;
-        animation: fadeUp 0.5s ease both;
-    }}
-    .orb {{
-        width: 140px; height: 140px;
-        margin: 12px auto 18px;
-        border-radius: 50%;
-        background: {t["orb"]};
-        box-shadow: 0 0 60px {t["orb_glow"]}, inset 0 0 30px rgba(255,255,255,0.15);
-        animation: orbPulse 2.4s ease-in-out infinite;
-    }}
-    @keyframes orbPulse {{
-        0%, 100% {{ transform: scale(1); box-shadow: 0 0 50px {t["orb_glow"]}; }}
-        50% {{ transform: scale(1.06); box-shadow: 0 0 80px {t["orb_glow"]}; }}
-    }}
-    .listen-label {{
-        color: {t["chip_text"]};
-        font-size: 1.05rem;
-        font-weight: 500;
-        margin-bottom: 8px;
-    }}
-    .listen-quote {{
-        color: {t["muted"]};
-        font-size: 0.9rem;
-        max-width: 280px;
-        margin: 0 auto;
-        line-height: 1.45;
-    }}
-
-    .time-chip {{
-        display: inline-flex;
-        gap: 16px;
-        justify-content: center;
-        width: 100%;
-        margin: 8px 0 16px;
-    }}
-    .time-chip span {{
-        background: {t["glass"]};
-        border: 1px solid {t["glass_border"]};
-        border-radius: 14px;
-        padding: 10px 18px;
-        font-size: 0.95rem;
-        font-weight: 600;
-        color: {t["text"]};
-    }}
-
-    @keyframes fadeUp {{
-        from {{ opacity: 0; transform: translateY(14px); }}
-        to {{ opacity: 1; transform: translateY(0); }}
-    }}
-    @keyframes bubbleIn {{
-        from {{ opacity: 0; transform: translateY(8px); }}
-        to {{ opacity: 1; transform: translateY(0); }}
-    }}
-
-    /* Typing indicator — 3 bouncing dots */
-    .typing-wrap {{
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 2px;
-    }}
+    /* Typing */
+    .typing-wrap {{ display: inline-flex; gap: 6px; padding: 4px; }}
     .typing-wrap .dot {{
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: {t["accent"]};
-        animation: typingBounce 1.2s ease-in-out infinite;
+        width: 8px; height: 8px; border-radius: 50%;
+        background: {SHELL["accent"]};
+        animation: bounce 1.15s ease-in-out infinite;
     }}
     .typing-wrap .dot:nth-child(2) {{ animation-delay: 0.15s; }}
     .typing-wrap .dot:nth-child(3) {{ animation-delay: 0.3s; }}
-    @keyframes typingBounce {{
-        0%, 60%, 100% {{ transform: translateY(0); opacity: 0.45; }}
+    @keyframes bounce {{
+        0%,60%,100% {{ transform: translateY(0); opacity: 0.4; }}
         30% {{ transform: translateY(-7px); opacity: 1; }}
     }}
-
-    @media (max-width: 480px) {{
-        .hello {{ font-size: 1.5rem; }}
-        .tagline {{ font-size: 1.15rem; }}
-        .home-wrap {{ padding: 8px 4px 32px; }}
+    @keyframes fadeUp {{
+        from {{ opacity: 0; transform: translateY(10px); }}
+        to {{ opacity: 1; transform: translateY(0); }}
     }}
 
-    {" .stMarkdown, .stMarkdown p, .stCaption, label, p {{ color: " + t["text"] + " !important; }} " if t["mode"] == "light" else ""}
+    /* Orb */
+    .orb {{
+        width: 130px; height: 130px; margin: 18px auto;
+        border-radius: 50%;
+        background: radial-gradient(circle at 32% 32%, {SHELL["accent"]}, {SHELL["accent2"]} 55%, {SHELL["bg"]} 100%);
+        box-shadow: 0 0 60px {SHELL["accent_soft"]};
+        animation: pulse 2.5s ease-in-out infinite;
+    }}
+    @keyframes pulse {{
+        0%,100% {{ transform: scale(1); }}
+        50% {{ transform: scale(1.05); }}
+    }}
+
+    /* ===== DESIGN 4 — Night Bloom POPUP MENU ===== */
+    .bloom-backdrop {{
+        position: fixed; inset: 0; z-index: 99990;
+        background: rgba(8, 6, 14, 0.72);
+        backdrop-filter: blur(10px);
+        animation: fadeIn 0.25s ease;
+    }}
+    .bloom-popup {{
+        position: fixed;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 99991;
+        width: min(420px, 92vw);
+        max-height: 88vh;
+        overflow-y: auto;
+        border-radius: 24px;
+        padding: 22px 20px 18px;
+        background:
+            radial-gradient(600px 300px at 20% 0%, rgba(244,114,182,0.18), transparent 55%),
+            radial-gradient(500px 280px at 100% 20%, rgba(196,167,231,0.2), transparent 50%),
+            rgba(18, 12, 28, 0.92);
+        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 24px 80px rgba(0,0,0,0.55), 0 0 60px rgba(196,167,231,0.12);
+        animation: bloomIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }}
+    .bloom-title {{
+        font-size: 1.65rem; font-weight: 600; text-align: center;
+        background: linear-gradient(90deg, #e9d5ff, #fbcfe8, #ddd6fe);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin: 4px 0 4px;
+        letter-spacing: -0.02em;
+    }}
+    .bloom-sub {{
+        text-align: center; color: #a89bb8; font-size: 0.85rem; margin-bottom: 16px;
+    }}
+    .bloom-pill-row {{
+        display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 14px;
+    }}
+    .bloom-pill {{
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 999px;
+        padding: 8px 14px;
+        font-size: 0.8rem;
+        color: #e8e0f5;
+    }}
+    @keyframes bloomIn {{
+        from {{ opacity: 0; transform: translate(-50%, -46%) scale(0.96); }}
+        to {{ opacity: 1; transform: translate(-50%, -50%) scale(1); }}
+    }}
+    @keyframes fadeIn {{
+        from {{ opacity: 0; }} to {{ opacity: 1; }}
+    }}
+
+    /* Phone */
+    @media (max-width: 767px) {{
+        .block-container {{
+            padding-left: 0.55rem !important;
+            padding-right: 0.55rem !important;
+            max-width: 100% !important;
+        }}
+        .hero {{ font-size: 1.6rem !important; }}
+        .waybar {{ padding: 8px 10px; border-radius: 14px; }}
+        .stButton > button {{ min-height: 44px !important; }}
+        .bloom-popup {{ width: 94vw; border-radius: 20px; }}
+    }}
     </style>
     """, unsafe_allow_html=True)
 
 # ============================================================
-# CONFIG
+# LOGIC
 # ============================================================
-SYSTEM_PROMPT = """You are Meridium, a highly capable personal AI assistant.
-You are intelligent, precise, calm and modern.
-You solve problems clearly and effectively.
-You can use Wikipedia knowledge and web search results when relevant.
-Be helpful, structured and insightful. Avoid fluff.
-Address the user respectfully as Master when appropriate."""
+SYSTEM_PROMPT = """You are Meridium, a highly capable personal AI.
+Intelligent, precise, calm, modern. Use Wikipedia and web search when relevant.
+Be structured and insightful. Address the user respectfully."""
 
 GROQ_MODELS = {
     "Smart · Llama 3.3 70B": "llama-3.3-70b-versatile",
@@ -632,12 +358,10 @@ GROQ_MODELS = {
 }
 SPOTIFY_SCOPE = "user-read-currently-playing user-read-playback-state user-modify-playback-state"
 
-# ============================================================
-# STATE
-# ============================================================
 defaults = {
-    "view": "home",          # home | chat | menu | listen
-    "theme": "Violet",
+    "view": "home",
+    "font": "Inter",
+    "popup": False,
     "chats": {},
     "current_chat_id": None,
     "show_widgets": True,
@@ -662,9 +386,6 @@ if not st.session_state.chats:
     }
     st.session_state.current_chat_id = cid
 
-# ============================================================
-# HELPERS
-# ============================================================
 def get_wiki(query: str, sentences: int = 3) -> str:
     try:
         wikipedia.set_lang("en")
@@ -672,8 +393,7 @@ def get_wiki(query: str, sentences: int = 3) -> str:
         if not results:
             return ""
         title = results[0]
-        summary = wikipedia.summary(title, sentences=sentences, auto_suggest=False)
-        return f"**{title}**\n\n{summary}"
+        return f"**{title}**\n\n{wikipedia.summary(title, sentences=sentences, auto_suggest=False)}"
     except Exception:
         return ""
 
@@ -683,13 +403,10 @@ def get_web_search(query: str, max_results: int = 5) -> str:
             results = list(ddgs.text(query, max_results=max_results))
         if not results:
             return ""
-        lines = []
-        for i, r in enumerate(results, 1):
-            title = r.get("title", "")
-            body = r.get("body", "")
-            href = r.get("href", "")
-            lines.append(f"{i}. **{title}**\n{body}\nSource: {href}")
-        return "\n\n".join(lines)
+        return "\n\n".join(
+            f"{i}. **{r.get('title','')}**\n{r.get('body','')}\nSource: {r.get('href','')}"
+            for i, r in enumerate(results, 1)
+        )
     except Exception as e:
         return f"(Web search unavailable: {e})"
 
@@ -717,7 +434,6 @@ def run_chat(messages, provider, model_name, api_key):
         return f"⚠️ {err}"
     if provider == "groq":
         model = GROQ_MODELS.get(model_name, "llama-3.3-70b-versatile")
-        # if stored value is already an API id
         if model_name in GROQ_MODELS.values():
             model = model_name
     elif provider == "grok":
@@ -738,11 +454,10 @@ def get_spotify():
     redirect = st.secrets.get("SPOTIFY_REDIRECT_URI", "http://localhost:8501")
     if not cid or not secret:
         return None
-    auth = SpotifyOAuth(
+    return spotipy.Spotify(auth_manager=SpotifyOAuth(
         client_id=cid, client_secret=secret, redirect_uri=redirect,
         scope=SPOTIFY_SCOPE, cache_path=None, open_browser=False,
-    )
-    return spotipy.Spotify(auth_manager=auth)
+    ))
 
 def current_track(sp):
     try:
@@ -753,9 +468,7 @@ def current_track(sp):
         return {
             "name": item["name"],
             "artists": ", ".join(a["name"] for a in item["artists"]),
-            "art": item["album"]["images"][0]["url"] if item["album"]["images"] else None,
             "playing": data["is_playing"],
-            "device": data.get("device", {}).get("name", ""),
         }
     except Exception:
         return None
@@ -771,301 +484,241 @@ def create_new_chat():
 
 def update_chat_title(chat_id, first_message):
     title = first_message.strip()
-    if len(title) > 40:
-        title = title[:40] + "…"
-    st.session_state.chats[chat_id]["title"] = title
+    st.session_state.chats[chat_id]["title"] = title[:40] + ("…" if len(title) > 40 else "")
 
 # ============================================================
 # APPLY
 # ============================================================
-inject_css(st.session_state.get("theme", "Violet"))
+inject_css(st.session_state.font, st.session_state.popup)
 now = datetime.now()
 time_str = now.strftime("%H:%M")
 date_str = now.strftime("%a · %b %d")
-
 provider = st.session_state.provider
 model_name = st.session_state.model_name
 api_key = st.session_state.api_key_val
 use_wiki = st.session_state.use_wiki_toggle
 use_web = st.session_state.use_web_toggle
 
-# ============================================================
-# INTRO
-# ============================================================
+# Intro
 if st.session_state.show_intro:
-    _t = THEMES.get(st.session_state.get("theme", "Violet"), THEMES["Violet"])
     st.markdown(f"""
-    <div style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;
-    justify-content:center;background:{_t["bg_solid"]};animation:introFade 2.5s ease forwards;">
-        <div style="font-size:1.85rem;font-weight:600;color:{_t["text"]};animation:fadeUp 1.2s ease forwards;">
-            Hello, <span style="color:{_t["chip_text"]};">Master</span>
-        </div>
+    <div style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
+    background:#0c0c10;animation:introFade 2.3s ease forwards;">
+      <div style="text-align:center;">
+        <div style="font-size:0.72rem;letter-spacing:0.22em;text-transform:uppercase;color:#c4a7e7;margin-bottom:12px;">Meridium</div>
+        <div style="font-size:1.9rem;font-weight:600;color:#e8e6f0;">Hello, <span style="color:#c4a7e7;">Master</span></div>
+      </div>
     </div>
-    <style>
-    @keyframes introFade {{
-        0%, 65% {{ opacity: 1; pointer-events: all; }}
-        100% {{ opacity: 0; pointer-events: none; }}
-    }}
-    </style>
+    <style>@keyframes introFade{{0%,65%{{opacity:1}}100%{{opacity:0;pointer-events:none}}}}</style>
     """, unsafe_allow_html=True)
-    time.sleep(2.4)
+    time.sleep(2.2)
     st.session_state.show_intro = False
     st.rerun()
 
-# ============================================================
-# TOP BAR (always)
-# ============================================================
-b1, b2, b3 = st.columns([1, 3, 1])
-with b1:
-    if st.button("◈", key="nav_logo", help="Menu"):
-        st.session_state.view = "menu" if st.session_state.view != "menu" else "home"
-        st.rerun()
-with b3:
-    if st.session_state.view != "home":
-        if st.button("⌂", key="nav_home", help="Home"):
-            st.session_state.view = "home"
+# ===== DESIGN 4 POPUP (Night Bloom) =====
+if st.session_state.popup:
+    st.markdown('<div class="bloom-backdrop"></div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="bloom-popup">
+      <div class="bloom-title">Hello, Master</div>
+      <div class="bloom-sub">Night Bloom menu · fonts · models · navigation</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Streamlit controls sit under the visual header — we use a container that feels part of popup
+    with st.container():
+        fonts = list(FONTS.keys())
+        fi = fonts.index(st.session_state.font) if st.session_state.font in fonts else 0
+        ft = st.selectbox("Font", fonts, index=fi, key="pop_font")
+        if ft != st.session_state.font:
+            st.session_state.font = ft
             st.rerun()
 
-# ============================================================
-# MENU
-# ============================================================
-if st.session_state.view == "menu":
-    st.markdown('<div class="home-wrap">', unsafe_allow_html=True)
-    st.markdown("### Menu")
-    st.caption("Navigate · Widgets · Settings")
+        st.session_state.show_widgets = st.checkbox("Time widgets", value=st.session_state.show_widgets, key="pop_time")
+        st.session_state.show_spotify = st.checkbox("Spotify", value=st.session_state.show_spotify, key="pop_sp")
+        st.session_state.use_wiki_toggle = st.checkbox("Wikipedia", value=st.session_state.use_wiki_toggle, key="pop_wiki")
+        st.session_state.use_web_toggle = st.checkbox("Web search", value=st.session_state.use_web_toggle, key="pop_web")
 
-    theme_opts = list(THEMES.keys())
-    cur = st.session_state.get("theme", "Violet")
-    picked = st.selectbox(
-        "Colour palette",
-        theme_opts,
-        index=theme_opts.index(cur) if cur in theme_opts else 0,
-        key="theme_pick",
-    )
-    if picked != st.session_state.theme:
-        st.session_state.theme = picked
-        st.rerun()
+        st.markdown("---")
+        st.session_state.provider = st.selectbox(
+            "Provider", ["groq", "grok", "openrouter"],
+            index=["groq", "grok", "openrouter"].index(st.session_state.provider)
+            if st.session_state.provider in ["groq", "grok", "openrouter"] else 0,
+            key="pop_prov",
+        )
+        if st.session_state.provider == "groq":
+            opts = list(GROQ_MODELS.keys())
+        elif st.session_state.provider == "grok":
+            opts = ["Grok 4.5", "Grok 4.3"]
+        else:
+            opts = ["meta-llama/llama-3.3-70b-instruct:free", "qwen/qwen3-32b:free"]
+        mi = opts.index(st.session_state.model_name) if st.session_state.model_name in opts else 0
+        st.session_state.model_name = st.selectbox("Model", opts, index=mi, key="pop_model")
+        st.session_state.api_key_val = st.text_input("API Key (optional)", type="password", value=st.session_state.api_key_val, key="pop_key")
 
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button("⌂  Home", use_container_width=True, key="m_home"):
-            st.session_state.view = "home"
-            st.rerun()
-        if st.button("💬  Chat", use_container_width=True, key="m_chat"):
-            st.session_state.view = "chat"
-            st.rerun()
-        if st.button("＋  New chat", use_container_width=True, key="m_new"):
-            create_new_chat()
-            st.session_state.view = "chat"
-            st.rerun()
-        if st.button("◎  Listen", use_container_width=True, key="m_listen"):
-            st.session_state.view = "listen"
-            st.rerun()
-    with c2:
-        tl = "🕒  Time ON" if st.session_state.show_widgets else "🕒  Time OFF"
-        if st.button(tl, use_container_width=True, key="m_time"):
-            st.session_state.show_widgets = not st.session_state.show_widgets
-            st.rerun()
-        ml = "♫  Music ON" if st.session_state.show_spotify else "♫  Music OFF"
-        if st.button(ml, use_container_width=True, key="m_music"):
-            st.session_state.show_spotify = not st.session_state.show_spotify
-            st.rerun()
-        if st.button("✕  Close", use_container_width=True, key="m_close"):
-            st.session_state.view = "home"
-            st.rerun()
+        st.markdown("---")
+        r1, r2 = st.columns(2)
+        with r1:
+            if st.button("⌂ Home", use_container_width=True, key="pop_home"):
+                st.session_state.view = "home"
+                st.session_state.popup = False
+                st.rerun()
+            if st.button("💬 Chat", use_container_width=True, key="pop_chat"):
+                st.session_state.view = "chat"
+                st.session_state.popup = False
+                st.rerun()
+            if st.button("＋ New chat", use_container_width=True, key="pop_new"):
+                create_new_chat()
+                st.session_state.view = "chat"
+                st.session_state.popup = False
+                st.rerun()
+        with r2:
+            if st.button("◎ Listen", use_container_width=True, key="pop_listen"):
+                st.session_state.view = "listen"
+                st.session_state.popup = False
+                st.rerun()
+            if st.button("✕ Close", use_container_width=True, key="pop_close"):
+                st.session_state.popup = False
+                st.rerun()
 
-    st.markdown("---")
-    st.markdown("**Model**")
-    st.session_state.provider = st.selectbox(
-        "Provider", ["groq", "grok", "openrouter"],
-        index=["groq", "grok", "openrouter"].index(st.session_state.provider)
-        if st.session_state.provider in ["groq", "grok", "openrouter"] else 0,
-        key="menu_prov",
-    )
-    if st.session_state.provider == "groq":
-        opts = list(GROQ_MODELS.keys())
-    elif st.session_state.provider == "grok":
-        opts = ["Grok 4.5", "Grok 4.3"]
-    else:
-        opts = ["meta-llama/llama-3.3-70b-instruct:free", "qwen/qwen3-32b:free"]
-    _mi = opts.index(st.session_state.model_name) if st.session_state.model_name in opts else 0
-    st.session_state.model_name = st.selectbox("Model", opts, index=_mi, key="menu_model")
-
-    st.session_state.api_key_val = st.text_input(
-        "API Key (optional)", type="password",
-        value=st.session_state.api_key_val, key="menu_key",
-    )
-    st.session_state.use_wiki_toggle = st.checkbox("Wikipedia", value=st.session_state.use_wiki_toggle)
-    st.session_state.use_web_toggle = st.checkbox("Web search", value=st.session_state.use_web_toggle)
-
-    st.markdown("---")
-    st.markdown("**Chats**")
-    for cid, data in sorted(st.session_state.chats.items(), key=lambda x: x[1].get("created", ""), reverse=True)[:10]:
-        if st.button(data.get("title", "Untitled"), key=f"mc_{cid}", use_container_width=True):
-            st.session_state.current_chat_id = cid
-            st.session_state.view = "chat"
-            st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("**Recent chats**")
+        for cid, data in sorted(st.session_state.chats.items(), key=lambda x: x[1].get("created", ""), reverse=True)[:8]:
+            if st.button(data.get("title", "Untitled"), key=f"pop_c_{cid}", use_container_width=True):
+                st.session_state.current_chat_id = cid
+                st.session_state.view = "chat"
+                st.session_state.popup = False
+                st.rerun()
     st.stop()
 
-# ============================================================
-# LISTEN VIEW (orb)
-# ============================================================
+# ===== DESIGN 1 WAYBAR =====
+st.markdown(f"""
+<div class="waybar">
+  <div class="waybar-left">
+    <div class="logo-btn">◈</div>
+    <span class="brand">Meridium</span>
+    <span class="chip">Caelestia</span>
+    <span class="chip">{st.session_state.font}</span>
+  </div>
+  <div class="waybar-right">
+    <span class="clock">{time_str}</span>
+    <span class="muted">{date_str}</span>
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+# Nav
+n1, n2, n3, n4 = st.columns(4)
+with n1:
+    if st.button("⌂ Home", use_container_width=True, key="n_home"):
+        st.session_state.view = "home"
+        st.rerun()
+with n2:
+    if st.button("💬 Chat", use_container_width=True, key="n_chat"):
+        st.session_state.view = "chat"
+        st.rerun()
+with n3:
+    if st.button("◎ Listen", use_container_width=True, key="n_listen"):
+        st.session_state.view = "listen"
+        st.rerun()
+with n4:
+    if st.button("☰ Menu", use_container_width=True, key="n_menu"):
+        st.session_state.popup = True
+        st.rerun()
+
+# LISTEN
 if st.session_state.view == "listen":
     st.markdown("""
-    <div class="orb-wrap">
-        <div class="listen-label">I'm listening…</div>
-        <div class="orb"></div>
-        <div class="listen-quote">Tap below to open chat and speak with Meridium.</div>
+    <div class="panel" style="text-align:center;">
+      <div class="panel-label">Focus</div>
+      <div style="color:#c4a7e7;margin-bottom:4px;">I'm listening…</div>
+      <div class="orb"></div>
+      <div class="muted">Caelestia calm · open chat when ready</div>
     </div>
     """, unsafe_allow_html=True)
-    c1, c2, c3 = st.columns([1, 2, 1])
-    with c2:
-        if st.button("💬  Start chatting", use_container_width=True, key="listen_chat"):
-            st.session_state.view = "chat"
-            st.rerun()
-        if st.button("⌂  Home", use_container_width=True, key="listen_home"):
-            st.session_state.view = "home"
-            st.rerun()
+    if st.button("💬 Open chat", use_container_width=True):
+        st.session_state.view = "chat"
+        st.rerun()
     st.stop()
 
-# ============================================================
-# HOME
-# ============================================================
+# HOME — Design 1
 if st.session_state.view == "home":
-    st.markdown('<div class="home-wrap">', unsafe_allow_html=True)
-
-    st.markdown("""
-    <div class="top-row">
-        <div class="avatar-pill">◈</div>
-        <div class="premium-chip">✦ Meridium</div>
+    st.markdown(f"""
+    <div class="panel">
+      <div class="panel-label">Shell</div>
+      <div class="hero">Hello, <span>Master</span></div>
+      <div class="sub">Meridium · personal intelligence · Caelestia shell</div>
+      <div class="ridge"></div>
+      <div class="grid4">
+        <div class="card"><div class="card-ico">✧</div><div class="card-t">Smart chat</div><div class="card-d">Groq · Grok · OR</div></div>
+        <div class="card"><div class="card-ico">◈</div><div class="card-t">Live knowledge</div><div class="card-d">Web + Wiki</div></div>
+        <div class="card"><div class="card-ico">♫</div><div class="card-t">Music</div><div class="card-d">Spotify</div></div>
+        <div class="card"><div class="card-ico">◎</div><div class="card-t">Listen</div><div class="card-d">Focus orb</div></div>
+      </div>
     </div>
-    <div class="hello">Hello, <span>Master</span></div>
-    <div class="tagline">Make anything you imagine.</div>
     """, unsafe_allow_html=True)
 
-    if st.session_state.show_widgets:
-        st.markdown(f"""
-        <div class="time-chip">
-            <span>{time_str}</span>
-            <span>{date_str}</span>
-        </div>
-        """, unsafe_allow_html=True)
-
-    # Primary actions
-    a1, a2, a3, a4 = st.columns(4)
-    with a1:
+    b1, b2, b3 = st.columns(3)
+    with b1:
         if st.button("Start chat", use_container_width=True, key="h_chat"):
             st.session_state.view = "chat"
             st.rerun()
-    with a2:
+    with b2:
         if st.button("＋ New", use_container_width=True, key="h_new"):
             create_new_chat()
             st.session_state.view = "chat"
             st.rerun()
-    with a3:
-        if st.button("◎ Listen", use_container_width=True, key="h_listen"):
-            st.session_state.view = "listen"
-            st.rerun()
-    with a4:
+    with b3:
         if st.button("☰ Menu", use_container_width=True, key="h_menu"):
-            st.session_state.view = "menu"
+            st.session_state.popup = True
             st.rerun()
 
-    # Feature cards
-    st.markdown("""
-    <div class="feat-grid">
-        <div class="feat-card" style="animation-delay:0.1s">
-            <span class="feat-icon">✧</span>
-            <div class="feat-title">Smart chat</div>
-            <div class="feat-sub">Powerful free models</div>
-        </div>
-        <div class="feat-card" style="animation-delay:0.18s">
-            <span class="feat-icon">◈</span>
-            <div class="feat-title">Web + Wiki</div>
-            <div class="feat-sub">Live knowledge</div>
-        </div>
-        <div class="feat-card" style="animation-delay:0.26s">
-            <span class="feat-icon">♫</span>
-            <div class="feat-title">Music</div>
-            <div class="feat-sub">Spotify controls</div>
-        </div>
-        <div class="feat-card" style="animation-delay:0.34s">
-            <span class="feat-icon">◎</span>
-            <div class="feat-title">Listen mode</div>
-            <div class="feat-sub">Focus & calm</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Spotify strip
-    if st.session_state.show_spotify:
-        sp = get_spotify()
-        track = current_track(sp) if sp else None
-        if track:
-            st.info(f"♫  **{track['name']}** — {track['artists']}")
-        else:
-            st.caption("♫  Music on — connect Spotify in Secrets to control playback")
-
-    # Chat history
-    st.markdown('<div class="hist-title">Chat history</div>', unsafe_allow_html=True)
-    sorted_chats = sorted(
-        st.session_state.chats.items(),
-        key=lambda x: x[1].get("created", ""),
-        reverse=True,
-    )
-    for i, (cid, data) in enumerate(sorted_chats[:6]):
-        title = data.get("title", "Untitled")
-        cols = st.columns([5, 1])
-        with cols[0]:
-            st.markdown(f"""
-            <div class="hist-item" style="animation-delay:{0.1 + i * 0.05}s">
-                <div class="hist-icon">💬</div>
-                <div class="hist-text">{title}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        with cols[1]:
-            if st.button("→", key=f"hist_{cid}", help="Open"):
-                st.session_state.current_chat_id = cid
-                st.session_state.view = "chat"
-                st.rerun()
-
-    st.markdown("</div>", unsafe_allow_html=True)
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown('<div class="panel"><div class="panel-label">Status</div>', unsafe_allow_html=True)
+        if st.session_state.show_widgets:
+            st.markdown(f'<div style="display:flex;gap:8px;flex-wrap:wrap;"><span class="chip">{time_str}</span><span class="chip">{date_str}</span></div>', unsafe_allow_html=True)
+        st.caption(f"Font · {st.session_state.font}")
+        st.caption(f"Model · {st.session_state.model_name}")
+        st.caption(f"Wiki {'on' if use_wiki else 'off'} · Web {'on' if use_web else 'off'}")
+        if st.session_state.show_spotify:
+            sp = get_spotify()
+            track = current_track(sp) if sp else None
+            if track:
+                st.info(f"♫ {track['name']} — {track['artists']}")
+            else:
+                st.caption("♫ Spotify ready")
+        st.markdown("</div>", unsafe_allow_html=True)
+    with c2:
+        st.markdown('<div class="panel"><div class="panel-label">Chat history</div>', unsafe_allow_html=True)
+        for cid, data in sorted(st.session_state.chats.items(), key=lambda x: x[1].get("created", ""), reverse=True)[:6]:
+            cols = st.columns([5, 1])
+            with cols[0]:
+                st.markdown(f'<div class="hist"><div class="hist-ico">💬</div><div class="hist-t">{data.get("title","Untitled")}</div></div>', unsafe_allow_html=True)
+            with cols[1]:
+                if st.button("→", key=f"h_{cid}"):
+                    st.session_state.current_chat_id = cid
+                    st.session_state.view = "chat"
+                    st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-# ============================================================
 # CHAT
-# ============================================================
 if st.session_state.current_chat_id not in st.session_state.chats:
     create_new_chat()
 current = st.session_state.chats[st.session_state.current_chat_id]
 
-st.markdown('<div class="chat-top">Meridium</div>', unsafe_allow_html=True)
-
-nav1, nav2, nav3 = st.columns(3)
-with nav1:
-    if st.button("← Home", use_container_width=True, key="c_home"):
-        st.session_state.view = "home"
-        st.rerun()
-with nav2:
-    if st.button("＋ New", use_container_width=True, key="c_new"):
-        create_new_chat()
-        st.rerun()
-with nav3:
-    if st.button("☰ Menu", use_container_width=True, key="c_menu"):
-        st.session_state.view = "menu"
-        st.rerun()
+st.markdown('<div class="panel"><div class="panel-label">Conversation</div><div class="ridge"></div>', unsafe_allow_html=True)
 
 if st.session_state.show_spotify:
     sp = get_spotify()
     track = current_track(sp) if sp else None
     if track:
-        st.caption(f"♫  {track['name']} — {track['artists']}")
+        st.caption(f"♫ {track['name']} — {track['artists']}")
         p1, p2, p3, p4 = st.columns(4)
         with p1:
             if st.button("⏮", key="sp_prev", use_container_width=True):
                 try:
-                    sp.previous_track(); time.sleep(0.3); st.rerun()
+                    sp.previous_track(); time.sleep(0.25); st.rerun()
                 except Exception:
                     pass
         with p2:
@@ -1076,13 +729,13 @@ if st.session_state.show_spotify:
                         sp.pause_playback()
                     else:
                         sp.start_playback()
-                    time.sleep(0.3); st.rerun()
+                    time.sleep(0.25); st.rerun()
                 except Exception:
                     pass
         with p3:
             if st.button("⏭", key="sp_next", use_container_width=True):
                 try:
-                    sp.next_track(); time.sleep(0.3); st.rerun()
+                    sp.next_track(); time.sleep(0.25); st.rerun()
                 except Exception:
                     pass
         with p4:
@@ -1097,7 +750,6 @@ if prompt := st.chat_input("Ask Meridium anything…"):
     current["messages"].append({"role": "user", "content": prompt})
     if len(current["messages"]) == 1:
         update_chat_title(st.session_state.current_chat_id, prompt)
-
     with st.chat_message("user"):
         st.markdown(prompt)
 
@@ -1110,7 +762,6 @@ if prompt := st.chat_input("Ask Meridium anything…"):
         web = get_web_search(prompt)
         if web:
             messages[0]["content"] += f"\n\nRelevant web search results:\n{web}"
-
     for m in current["messages"]:
         messages.append({"role": m["role"], "content": m["content"]})
 
@@ -1120,10 +771,11 @@ if prompt := st.chat_input("Ask Meridium anything…"):
             '<div class="typing-wrap"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>',
             unsafe_allow_html=True,
         )
-        # short idle so the dots are visible before the reply lands
-        time.sleep(1.2)
+        time.sleep(1.0)
         reply = run_chat(messages, provider, model_name, api_key)
         typing.markdown(reply)
 
     current["messages"].append({"role": "assistant", "content": reply})
     st.rerun()
+
+st.markdown("</div>", unsafe_allow_html=True)
