@@ -657,29 +657,88 @@ def make_client(provider: str, api_key: str = None):
         return OpenAI(api_key=key, base_url="https://openrouter.ai/api/v1"), None
     return None, "Unknown provider"
 
+def _is_rate_limit_error(err) -> bool:
+    s = str(err).lower()
+    return any(x in s for x in (
+        "rate_limit", "rate limit", "429", "tokens per day", "tpd",
+        "quota", "too many requests", "limit reached",
+    ))
+
 def run_chat(messages, provider, model_name, api_key):
     client, err = make_client(provider, api_key)
     if err:
         return f"⚠️ {err}"
+
+    def resolve_model(name):
+        if provider == "groq":
+            m = GROQ_MODELS.get(name, "llama-3.3-70b-versatile")
+            if name in GROQ_MODELS.values():
+                m = name
+            return m
+        if provider == "grok":
+            return "grok-4.5" if "4.5" in str(name) else "grok-3"
+        return name
+
+    primary = resolve_model(model_name)
+    # Smaller / cheaper fallbacks when the smart model is exhausted
+    fallbacks = []
     if provider == "groq":
-        model = GROQ_MODELS.get(model_name, "llama-3.3-70b-versatile")
-        if model_name in GROQ_MODELS.values():
-            model = model_name
-    elif provider == "grok":
-        model = "grok-4.5" if "4.5" in str(model_name) else "grok-3"
-    else:
-        model = model_name
-    try:
-        res = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=0.55,
-            max_tokens=4096,
-            top_p=0.9,
-        )
-        return res.choices[0].message.content
-    except Exception as e:
-        return f"Error: {e}"
+        fallbacks = [
+            "llama-3.1-8b-instant",
+            "llama-3.3-70b-versatile",
+            "qwen/qwen3-32b",
+        ]
+        fallbacks = [m for m in fallbacks if m != primary]
+    elif provider == "openrouter":
+        fallbacks = [
+            "meta-llama/llama-3.3-70b-instruct:free",
+            "qwen/qwen3-32b:free",
+        ]
+        fallbacks = [m for m in fallbacks if m != primary]
+
+    models_to_try = [primary] + fallbacks
+    last_err = None
+    used_fallback = False
+
+    for i, model in enumerate(models_to_try):
+        try:
+            res = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=0.55,
+                max_tokens=2048 if i > 0 else 3072,
+                top_p=0.9,
+            )
+            content = res.choices[0].message.content or ""
+            if i > 0:
+                used_fallback = True
+                st.session_state["_last_fallback"] = model
+                note = (
+                    "\n\n---\n"
+                    "*Smart mode is resting (daily limit). "
+                    "Switched to a lighter model so you can keep chatting — "
+                    "like slow mode. Full smart mode returns after the limit resets.*"
+                )
+                return content + note
+            return content
+        except Exception as e:
+            last_err = e
+            if _is_rate_limit_error(e):
+                # try next fallback
+                continue
+            # non-rate-limit error: stop
+            return f"⚠️ Something went wrong: {e}"
+
+    # All models rate-limited
+    return (
+        "You've used up today's smart-mode allowance.\n\n"
+        "Meridium will keep working once the daily limit resets "
+        "(usually within an hour or two), or you can:\n"
+        "- Wait a bit, then try again\n"
+        "- Switch provider in **Menu** (e.g. OpenRouter free models)\n"
+        "- Upgrade Groq at https://console.groq.com/settings/billing\n\n"
+        "This is a temporary slowdown — not a ban. Come back soon."
+    )
 
 def _spotify_creds():
     cid = st.secrets.get("SPOTIFY_CLIENT_ID", "") or os.getenv("SPOTIFY_CLIENT_ID", "")
