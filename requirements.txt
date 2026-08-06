@@ -3,3 +3,4 @@ openai>=1.40.0
 wikipedia>=1.4.0
 requests>=2.32.0
 spotipy>=2.23.0
+duckduckgo-search>=6.0.0
