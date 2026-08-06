@@ -24,29 +24,64 @@ FONTS = {
     "Space Grotesk": "'Space Grotesk', system-ui, sans-serif",
     "Outfit": "'Outfit', system-ui, sans-serif",
     "JetBrains Mono": "'JetBrains Mono', ui-monospace, monospace",
-    "Mojangles": "'Press Start 2P', cursive",
     "Newsreader": "'Newsreader', Georgia, serif",
 }
 
-# Design 1 shell colours (Caelestia)
-SHELL = {
-    "bg": "#0c0c10",
-    "panel": "rgba(24, 24, 32, 0.75)",
-    "panel_solid": "#16161e",
-    "border": "rgba(255,255,255,0.08)",
-    "text": "#e8e6f0",
-    "muted": "#8b8798",
-    "accent": "#c4a7e7",
-    "accent2": "#9d7cd8",
-    "accent_soft": "rgba(196, 167, 231, 0.16)",
+
+# ============================================================
+# COLOUR PALETTES
+# ============================================================
+THEMES = {
+    "Caelestia": {
+        "bg": "#0c0c10", "panel": "rgba(24, 24, 32, 0.75)", "panel_solid": "#16161e",
+        "border": "rgba(255,255,255,0.08)", "text": "#e8e6f0", "muted": "#8b8798",
+        "accent": "#c4a7e7", "accent2": "#9d7cd8", "accent_soft": "rgba(196, 167, 231, 0.16)",
+    },
+    "Hypr Violet": {
+        "bg": "#0b0614", "panel": "rgba(28, 18, 42, 0.75)", "panel_solid": "#1c122a",
+        "border": "rgba(167,139,250,0.18)", "text": "#f0eef8", "muted": "#9a94b0",
+        "accent": "#a78bfa", "accent2": "#7c3aed", "accent_soft": "rgba(167,139,250,0.16)",
+    },
+    "Ridge Mint": {
+        "bg": "#0a100e", "panel": "rgba(18, 32, 28, 0.75)", "panel_solid": "#12201c",
+        "border": "rgba(94,234,212,0.15)", "text": "#e6f2ee", "muted": "#7a9a90",
+        "accent": "#5eead4", "accent2": "#2dd4bf", "accent_soft": "rgba(94,234,212,0.14)",
+    },
+    "Ocean Depth": {
+        "bg": "#060c14", "panel": "rgba(14, 28, 40, 0.75)", "panel_solid": "#0e1c28",
+        "border": "rgba(56,189,248,0.15)", "text": "#e6f0f6", "muted": "#7a9ab0",
+        "accent": "#38bdf8", "accent2": "#0ea5e9", "accent_soft": "rgba(56,189,248,0.14)",
+    },
+    "Peach Bloom": {
+        "bg": "#120c0a", "panel": "rgba(36, 26, 22, 0.78)", "panel_solid": "#241a16",
+        "border": "rgba(255,159,122,0.16)", "text": "#faf0eb", "muted": "#a89088",
+        "accent": "#ff9f7a", "accent2": "#e87a5a", "accent_soft": "rgba(255,159,122,0.14)",
+    },
+    "Rose Noir": {
+        "bg": "#10080c", "panel": "rgba(36, 18, 28, 0.78)", "panel_solid": "#24121c",
+        "border": "rgba(244,114,182,0.16)", "text": "#fdf2f8", "muted": "#a08090",
+        "accent": "#f472b6", "accent2": "#ec4899", "accent_soft": "rgba(244,114,182,0.14)",
+    },
+    "Soft Dark": {
+        "bg": "#0c0c10", "panel": "rgba(22, 22, 28, 0.78)", "panel_solid": "#16161c",
+        "border": "rgba(255,255,255,0.08)", "text": "#f0f0f4", "muted": "#8b8b9a",
+        "accent": "#a1a1aa", "accent2": "#71717a", "accent_soft": "rgba(161,161,170,0.14)",
+    },
+    "Cloud Soft": {
+        "bg": "#eef0f5", "panel": "rgba(255,255,255,0.78)", "panel_solid": "#ffffff",
+        "border": "rgba(0,0,0,0.08)", "text": "#1a1a22", "muted": "#6b6b7b",
+        "accent": "#7c6cf0", "accent2": "#6c5ce7", "accent_soft": "rgba(124,108,240,0.12)",
+    },
 }
 
-def inject_css(font_name: str, popup_open: bool = False):
+
+def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool = False):
     font = FONTS.get(font_name, FONTS["Inter"])
-    moj = "0.7" if font_name == "Mojangles" else "1"
+    SHELL = THEMES.get(theme_name, THEMES["Caelestia"])
+    moj = "1"
     st.markdown(f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Press+Start+2P&family=Newsreader:opsz,wght@6..72,400;6..72,600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,600&display=swap');
 
     html, body, [class*="css"] {{
         font-family: {font} !important;
@@ -54,8 +89,8 @@ def inject_css(font_name: str, popup_open: bool = False):
     }}
     .stApp {{
         background:
-            radial-gradient(900px 480px at 15% -5%, rgba(196,167,231,0.12), transparent 55%),
-            radial-gradient(700px 400px at 95% 10%, rgba(157,124,216,0.08), transparent 50%),
+            radial-gradient(900px 480px at 15% -5%, {SHELL["accent_soft"]}, transparent 55%),
+            radial-gradient(700px 400px at 95% 10%, {SHELL["accent_soft"]}, transparent 50%),
             {SHELL["bg"]};
         color: {SHELL["text"]};
     }}
@@ -428,6 +463,7 @@ SPOTIFY_SCOPE = "user-read-currently-playing user-read-playback-state user-modif
 defaults = {
     "view": "home",
     "font": "Inter",
+    "theme": "Caelestia",
     "popup": False,
     "chats": {},
     "current_chat_id": None,
@@ -569,7 +605,7 @@ def update_chat_title(chat_id, first_message):
 # ============================================================
 # APPLY
 # ============================================================
-inject_css(st.session_state.font, st.session_state.popup)
+inject_css(st.session_state.font, st.session_state.get("theme", "Caelestia"), st.session_state.popup)
 now = datetime.now()
 time_str = now.strftime("%H:%M")
 date_str = now.strftime("%a · %b %d")
@@ -635,6 +671,15 @@ if st.session_state.popup:
     ft = st.selectbox("Font", fonts, index=fi, key="pop_font")
     if ft != st.session_state.font:
         st.session_state.font = ft
+        st.rerun()
+
+    themes = list(THEMES.keys())
+    if "theme" not in st.session_state:
+        st.session_state.theme = "Caelestia"
+    ti = themes.index(st.session_state.theme) if st.session_state.theme in themes else 0
+    th = st.selectbox("Colour palette", themes, index=ti, key="pop_theme")
+    if th != st.session_state.theme:
+        st.session_state.theme = th
         st.rerun()
 
     w1, w2 = st.columns(2)
@@ -713,7 +758,7 @@ st.markdown(f"""
   <div class="waybar-left">
     <div class="logo-btn">◈</div>
     <span class="brand">Meridium</span>
-    <span class="chip">Caelestia</span>
+    <span class="chip">{st.session_state.get("theme", "Caelestia")}</span>
     <span class="chip">{st.session_state.font}</span>
   </div>
   <div class="waybar-right">
