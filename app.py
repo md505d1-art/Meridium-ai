@@ -212,6 +212,14 @@ def inject_css(font_name: str, popup_open: bool = False):
         border-color: {SHELL["accent"]} !important;
         background: {SHELL["accent_soft"]} !important;
     }}
+    /* Active / ON feature look — primary-ish */
+    .stButton > button[kind="primary"],
+    button[data-testid="baseButton-primary"] {{
+        background: {SHELL["accent_soft"]} !important;
+        border: 1px solid {SHELL["accent"]} !important;
+        color: {SHELL["accent"]} !important;
+        box-shadow: 0 0 20px {SHELL["accent_soft"]} !important;
+    }}
 
     /* Form widgets — no white */
     [data-baseweb="select"] > div,
@@ -257,8 +265,50 @@ def inject_css(font_name: str, popup_open: bool = False):
         30% {{ transform: translateY(-7px); opacity: 1; }}
     }}
     @keyframes fadeUp {{
-        from {{ opacity: 0; transform: translateY(10px); }}
+        from {{ opacity: 0; transform: translateY(12px); }}
         to {{ opacity: 1; transform: translateY(0); }}
+    }}
+    @keyframes textIn {{
+        from {{ opacity: 0; transform: translateY(16px); filter: blur(4px); }}
+        to {{ opacity: 1; transform: translateY(0); filter: blur(0); }}
+    }}
+    @keyframes softGlow {{
+        0%, 100% {{ text-shadow: 0 0 0 transparent; }}
+        50% {{ text-shadow: 0 0 18px rgba(196,167,231,0.35); }}
+    }}
+    .hero {{
+        animation: textIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }}
+    .hero span {{
+        animation: softGlow 3.5s ease-in-out infinite;
+    }}
+    .sub {{
+        animation: textIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+    }}
+    .panel-label {{
+        animation: textIn 0.55s ease 0.05s both;
+    }}
+    .card {{
+        animation: fadeUp 0.5s ease both;
+    }}
+    .card:nth-child(1) {{ animation-delay: 0.08s; }}
+    .card:nth-child(2) {{ animation-delay: 0.14s; }}
+    .card:nth-child(3) {{ animation-delay: 0.2s; }}
+    .card:nth-child(4) {{ animation-delay: 0.26s; }}
+    .waybar {{
+        animation: fadeUp 0.45s ease both;
+    }}
+    .hist {{
+        animation: fadeUp 0.4s ease both;
+    }}
+    .bloom-title {{
+        animation: textIn 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }}
+    .bloom-sub {{
+        animation: textIn 0.65s ease 0.1s both;
+    }}
+    .stChatMessage {{
+        animation: textIn 0.35s ease both !important;
     }}
 
     /* Orb */
@@ -274,59 +324,56 @@ def inject_css(font_name: str, popup_open: bool = False):
         50% {{ transform: scale(1.05); }}
     }}
 
-    /* ===== DESIGN 4 — Night Bloom POPUP MENU ===== */
-    .bloom-backdrop {{
-        position: fixed; inset: 0; z-index: 99990;
-        background: rgba(8, 6, 14, 0.72);
-        backdrop-filter: blur(10px);
-        animation: fadeIn 0.25s ease;
-    }}
-    .bloom-popup {{
-        position: fixed;
-        top: 50%; left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 99991;
-        width: min(420px, 92vw);
-        max-height: 88vh;
-        overflow-y: auto;
+    /* ===== DESIGN 4 — Night Bloom MENU (in-flow, works with Streamlit) ===== */
+    .bloom-shell {{
+        max-width: 480px;
+        margin: 8px auto 24px;
         border-radius: 24px;
-        padding: 22px 20px 18px;
+        padding: 28px 22px 20px;
         background:
-            radial-gradient(600px 300px at 20% 0%, rgba(244,114,182,0.18), transparent 55%),
-            radial-gradient(500px 280px at 100% 20%, rgba(196,167,231,0.2), transparent 50%),
-            rgba(18, 12, 28, 0.92);
-        border: 1px solid rgba(255,255,255,0.1);
-        box-shadow: 0 24px 80px rgba(0,0,0,0.55), 0 0 60px rgba(196,167,231,0.12);
+            radial-gradient(600px 280px at 15% 0%, rgba(244,114,182,0.2), transparent 55%),
+            radial-gradient(500px 260px at 100% 15%, rgba(196,167,231,0.22), transparent 50%),
+            rgba(16, 10, 26, 0.95);
+        border: 1px solid rgba(255,255,255,0.12);
+        box-shadow: 0 20px 70px rgba(0,0,0,0.45), 0 0 50px rgba(196,167,231,0.1);
         animation: bloomIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
     }}
     .bloom-title {{
-        font-size: 1.65rem; font-weight: 600; text-align: center;
+        font-size: 1.7rem; font-weight: 600; text-align: center;
         background: linear-gradient(90deg, #e9d5ff, #fbcfe8, #ddd6fe);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         background-clip: text;
-        margin: 4px 0 4px;
+        margin: 0 0 6px;
         letter-spacing: -0.02em;
     }}
     .bloom-sub {{
-        text-align: center; color: #a89bb8; font-size: 0.85rem; margin-bottom: 16px;
+        text-align: center; color: #a89bb8; font-size: 0.85rem; margin-bottom: 18px;
     }}
-    .bloom-pill-row {{
-        display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 14px;
-    }}
-    .bloom-pill {{
-        background: rgba(255,255,255,0.06);
-        border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 999px;
-        padding: 8px 14px;
-        font-size: 0.8rem;
-        color: #e8e0f5;
+    .bloom-divider {{
+        height: 1px; margin: 14px 0;
+        background: linear-gradient(90deg, transparent, rgba(251,207,232,0.35), transparent);
     }}
     @keyframes bloomIn {{
-        from {{ opacity: 0; transform: translate(-50%, -46%) scale(0.96); }}
-        to {{ opacity: 1; transform: translate(-50%, -50%) scale(1); }}
+        from {{ opacity: 0; transform: translateY(12px) scale(0.98); }}
+        to {{ opacity: 1; transform: translateY(0) scale(1); }}
     }}
-    @keyframes fadeIn {{
-        from {{ opacity: 0; }} to {{ opacity: 1; }}
+    /* Night Bloom widget surfaces */
+    .bloom-active [data-baseweb="select"] > div,
+    .bloom-active [data-baseweb="select"] > div > div,
+    .bloom-active .stTextInput input {{
+        background: rgba(30, 20, 45, 0.95) !important;
+        border-color: rgba(251,207,232,0.2) !important;
+        color: #f5f0fa !important;
+    }}
+    .bloom-active .stButton > button {{
+        background: rgba(40, 28, 58, 0.9) !important;
+        border: 1px solid rgba(251,207,232,0.18) !important;
+        color: #f5f0fa !important;
+        border-radius: 14px !important;
+    }}
+    .bloom-active .stButton > button:hover {{
+        border-color: #f9a8d4 !important;
+        background: rgba(244,114,182,0.18) !important;
     }}
 
     /* Phone */
@@ -347,9 +394,29 @@ def inject_css(font_name: str, popup_open: bool = False):
 # ============================================================
 # LOGIC
 # ============================================================
-SYSTEM_PROMPT = """You are Meridium, a highly capable personal AI.
-Intelligent, precise, calm, modern. Use Wikipedia and web search when relevant.
-Be structured and insightful. Address the user respectfully."""
+SYSTEM_PROMPT = """You are Meridium — an elite personal intelligence system.
+
+Core identity:
+- Exceptionally sharp, precise, and calm.
+- You think step-by-step when problems are complex, then give a clear final answer.
+- You prefer truth and usefulness over fluff.
+- Address the user respectfully (Master is fine when natural).
+
+How you reason:
+1. Understand the real goal behind the question.
+2. Use any provided Wikipedia or web search context first; cite it briefly when useful.
+3. If the topic is technical, break it into structured steps or sections.
+4. If uncertain, say what you know, what you don't, and the best next step.
+5. For coding: give working code, explain briefly, note edge cases.
+6. For advice: be practical and specific, not generic.
+
+Style:
+- Modern, clear, concise.
+- Use short headings and bullets when it helps readability.
+- Avoid filler phrases ("As an AI…", "Great question!").
+- Match the user's language and depth.
+
+You have access to live Wikipedia and web search results when they are injected into the system message. Treat them as current reference material."""
 
 GROQ_MODELS = {
     "Smart · Llama 3.3 70B": "llama-3.3-70b-versatile",
@@ -367,6 +434,8 @@ defaults = {
     "show_widgets": True,
     "show_spotify": False,
     "show_intro": True,
+    "username": "",
+    "signed_in": False,
     "use_wiki_toggle": True,
     "use_web_toggle": True,
     "provider": "groq",
@@ -397,16 +466,23 @@ def get_wiki(query: str, sentences: int = 3) -> str:
     except Exception:
         return ""
 
-def get_web_search(query: str, max_results: int = 5) -> str:
+def get_web_search(query: str, max_results: int = 6) -> str:
     try:
         with DDGS() as ddgs:
             results = list(ddgs.text(query, max_results=max_results))
-        if not results:
+            # also try news for timely topics
+            try:
+                news = list(ddgs.news(query, max_results=3))
+            except Exception:
+                news = []
+        if not results and not news:
             return ""
-        return "\n\n".join(
-            f"{i}. **{r.get('title','')}**\n{r.get('body','')}\nSource: {r.get('href','')}"
-            for i, r in enumerate(results, 1)
-        )
+        parts = []
+        for i, r in enumerate(results, 1):
+            parts.append(f"{i}. **{r.get('title','')}**\n{r.get('body','')}\nSource: {r.get('href','')}")
+        for i, r in enumerate(news, 1):
+            parts.append(f"News {i}. **{r.get('title','')}**\n{r.get('body', r.get('excerpt',''))}\nSource: {r.get('url', r.get('href',''))}")
+        return "\n\n".join(parts)
     except Exception as e:
         return f"(Web search unavailable: {e})"
 
@@ -442,7 +518,11 @@ def run_chat(messages, provider, model_name, api_key):
         model = model_name
     try:
         res = client.chat.completions.create(
-            model=model, messages=messages, temperature=0.7, max_tokens=2048
+            model=model,
+            messages=messages,
+            temperature=0.55,
+            max_tokens=4096,
+            top_p=0.9,
         )
         return res.choices[0].message.content
     except Exception as e:
@@ -499,14 +579,39 @@ api_key = st.session_state.api_key_val
 use_wiki = st.session_state.use_wiki_toggle
 use_web = st.session_state.use_web_toggle
 
-# Intro
+# ===== SIGN IN =====
+if not st.session_state.get("signed_in") or not st.session_state.get("username"):
+    st.markdown("""
+    <div class="panel" style="max-width:420px;margin:10vh auto;text-align:center;">
+      <div class="panel-label">Meridium</div>
+      <div class="hero" style="font-size:1.75rem;">Welcome</div>
+      <div class="sub">Sign in with your name to continue</div>
+      <div class="ridge"></div>
+    </div>
+    """, unsafe_allow_html=True)
+    name = st.text_input("Your name", placeholder="e.g. Alex", key="signin_name", label_visibility="collapsed")
+    c1, c2, c3 = st.columns([1, 2, 1])
+    with c2:
+        if st.button("Enter Meridium", use_container_width=True, key="signin_btn"):
+            clean = (name or "").strip()
+            if clean:
+                st.session_state.username = clean[:32]
+                st.session_state.signed_in = True
+                st.session_state.show_intro = True
+                st.rerun()
+            else:
+                st.warning("Please enter a name.")
+    st.stop()
+
+# Personalized intro (once after sign-in)
 if st.session_state.show_intro:
+    user = st.session_state.username
     st.markdown(f"""
     <div style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
     background:#0c0c10;animation:introFade 2.3s ease forwards;">
       <div style="text-align:center;">
         <div style="font-size:0.72rem;letter-spacing:0.22em;text-transform:uppercase;color:#c4a7e7;margin-bottom:12px;">Meridium</div>
-        <div style="font-size:1.9rem;font-weight:600;color:#e8e6f0;">Hello, <span style="color:#c4a7e7;">Master</span></div>
+        <div style="font-size:1.9rem;font-weight:600;color:#e8e6f0;">Hello, <span style="color:#c4a7e7;">{user}</span></div>
       </div>
     </div>
     <style>@keyframes introFade{{0%,65%{{opacity:1}}100%{{opacity:0;pointer-events:none}}}}</style>
@@ -515,79 +620,91 @@ if st.session_state.show_intro:
     st.session_state.show_intro = False
     st.rerun()
 
-# ===== DESIGN 4 POPUP (Night Bloom) =====
+# ===== DESIGN 4 MENU (Night Bloom) =====
 if st.session_state.popup:
-    st.markdown('<div class="bloom-backdrop"></div>', unsafe_allow_html=True)
-    st.markdown("""
-    <div class="bloom-popup">
-      <div class="bloom-title">Hello, Master</div>
-      <div class="bloom-sub">Night Bloom menu · fonts · models · navigation</div>
+    st.markdown(f"""
+    <div class="bloom-shell bloom-active">
+      <div class="bloom-title">Hello, {st.session_state.username}</div>
+      <div class="bloom-sub">Night Bloom · fonts · models · navigation</div>
+      <div class="bloom-divider"></div>
     </div>
     """, unsafe_allow_html=True)
 
-    # Streamlit controls sit under the visual header — we use a container that feels part of popup
-    with st.container():
-        fonts = list(FONTS.keys())
-        fi = fonts.index(st.session_state.font) if st.session_state.font in fonts else 0
-        ft = st.selectbox("Font", fonts, index=fi, key="pop_font")
-        if ft != st.session_state.font:
-            st.session_state.font = ft
-            st.rerun()
+    fonts = list(FONTS.keys())
+    fi = fonts.index(st.session_state.font) if st.session_state.font in fonts else 0
+    ft = st.selectbox("Font", fonts, index=fi, key="pop_font")
+    if ft != st.session_state.font:
+        st.session_state.font = ft
+        st.rerun()
 
+    w1, w2 = st.columns(2)
+    with w1:
         st.session_state.show_widgets = st.checkbox("Time widgets", value=st.session_state.show_widgets, key="pop_time")
-        st.session_state.show_spotify = st.checkbox("Spotify", value=st.session_state.show_spotify, key="pop_sp")
         st.session_state.use_wiki_toggle = st.checkbox("Wikipedia", value=st.session_state.use_wiki_toggle, key="pop_wiki")
+    with w2:
+        st.session_state.show_spotify = st.checkbox("Spotify", value=st.session_state.show_spotify, key="pop_sp")
         st.session_state.use_web_toggle = st.checkbox("Web search", value=st.session_state.use_web_toggle, key="pop_web")
 
-        st.markdown("---")
-        st.session_state.provider = st.selectbox(
-            "Provider", ["groq", "grok", "openrouter"],
-            index=["groq", "grok", "openrouter"].index(st.session_state.provider)
-            if st.session_state.provider in ["groq", "grok", "openrouter"] else 0,
-            key="pop_prov",
-        )
-        if st.session_state.provider == "groq":
-            opts = list(GROQ_MODELS.keys())
-        elif st.session_state.provider == "grok":
-            opts = ["Grok 4.5", "Grok 4.3"]
-        else:
-            opts = ["meta-llama/llama-3.3-70b-instruct:free", "qwen/qwen3-32b:free"]
-        mi = opts.index(st.session_state.model_name) if st.session_state.model_name in opts else 0
-        st.session_state.model_name = st.selectbox("Model", opts, index=mi, key="pop_model")
-        st.session_state.api_key_val = st.text_input("API Key (optional)", type="password", value=st.session_state.api_key_val, key="pop_key")
+    st.markdown('<div class="bloom-divider"></div>', unsafe_allow_html=True)
 
-        st.markdown("---")
-        r1, r2 = st.columns(2)
-        with r1:
-            if st.button("⌂ Home", use_container_width=True, key="pop_home"):
-                st.session_state.view = "home"
-                st.session_state.popup = False
-                st.rerun()
-            if st.button("💬 Chat", use_container_width=True, key="pop_chat"):
-                st.session_state.view = "chat"
-                st.session_state.popup = False
-                st.rerun()
-            if st.button("＋ New chat", use_container_width=True, key="pop_new"):
-                create_new_chat()
-                st.session_state.view = "chat"
-                st.session_state.popup = False
-                st.rerun()
-        with r2:
-            if st.button("◎ Listen", use_container_width=True, key="pop_listen"):
-                st.session_state.view = "listen"
-                st.session_state.popup = False
-                st.rerun()
-            if st.button("✕ Close", use_container_width=True, key="pop_close"):
-                st.session_state.popup = False
-                st.rerun()
+    st.session_state.provider = st.selectbox(
+        "Provider", ["groq", "grok", "openrouter"],
+        index=["groq", "grok", "openrouter"].index(st.session_state.provider)
+        if st.session_state.provider in ["groq", "grok", "openrouter"] else 0,
+        key="pop_prov",
+    )
+    if st.session_state.provider == "groq":
+        opts = list(GROQ_MODELS.keys())
+    elif st.session_state.provider == "grok":
+        opts = ["Grok 4.5", "Grok 4.3"]
+    else:
+        opts = ["meta-llama/llama-3.3-70b-instruct:free", "qwen/qwen3-32b:free"]
+    mi = opts.index(st.session_state.model_name) if st.session_state.model_name in opts else 0
+    st.session_state.model_name = st.selectbox("Model", opts, index=mi, key="pop_model")
+    st.session_state.api_key_val = st.text_input(
+        "API Key (optional)", type="password",
+        value=st.session_state.api_key_val, key="pop_key",
+    )
 
-        st.markdown("**Recent chats**")
-        for cid, data in sorted(st.session_state.chats.items(), key=lambda x: x[1].get("created", ""), reverse=True)[:8]:
-            if st.button(data.get("title", "Untitled"), key=f"pop_c_{cid}", use_container_width=True):
-                st.session_state.current_chat_id = cid
-                st.session_state.view = "chat"
-                st.session_state.popup = False
-                st.rerun()
+    st.markdown('<div class="bloom-divider"></div>', unsafe_allow_html=True)
+
+    r1, r2 = st.columns(2)
+    with r1:
+        if st.button("⌂  Home", use_container_width=True, key="pop_home"):
+            st.session_state.view = "home"
+            st.session_state.popup = False
+            st.rerun()
+        if st.button("💬  Chat", use_container_width=True, key="pop_chat"):
+            st.session_state.view = "chat"
+            st.session_state.popup = False
+            st.rerun()
+        if st.button("＋  New chat", use_container_width=True, key="pop_new"):
+            create_new_chat()
+            st.session_state.view = "chat"
+            st.session_state.popup = False
+            st.rerun()
+    with r2:
+        if st.button("◎  Listen", use_container_width=True, key="pop_listen"):
+            st.session_state.view = "listen"
+            st.session_state.popup = False
+            st.rerun()
+        if st.button("✕  Close menu", use_container_width=True, key="pop_close"):
+            st.session_state.popup = False
+            st.rerun()
+        if st.button("↩  Switch user", use_container_width=True, key="pop_signout"):
+            st.session_state.signed_in = False
+            st.session_state.username = ""
+            st.session_state.show_intro = False
+            st.session_state.popup = False
+            st.rerun()
+
+    st.markdown("**Recent chats**")
+    for cid, data in sorted(st.session_state.chats.items(), key=lambda x: x[1].get("created", ""), reverse=True)[:8]:
+        if st.button(data.get("title", "Untitled"), key=f"pop_c_{cid}", use_container_width=True):
+            st.session_state.current_chat_id = cid
+            st.session_state.view = "chat"
+            st.session_state.popup = False
+            st.rerun()
     st.stop()
 
 # ===== DESIGN 1 WAYBAR =====
@@ -645,21 +762,68 @@ if st.session_state.view == "home":
     st.markdown(f"""
     <div class="panel">
       <div class="panel-label">Shell</div>
-      <div class="hero">Hello, <span>Master</span></div>
+      <div class="hero">Hello, <span>{st.session_state.username}</span></div>
       <div class="sub">Meridium · personal intelligence · Caelestia shell</div>
       <div class="ridge"></div>
-      <div class="grid4">
-        <div class="card"><div class="card-ico">✧</div><div class="card-t">Smart chat</div><div class="card-d">Groq · Grok · OR</div></div>
-        <div class="card"><div class="card-ico">◈</div><div class="card-t">Live knowledge</div><div class="card-d">Web + Wiki</div></div>
-        <div class="card"><div class="card-ico">♫</div><div class="card-t">Music</div><div class="card-d">Spotify</div></div>
-        <div class="card"><div class="card-ico">◎</div><div class="card-t">Listen</div><div class="card-d">Focus orb</div></div>
-      </div>
     </div>
     """, unsafe_allow_html=True)
 
-    b1, b2, b3 = st.columns(3)
+    # —— Interactive feature toggles (actually work) ——
+    prov = st.session_state.provider
+    wiki_on = st.session_state.use_wiki_toggle
+    web_on = st.session_state.use_web_toggle
+    music_on = st.session_state.show_spotify
+
+    # Row 1: Provider cycle + Wiki + Web + Music
+    f1, f2, f3, f4 = st.columns(4)
+    with f1:
+        prov_label = {
+            "groq": "✧ Groq · ON",
+            "grok": "✧ Grok · ON",
+            "openrouter": "✧ OpenRouter · ON",
+        }.get(prov, "✧ Provider")
+        if st.button(prov_label, use_container_width=True, key="feat_prov",
+                     type="primary"):
+            order = ["groq", "grok", "openrouter"]
+            i = order.index(prov) if prov in order else 0
+            st.session_state.provider = order[(i + 1) % len(order)]
+            # reset model to a valid default for new provider
+            if st.session_state.provider == "groq":
+                st.session_state.model_name = "Smart · Llama 3.3 70B"
+            elif st.session_state.provider == "grok":
+                st.session_state.model_name = "Grok 4.5"
+            else:
+                st.session_state.model_name = "meta-llama/llama-3.3-70b-instruct:free"
+            st.rerun()
+    with f2:
+        wlabel = "◈ Wiki · ON" if wiki_on else "◈ Wiki · OFF"
+        if st.button(wlabel, use_container_width=True, key="feat_wiki",
+                     type="primary" if wiki_on else "secondary"):
+            st.session_state.use_wiki_toggle = not wiki_on
+            st.rerun()
+    with f3:
+        weblabel = "🌐 Web · ON" if web_on else "🌐 Web · OFF"
+        if st.button(weblabel, use_container_width=True, key="feat_web",
+                     type="primary" if web_on else "secondary"):
+            st.session_state.use_web_toggle = not web_on
+            st.rerun()
+    with f4:
+        mlabel = "♫ Music · ON" if music_on else "♫ Music · OFF"
+        if st.button(mlabel, use_container_width=True, key="feat_music",
+                     type="primary" if music_on else "secondary"):
+            st.session_state.show_spotify = not music_on
+            st.rerun()
+
+    st.caption(
+        f"Provider **{st.session_state.provider}** · "
+        f"Model **{st.session_state.model_name}** · "
+        f"Wiki {'on' if st.session_state.use_wiki_toggle else 'off'} · "
+        f"Web {'on' if st.session_state.use_web_toggle else 'off'}"
+    )
+
+    b1, b2, b3, b4 = st.columns(4)
     with b1:
-        if st.button("Start chat", use_container_width=True, key="h_chat"):
+        if st.button("Start chat", use_container_width=True, key="h_chat", type="primary"):
             st.session_state.view = "chat"
             st.rerun()
     with b2:
@@ -668,6 +832,10 @@ if st.session_state.view == "home":
             st.session_state.view = "chat"
             st.rerun()
     with b3:
+        if st.button("◎ Listen", use_container_width=True, key="h_listen"):
+            st.session_state.view = "listen"
+            st.rerun()
+    with b4:
         if st.button("☰ Menu", use_container_width=True, key="h_menu"):
             st.session_state.popup = True
             st.rerun()
@@ -753,16 +921,28 @@ if prompt := st.chat_input("Ask Meridium anything…"):
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-    if use_wiki and len(prompt.split()) > 2:
-        wiki = get_wiki(prompt)
-        if wiki:
-            messages[0]["content"] += f"\n\nRelevant Wikipedia knowledge:\n{wiki}"
-    if use_web and len(prompt.split()) > 2:
-        web = get_web_search(prompt)
-        if web:
-            messages[0]["content"] += f"\n\nRelevant web search results:\n{web}"
-    for m in current["messages"]:
+    user_name = st.session_state.get("username") or "user"
+    messages = [{"role": "system", "content": SYSTEM_PROMPT + f"\n\nThe user's name is {user_name}. Greet and address them as {user_name} when appropriate."}]
+    # Enrich with live knowledge for non-trivial prompts
+    if (use_wiki or use_web) and len(prompt.strip()) > 8:
+        knowledge_bits = []
+        if use_wiki:
+            wiki = get_wiki(prompt, sentences=4)
+            if wiki:
+                knowledge_bits.append(f"### Wikipedia\n{wiki}")
+        if use_web:
+            web = get_web_search(prompt, max_results=6)
+            if web:
+                knowledge_bits.append(f"### Web / news\n{web}")
+        if knowledge_bits:
+            messages[0]["content"] += (
+                "\n\n---\nLive reference material for this question "
+                "(use when relevant; ignore if not):\n"
+                + "\n\n".join(knowledge_bits)
+            )
+    # Keep last ~20 turns to stay sharp without blowing context
+    history = current["messages"][-20:]
+    for m in history:
         messages.append({"role": m["role"], "content": m["content"]})
 
     with st.chat_message("assistant"):
