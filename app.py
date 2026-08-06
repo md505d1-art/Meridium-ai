@@ -13,7 +13,7 @@ st.set_page_config(
     page_title="Meridium",
     page_icon="◈",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # ============================================================
@@ -194,9 +194,12 @@ def inject_theme(name: str):
         display: none !important;
     }}
 
+    /* Sidebar — soft panel */
     section[data-testid="stSidebar"] {{
-        background: {t["sidebar"]} !important;
-        border-right: 1px solid {t["border"]} !important;
+        display: none !important;
+    }}
+    section[data-testid="stSidebar"][aria-expanded="true"] {{
+        display: none !important;
     }}
     section[data-testid="stSidebar"] * {{
         color: {t["muted"]} !important;
@@ -208,6 +211,7 @@ def inject_theme(name: str):
         color: {t["text"]} !important;
     }}
 
+    /* Bubbly chat cards */
     .stChatMessage {{
         background: {t["bubble"]} !important;
         border: 1px solid {t["border"]} !important;
@@ -217,6 +221,7 @@ def inject_theme(name: str):
         box-shadow: 0 4px 20px rgba(0,0,0,0.12);
     }}
 
+    /* Rounded input */
     .stChatInput > div {{
         background: {t["input"]} !important;
         border: 1px solid {t["border"]} !important;
@@ -224,6 +229,7 @@ def inject_theme(name: str):
         box-shadow: 0 4px 24px rgba(0,0,0,0.1);
     }}
 
+    /* Soft pill buttons */
     .stButton > button {{
         background: {t["btn"]} !important;
         color: {t["btn_text"]} !important;
@@ -241,6 +247,7 @@ def inject_theme(name: str):
 
     a {{ color: {t["accent"]} !important; text-decoration: none !important; }}
 
+    /* Hero */
     .hero {{
         text-align: center;
         padding: 28px 16px 8px;
@@ -268,6 +275,56 @@ def inject_theme(name: str):
         font-size: 0.95rem;
         font-weight: 500;
         border: 1px solid {t["accent"]}33;
+    }}
+
+    /* Time / date widgets — large & centered like mockup */
+
+    /* Intro animation */
+    .intro-overlay {{
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: {t["bg_solid"]};
+        animation: introFade 2.8s ease forwards;
+    }}
+    .intro-text {{
+        font-size: 2rem;
+        font-weight: 500;
+        color: {t["text"]};
+        letter-spacing: 0.02em;
+        animation: introIn 1.4s ease forwards;
+        opacity: 0;
+    }}
+    .intro-text span {{
+        color: {t["accent"]};
+    }}
+    @keyframes introIn {{
+        0% {{ opacity: 0; transform: translateY(12px); }}
+        30% {{ opacity: 1; transform: translateY(0); }}
+        75% {{ opacity: 1; }}
+        100% {{ opacity: 0; transform: translateY(-8px); }}
+    }}
+    @keyframes introFade {{
+        0%, 70% {{ opacity: 1; pointer-events: all; }}
+        100% {{ opacity: 0; pointer-events: none; }}
+    }}
+
+    /* Control bar */
+    .control-bar {{
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+        max-width: 520px;
+        margin: 12px auto 8px auto;
+        padding: 10px;
+        background: {t["surface"]};
+        border: 1px solid {t["border"]};
+        border-radius: 18px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.12);
     }}
 
     .widget-bar {{
@@ -300,6 +357,7 @@ def inject_theme(name: str):
         margin-top: 2px;
     }}
 
+    /* Spotify card */
     .sp-card {{
         background: {t["surface"]};
         border: 1px solid {t["border"]};
@@ -331,10 +389,124 @@ def inject_theme(name: str):
         margin-top: 2px;
     }}
 
+    /* Hide default chat avatars */
+    [data-testid="stChatMessageAvatarUser"],
+    [data-testid="stChatMessageAvatarAssistant"],
+    [data-testid="stChatAvatar"],
+    .stChatMessage [data-testid="stImage"] {{
+        display: none !important;
+    }}
+    [data-testid="stChatMessage"] {{
+        padding-left: 0.5rem !important;
+    }}
+
+    /* Hide default Streamlit sidebar toggle */
+    [data-testid="collapsedControl"] {{
+        display: none !important;
+    }}
+
+    /* Logo menu button */
+    .logo-btn {{
+        position: fixed;
+        top: 14px;
+        left: 14px;
+        z-index: 100000;
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        background: {t["surface"]};
+        border: 1px solid {t["border"]};
+        box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        animation: logoIn 0.6s ease;
+    }}
+    .logo-btn:hover {{
+        transform: scale(1.06);
+        border-color: {t["accent"]};
+        box-shadow: 0 6px 24px rgba(167, 139, 250, 0.25);
+    }}
+    .logo-btn svg {{
+        width: 28px;
+        height: 28px;
+    }}
+    @keyframes logoIn {{
+        from {{ opacity: 0; transform: scale(0.8); }}
+        to {{ opacity: 1; transform: scale(1); }}
+    }}
+
+    /* Slide-out menu panel */
+    .side-menu {{
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: min(300px, 85vw);
+        height: 100vh;
+        z-index: 99998;
+        background: {t["sidebar"]};
+        border-right: 1px solid {t["border"]};
+        box-shadow: 8px 0 40px rgba(0,0,0,0.35);
+        padding: 72px 20px 24px 20px;
+        animation: menuSlide 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+        overflow-y: auto;
+    }}
+    .side-menu-backdrop {{
+        position: fixed;
+        inset: 0;
+        z-index: 99997;
+        background: rgba(0,0,0,0.45);
+        animation: fadeIn 0.3s ease;
+    }}
+    @keyframes menuSlide {{
+        from {{ transform: translateX(-100%); opacity: 0.6; }}
+        to {{ transform: translateX(0); opacity: 1; }}
+    }}
+    @keyframes fadeIn {{
+        from {{ opacity: 0; }}
+        to {{ opacity: 1; }}
+    }}
+    .menu-item {{
+        display: block;
+        padding: 12px 14px;
+        margin-bottom: 6px;
+        border-radius: 12px;
+        color: {t["text"]} !important;
+        background: transparent;
+        border: 1px solid transparent;
+        font-size: 0.95rem;
+        transition: background 0.2s ease;
+    }}
+    .menu-item:hover {{
+        background: {t["surface"]};
+        border-color: {t["border"]};
+    }}
+
+    /* Text animations */
+    .hero-title {{
+        animation: textRise 0.8s ease both;
+    }}
+    .hero-sub {{
+        animation: textRise 0.8s ease 0.15s both;
+    }}
+    .greeting, .widget-bar {{
+        animation: textRise 0.8s ease 0.28s both;
+    }}
+    @keyframes textRise {{
+        from {{ opacity: 0; transform: translateY(14px); }}
+        to {{ opacity: 1; transform: translateY(0); }}
+    }}
+
+    /* Light theme text force */
     {" .stApp, .stMarkdown, .stMarkdown p, .stCaption, [data-testid='stChatMessageContent'], label, p {{ color: " + t["text"] + " !important; }} " if t["mode"] == "light" else ""}
     </style>
     """, unsafe_allow_html=True)
 
+# ============================================================
+# CONFIG
+# ============================================================
 SYSTEM_PROMPT = """You are Meridium, a highly capable personal AI assistant.
 You are intelligent, precise, calm and modern.
 You solve problems clearly and effectively.
@@ -349,12 +521,18 @@ GROQ_MODELS = {
 }
 SPOTIFY_SCOPE = "user-read-currently-playing user-read-playback-state user-modify-playback-state"
 
+# ============================================================
+# SESSION
+# ============================================================
 defaults = {
     "theme": "Soft Dark",
     "chats": {},
     "current_chat_id": None,
     "show_spotify": False,
     "show_widgets": True,
+    "view": "home",  # home | chat
+    "show_intro": True,
+    "menu_open": False,
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -369,6 +547,9 @@ if not st.session_state.chats:
     }
     st.session_state.current_chat_id = cid
 
+# ============================================================
+# HELPERS
+# ============================================================
 def get_wiki(query: str, sentences: int = 3) -> str:
     try:
         wikipedia.set_lang("en")
@@ -476,11 +657,119 @@ def update_chat_title(chat_id, first_message):
         title = title[:40] + "…"
     st.session_state.chats[chat_id]["title"] = title
 
+# ============================================================
+# APPLY
+# ============================================================
 inject_theme(st.session_state.theme)
 now = datetime.now()
 time_str = now.strftime("%H:%M")
 date_str = now.strftime("%a, %b %d")
 
+# ============================================================
+# SIDEBAR
+# ============================================================
+
+
+# ---- Logo menu button (top-left) ----
+LOGO_SVG = """<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#e8e0ff"/>
+      <stop offset="100%" style="stop-color:#a78bfa"/>
+    </linearGradient>
+  </defs>
+  <path d="M20 30 Q20 75 50 80 Q80 75 80 30 L68 30 Q68 60 50 66 Q32 60 32 30 Z" fill="url(#g)"/>
+  <path d="M35 38 L50 58 L65 38" fill="none" stroke="url(#g)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>"""
+
+lc1, lc2, lc3 = st.columns([1, 6, 1])
+with lc1:
+    if st.button("◈", key="logo_menu_btn", help="Open menu"):
+        st.session_state.menu_open = not st.session_state.menu_open
+        st.rerun()
+
+if st.session_state.menu_open:
+    st.markdown('<div class="side-menu-backdrop"></div>', unsafe_allow_html=True)
+    with st.container():
+        st.markdown("### Menu")
+        m1, m2 = st.columns(2)
+        with m1:
+            if st.button("⌂ Home", use_container_width=True, key="m_home"):
+                st.session_state.view = "home"
+                st.session_state.menu_open = False
+                st.rerun()
+            if st.button("💬 Chat", use_container_width=True, key="m_chat"):
+                st.session_state.view = "chat"
+                st.session_state.menu_open = False
+                st.rerun()
+            if st.button("＋ New chat", use_container_width=True, key="m_new"):
+                create_new_chat()
+                st.session_state.view = "chat"
+                st.session_state.menu_open = False
+                st.rerun()
+        with m2:
+            if st.button("🕒 Toggle time", use_container_width=True, key="m_time"):
+                st.session_state.show_widgets = not st.session_state.show_widgets
+                st.rerun()
+            if st.button("🎵 Toggle music", use_container_width=True, key="m_music"):
+                st.session_state.show_spotify = not st.session_state.show_spotify
+                st.rerun()
+            if st.button("✕ Close", use_container_width=True, key="m_close"):
+                st.session_state.menu_open = False
+                st.rerun()
+
+        st.markdown("**Theme**")
+        theme = st.selectbox("Theme", list(THEMES.keys()),
+                             index=list(THEMES.keys()).index(st.session_state.theme),
+                             key="menu_theme")
+        if theme != st.session_state.theme:
+            st.session_state.theme = theme
+            st.rerun()
+
+        st.markdown("**Model**")
+        provider = st.selectbox("Provider", ["groq", "grok", "openrouter"],
+            index=["groq","grok","openrouter"].index(st.session_state.get("provider","groq")) if st.session_state.get("provider","groq") in ["groq","grok","openrouter"] else 0,
+            key="menu_prov")
+        st.session_state.provider = provider
+        if provider == "groq":
+            model_name = st.selectbox("Model", list(GROQ_MODELS.keys()), index=0, key="menu_model")
+        elif provider == "grok":
+            model_name = st.selectbox("Model", ["Grok 4.5", "Grok 4.3"], index=0, key="menu_model")
+        else:
+            model_name = st.selectbox("Model", [
+                "meta-llama/llama-3.3-70b-instruct:free",
+                "qwen/qwen3-32b:free",
+            ], index=0, key="menu_model")
+        api_key = st.text_input("API Key (optional)", type="password", key="menu_key")
+        st.session_state.api_key_val = api_key
+        st.session_state.model_name = model_name
+        st.session_state.provider = provider
+        if "use_wiki_toggle" not in st.session_state:
+            st.session_state.use_wiki_toggle = True
+        if "use_web_toggle" not in st.session_state:
+            st.session_state.use_web_toggle = True
+        st.session_state.use_wiki_toggle = st.checkbox("Wikipedia", value=st.session_state.use_wiki_toggle, key="menu_wiki")
+        st.session_state.use_web_toggle = st.checkbox("Web search", value=st.session_state.use_web_toggle, key="menu_web")
+        use_wiki = st.session_state.use_wiki_toggle
+        use_web = st.session_state.use_web_toggle
+
+        st.markdown("---")
+        st.markdown("**Chats**")
+        sorted_chats = sorted(
+            st.session_state.chats.items(),
+            key=lambda x: x[1].get("created", ""),
+            reverse=True,
+        )
+        for cid, data in sorted_chats[:12]:
+            label = data.get("title", "Untitled")
+            if st.button(label, key=f"menu_c_{cid}", use_container_width=True):
+                st.session_state.current_chat_id = cid
+                st.session_state.view = "chat"
+                st.session_state.menu_open = False
+                st.rerun()
+
+
+# Legacy sidebar (hidden via CSS)
 with st.sidebar:
     st.markdown("### Meridium")
     st.caption("Personal Intelligence")
@@ -501,6 +790,10 @@ with st.sidebar:
     st.markdown("---")
     if st.button("＋  New chat", use_container_width=True):
         create_new_chat()
+        st.session_state.view = "chat"
+        st.rerun()
+    if st.button("⌂  Home", use_container_width=True):
+        st.session_state.view = "home"
         st.rerun()
 
     st.markdown("**Chats**")
@@ -514,6 +807,7 @@ with st.sidebar:
         label = ("● " if active else "○ ") + data.get("title", "Untitled")
         if st.button(label, key=f"c_{cid}", use_container_width=True):
             st.session_state.current_chat_id = cid
+            st.session_state.view = "chat"
             st.rerun()
 
     st.markdown("---")
@@ -530,108 +824,238 @@ with st.sidebar:
         ], index=0)
 
     api_key = st.text_input("API Key (optional)", type="password")
-    use_wiki = st.checkbox("Wikipedia", value=True)
-    use_web = st.checkbox("Web search", value=True)
+    if "use_wiki_toggle" not in st.session_state:
+        st.session_state.use_wiki_toggle = True
+    if "use_web_toggle" not in st.session_state:
+        st.session_state.use_web_toggle = True
+    st.session_state.use_wiki_toggle = st.checkbox("Wikipedia", value=st.session_state.use_wiki_toggle)
+    st.session_state.use_web_toggle = st.checkbox("Web search", value=st.session_state.use_web_toggle)
+    use_wiki = st.session_state.use_wiki_toggle
+    use_web = st.session_state.use_web_toggle
 
     st.markdown("---")
     st.markdown("[Groq](https://console.groq.com) · [Spotify](https://developer.spotify.com/dashboard)")
 
-current = st.session_state.chats[st.session_state.current_chat_id]
+# ============================================================
+# MAIN
+# ============================================================
 
-st.markdown("""
-<div class="hero">
-    <div class="hero-title">Meridium</div>
-    <div class="hero-sub">Personal Intelligence System</div>
-    <div class="greeting">Hello, Master</div>
-</div>
-""", unsafe_allow_html=True)
+# ============================================================
+# MAIN — Home or Chat
+# ============================================================
 
-if st.session_state.show_widgets:
-    st.markdown(f"""
-    <div class="widget-bar">
-        <div class="widget-pill">
-            <div class="value">{time_str}</div>
-            <div class="label">Time</div>
-        </div>
-        <div class="widget-pill">
-            <div class="value">{date_str}</div>
-            <div class="label">Date</div>
-        </div>
+# Quick actions always available in sidebar context
+
+# Ensure model settings always exist
+if "provider" not in st.session_state:
+    st.session_state.provider = "groq"
+if "model_name" not in st.session_state:
+    st.session_state.model_name = list(GROQ_MODELS.keys())[0]
+if "api_key_val" not in st.session_state:
+    st.session_state.api_key_val = ""
+if "use_wiki_toggle" not in st.session_state:
+    st.session_state.use_wiki_toggle = True
+if "use_web_toggle" not in st.session_state:
+    st.session_state.use_web_toggle = True
+
+provider = st.session_state.get("provider", "groq")
+model_name = st.session_state.get("model_name", list(GROQ_MODELS.keys())[0])
+api_key = st.session_state.get("api_key_val", "")
+use_wiki = st.session_state.use_wiki_toggle
+use_web = st.session_state.use_web_toggle
+
+if st.session_state.show_intro:
+    st.markdown("""
+    <div class="intro-overlay">
+        <div class="intro-text">Hello, <span>Master</span></div>
+    </div>
+    """, unsafe_allow_html=True)
+    import time as _t
+    _t.sleep(2.6)
+    st.session_state.show_intro = False
+    st.rerun()
+
+if st.session_state.view == "home":
+    # -------- HOME MENU --------
+    st.markdown("""
+    <div class="hero" style="padding-top: 36px;">
+        <div class="hero-title">Meridium</div>
+        <div class="hero-sub">Personal Intelligence System</div>
     </div>
     """, unsafe_allow_html=True)
 
-if st.session_state.show_spotify:
-    sp = get_spotify()
-    track = current_track(sp) if sp else None
-    if track:
-        art = f'<img class="sp-art" src="{track["art"]}">' if track["art"] else ""
+    if st.session_state.show_widgets:
+        _now = datetime.now()
+        time_str = _now.strftime("%H:%M")
+        date_str = _now.strftime("%a, %b %d")
         st.markdown(f"""
-        <div class="sp-card">
-            {art}
-            <div>
-                <div class="sp-title">{track["name"]}</div>
-                <div class="sp-artist">{track["artists"]}{" · " + track["device"] if track["device"] else ""}</div>
+        <div class="widget-bar">
+            <div class="widget-pill">
+                <div class="value">{time_str}</div>
+                <div class="label">Time</div>
+            </div>
+            <div class="widget-pill">
+                <div class="value">{date_str}</div>
+                <div class="label">Date</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
-        c1, c2, c3, c4 = st.columns(4)
-        with c1:
-            if st.button("⏮", use_container_width=True, key="prev"):
-                try:
-                    sp.previous_track(); time.sleep(0.3); st.rerun()
-                except: pass
-        with c2:
-            icon = "⏸" if track["playing"] else "▶️"
-            if st.button(icon, use_container_width=True, key="play"):
-                try:
-                    if track["playing"]:
-                        sp.pause_playback()
-                    else:
-                        sp.start_playback()
-                    time.sleep(0.3); st.rerun()
-                except: pass
-        with c3:
-            if st.button("⏭", use_container_width=True, key="next"):
-                try:
-                    sp.next_track(); time.sleep(0.3); st.rerun()
-                except: pass
-        with c4:
-            if st.button("↻", use_container_width=True, key="ref"):
-                st.rerun()
-    elif sp:
-        st.caption("Spotify connected — nothing playing.")
-    else:
-        st.caption("Add Spotify keys in Secrets to enable music.")
 
-for msg in current["messages"]:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+    st.markdown("##### Control bar")
+    r1 = st.columns(4)
+    with r1[0]:
+        if st.button("💬 Chat", use_container_width=True, key="cb_chat"):
+            st.session_state.view = "chat"
+            st.rerun()
+    with r1[1]:
+        if st.button("＋ New", use_container_width=True, key="cb_new"):
+            create_new_chat()
+            st.session_state.view = "chat"
+            st.rerun()
+    with r1[2]:
+        if st.button("🕒 Time", use_container_width=True, key="cb_time"):
+            st.session_state.show_widgets = not st.session_state.show_widgets
+            st.rerun()
+    with r1[3]:
+        if st.button("🎵 Music", use_container_width=True, key="cb_music"):
+            st.session_state.show_spotify = not st.session_state.show_spotify
+            st.rerun()
 
-if prompt := st.chat_input("Message Meridium…"):
-    current["messages"].append({"role": "user", "content": prompt})
-    if len(current["messages"]) == 1:
-        update_chat_title(st.session_state.current_chat_id, prompt)
+    r2 = st.columns(4)
+    with r2[0]:
+        if st.button("🌐 Web", use_container_width=True, key="cb_web"):
+            st.session_state["use_web_toggle"] = not st.session_state.get("use_web_toggle", True)
+            st.rerun()
+    with r2[1]:
+        if st.button("📖 Wiki", use_container_width=True, key="cb_wiki"):
+            st.session_state["use_wiki_toggle"] = not st.session_state.get("use_wiki_toggle", True)
+            st.rerun()
+    with r2[2]:
+        keys = list(THEMES.keys())
+        if st.button("🎨 Theme", use_container_width=True, key="cb_theme"):
+            i = keys.index(st.session_state.theme)
+            st.session_state.theme = keys[(i + 1) % len(keys)]
+            st.rerun()
+    with r2[3]:
+        if st.button("☰ Menu", use_container_width=True, key="cb_menu"):
+            st.toast("Tap the top-left button to open the full menu")
 
-    with st.chat_message("user"):
-        st.markdown(prompt)
+    web_on = st.session_state.get("use_web_toggle", True)
+    wiki_on = st.session_state.get("use_wiki_toggle", True)
+    st.caption(
+        f"Time: {'on' if st.session_state.show_widgets else 'off'} · "
+        f"Music: {'on' if st.session_state.show_spotify else 'off'} · "
+        f"Web: {'on' if web_on else 'off'} · "
+        f"Wiki: {'on' if wiki_on else 'off'} · "
+        f"Theme: {st.session_state.theme}"
+    )
 
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-    if use_wiki and len(prompt.split()) > 2:
-        wiki = get_wiki(prompt)
-        if wiki:
-            messages[0]["content"] += f"\n\nRelevant Wikipedia knowledge:\n{wiki}"
-    if use_web and len(prompt.split()) > 2:
-        web = get_web_search(prompt)
-        if web:
-            messages[0]["content"] += f"\n\nRelevant web search results:\n{web}"
+    if st.session_state.show_spotify:
+        sp = get_spotify()
+        track = current_track(sp) if sp else None
+        if track:
+            art = f'<img class="sp-art" src="{track["art"]}">' if track["art"] else ""
+            st.markdown(f"""
+            <div class="sp-card">
+                {art}
+                <div>
+                    <div class="sp-title">{track["name"]}</div>
+                    <div class="sp-artist">{track["artists"]}{" · " + track["device"] if track["device"] else ""}</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        elif sp:
+            st.caption("Spotify connected — nothing playing.")
+        else:
+            st.caption("Add Spotify keys in Secrets to enable music.")
 
-    for m in current["messages"]:
-        messages.append({"role": m["role"], "content": m["content"]})
+else:
+    # -------- CHAT VIEW (no Meridium title) --------
+    current = st.session_state.chats[st.session_state.current_chat_id]
 
-    with st.chat_message("assistant"):
-        with st.spinner(""):
-            reply = chat(messages, provider, model_name, api_key)
-            st.markdown(reply)
+    # Top bar: back to home
+    b1, b2, b3 = st.columns([1, 3, 1])
+    with b1:
+        if st.button("← Home", use_container_width=True):
+            st.session_state.view = "home"
+            st.rerun()
+    with b3:
+        if st.button("＋ New", use_container_width=True):
+            create_new_chat()
+            st.rerun()
 
-    current["messages"].append({"role": "assistant", "content": reply})
-    st.rerun()
+    if st.session_state.show_spotify:
+        sp = get_spotify()
+        track = current_track(sp) if sp else None
+        if track:
+            art = f'<img class="sp-art" src="{track["art"]}">' if track["art"] else ""
+            st.markdown(f"""
+            <div class="sp-card">
+                {art}
+                <div>
+                    <div class="sp-title">{track["name"]}</div>
+                    <div class="sp-artist">{track["artists"]}{" · " + track["device"] if track["device"] else ""}</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            c1, c2, c3, c4 = st.columns(4)
+            with c1:
+                if st.button("⏮", use_container_width=True, key="prev"):
+                    try:
+                        sp.previous_track(); __import__("time").sleep(0.3); st.rerun()
+                    except: pass
+            with c2:
+                icon = "⏸" if track["playing"] else "▶️"
+                if st.button(icon, use_container_width=True, key="play"):
+                    try:
+                        if track["playing"]:
+                            sp.pause_playback()
+                        else:
+                            sp.start_playback()
+                        __import__("time").sleep(0.3); st.rerun()
+                    except: pass
+            with c3:
+                if st.button("⏭", use_container_width=True, key="next"):
+                    try:
+                        sp.next_track(); __import__("time").sleep(0.3); st.rerun()
+                    except: pass
+            with c4:
+                if st.button("↻", use_container_width=True, key="ref"):
+                    st.rerun()
+        elif sp:
+            st.caption("Spotify connected — nothing playing.")
+        else:
+            st.caption("Add Spotify keys in Secrets to enable music.")
+
+    for msg in current["messages"]:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+
+    if prompt := st.chat_input("Message Meridium…"):
+        current["messages"].append({"role": "user", "content": prompt})
+        if len(current["messages"]) == 1:
+            update_chat_title(st.session_state.current_chat_id, prompt)
+
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        if use_wiki and len(prompt.split()) > 2:
+            wiki = get_wiki(prompt)
+            if wiki:
+                messages[0]["content"] += f"\n\nRelevant Wikipedia knowledge:\n{wiki}"
+        if use_web and len(prompt.split()) > 2:
+            web = get_web_search(prompt)
+            if web:
+                messages[0]["content"] += f"\n\nRelevant web search results:\n{web}"
+
+        for m in current["messages"]:
+            messages.append({"role": m["role"], "content": m["content"]})
+
+        with st.chat_message("assistant"):
+            with st.spinner(""):
+                reply = chat(messages, provider, model_name, api_key)
+                st.markdown(reply)
+
+        current["messages"].append({"role": "assistant", "content": reply})
+        st.rerun()
