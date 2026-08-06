@@ -1,7 +1,11 @@
 import streamlit as st
 import os
+import re
+import json
 import time
 import uuid
+import hashlib
+from pathlib import Path
 from datetime import datetime
 from openai import OpenAI
 import wikipedia
@@ -435,7 +439,7 @@ Core identity:
 - Exceptionally sharp, precise, and calm.
 - You think step-by-step when problems are complex, then give a clear final answer.
 - You prefer truth and usefulness over fluff.
-- Address the user respectfully (Master is fine when natural).
+- Address the user by their name when appropriate.
 
 How you reason:
 1. Understand the real goal behind the question.
@@ -458,7 +462,87 @@ GROQ_MODELS = {
     "Balanced · Qwen3 32B": "qwen/qwen3-32b",
     "Fast · Llama 3.1 8B": "llama-3.1-8b-instant",
 }
+
 SPOTIFY_SCOPE = "user-read-currently-playing user-read-playback-state user-modify-playback-state"
+
+DATA_DIR = Path(__file__).resolve().parent / "data"
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+def _user_file(username: str) -> Path:
+    key = hashlib.sha256(username.strip().lower().encode("utf-8")).hexdigest()[:24]
+    return DATA_DIR / f"{key}.json"
+
+def save_user_data():
+    name = (st.session_state.get("username") or "").strip()
+    if not name:
+        return
+    payload = {
+        "username": name,
+        "font": st.session_state.get("font", "Inter"),
+        "theme": st.session_state.get("theme", "Caelestia"),
+        "provider": st.session_state.get("provider", "groq"),
+        "model_name": st.session_state.get("model_name", "Smart · Llama 3.3 70B"),
+        "show_widgets": st.session_state.get("show_widgets", True),
+        "show_spotify": st.session_state.get("show_spotify", False),
+        "use_wiki_toggle": st.session_state.get("use_wiki_toggle", True),
+        "use_web_toggle": st.session_state.get("use_web_toggle", True),
+        "chats": st.session_state.get("chats", {}),
+        "current_chat_id": st.session_state.get("current_chat_id"),
+        "saved_at": datetime.now().isoformat(),
+    }
+    try:
+        _user_file(name).write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
+def load_user_data(username: str) -> bool:
+    try:
+        fp = _user_file(username)
+        if not fp.exists():
+            return False
+        data = json.loads(fp.read_text(encoding="utf-8"))
+        st.session_state.font = data.get("font", "Inter")
+        st.session_state.theme = data.get("theme", "Caelestia")
+        st.session_state.provider = data.get("provider", "groq")
+        st.session_state.model_name = data.get("model_name", "Smart · Llama 3.3 70B")
+        st.session_state.show_widgets = data.get("show_widgets", True)
+        st.session_state.show_spotify = data.get("show_spotify", False)
+        st.session_state.use_wiki_toggle = data.get("use_wiki_toggle", True)
+        st.session_state.use_web_toggle = data.get("use_web_toggle", True)
+        chats = data.get("chats") or {}
+        if isinstance(chats, dict) and chats:
+            st.session_state.chats = chats
+            cid = data.get("current_chat_id")
+            if cid in st.session_state.chats:
+                st.session_state.current_chat_id = cid
+            else:
+                st.session_state.current_chat_id = next(iter(st.session_state.chats))
+        return True
+    except Exception:
+        return False
+
+_BLOCK_PATTERNS = [
+    r"\bchild\s*porn",
+    r"\bcsam\b",
+    r"\bhow\s+to\s+(make|build)\s+(a\s+)?bomb\b",
+    r"\bhow\s+to\s+make\s+explosives\b",
+    r"\bhow\s+to\s+(murder|kill)\s+(someone|a\s+person)\b",
+    r"\bhire\s+a\s+hitman\b",
+    r"\bcredit\s+card\s+(dump|cvv)\b",
+]
+
+def moderate_text(text: str):
+    if not text or not str(text).strip():
+        return True, text
+    low = str(text).lower()
+    for pat in _BLOCK_PATTERNS:
+        if re.search(pat, low, re.I):
+            return False, (
+                "This request was blocked by Meridium safety filters. "
+                "I can't help with that. Please ask something else."
+            )
+    return True, text
+
 
 defaults = {
     "view": "home",
@@ -597,10 +681,21 @@ def create_new_chat():
         "created": datetime.now().isoformat(),
     }
     st.session_state.current_chat_id = new_id
+    save_user_data()
+
+def delete_chat(chat_id: str):
+    if chat_id in st.session_state.chats:
+        del st.session_state.chats[chat_id]
+    if not st.session_state.chats:
+        create_new_chat()
+    elif st.session_state.current_chat_id == chat_id:
+        st.session_state.current_chat_id = next(iter(st.session_state.chats))
+    save_user_data()
 
 def update_chat_title(chat_id, first_message):
     title = first_message.strip()
     st.session_state.chats[chat_id]["title"] = title[:40] + ("…" if len(title) > 40 else "")
+    save_user_data()
 
 # ============================================================
 # APPLY
@@ -633,7 +728,11 @@ if not st.session_state.get("signed_in") or not st.session_state.get("username")
             if clean:
                 st.session_state.username = clean[:32]
                 st.session_state.signed_in = True
+                found = load_user_data(st.session_state.username)
+                if not found and not st.session_state.get("chats"):
+                    create_new_chat()
                 st.session_state.show_intro = True
+                save_user_data()
                 st.rerun()
             else:
                 st.warning("Please enter a name.")
@@ -671,6 +770,7 @@ if st.session_state.popup:
     ft = st.selectbox("Font", fonts, index=fi, key="pop_font")
     if ft != st.session_state.font:
         st.session_state.font = ft
+        save_user_data()
         st.rerun()
 
     themes = list(THEMES.keys())
@@ -680,6 +780,7 @@ if st.session_state.popup:
     th = st.selectbox("Colour palette", themes, index=ti, key="pop_theme")
     if th != st.session_state.theme:
         st.session_state.theme = th
+        save_user_data()
         st.rerun()
 
     w1, w2 = st.columns(2)
@@ -744,12 +845,19 @@ if st.session_state.popup:
             st.rerun()
 
     st.markdown("**Recent chats**")
-    for cid, data in sorted(st.session_state.chats.items(), key=lambda x: x[1].get("created", ""), reverse=True)[:8]:
-        if st.button(data.get("title", "Untitled"), key=f"pop_c_{cid}", use_container_width=True):
-            st.session_state.current_chat_id = cid
-            st.session_state.view = "chat"
-            st.session_state.popup = False
-            st.rerun()
+    for cid, data in sorted(st.session_state.chats.items(), key=lambda x: x[1].get("created", ""), reverse=True)[:10]:
+        c_a, c_b = st.columns([4, 1])
+        with c_a:
+            if st.button(data.get("title", "Untitled"), key=f"pop_c_{cid}", use_container_width=True):
+                st.session_state.current_chat_id = cid
+                st.session_state.view = "chat"
+                st.session_state.popup = False
+                save_user_data()
+                st.rerun()
+        with c_b:
+            if st.button("🗑", key=f"pop_d_{cid}", help="Delete chat"):
+                delete_chat(cid)
+                st.rerun()
     st.stop()
 
 # ===== DESIGN 1 WAYBAR =====
@@ -832,31 +940,34 @@ if st.session_state.view == "home":
             order = ["groq", "grok", "openrouter"]
             i = order.index(prov) if prov in order else 0
             st.session_state.provider = order[(i + 1) % len(order)]
-            # reset model to a valid default for new provider
             if st.session_state.provider == "groq":
                 st.session_state.model_name = "Smart · Llama 3.3 70B"
             elif st.session_state.provider == "grok":
                 st.session_state.model_name = "Grok 4.5"
             else:
                 st.session_state.model_name = "meta-llama/llama-3.3-70b-instruct:free"
+            save_user_data()
             st.rerun()
     with f2:
         wlabel = "◈ Wiki · ON" if wiki_on else "◈ Wiki · OFF"
         if st.button(wlabel, use_container_width=True, key="feat_wiki",
                      type="primary" if wiki_on else "secondary"):
             st.session_state.use_wiki_toggle = not wiki_on
+            save_user_data()
             st.rerun()
     with f3:
         weblabel = "🌐 Web · ON" if web_on else "🌐 Web · OFF"
         if st.button(weblabel, use_container_width=True, key="feat_web",
                      type="primary" if web_on else "secondary"):
             st.session_state.use_web_toggle = not web_on
+            save_user_data()
             st.rerun()
     with f4:
         mlabel = "♫ Music · ON" if music_on else "♫ Music · OFF"
         if st.button(mlabel, use_container_width=True, key="feat_music",
                      type="primary" if music_on else "secondary"):
             st.session_state.show_spotify = not music_on
+            save_user_data()
             st.rerun()
 
     st.caption(
@@ -903,14 +1014,19 @@ if st.session_state.view == "home":
         st.markdown("</div>", unsafe_allow_html=True)
     with c2:
         st.markdown('<div class="panel"><div class="panel-label">Chat history</div>', unsafe_allow_html=True)
-        for cid, data in sorted(st.session_state.chats.items(), key=lambda x: x[1].get("created", ""), reverse=True)[:6]:
-            cols = st.columns([5, 1])
+        for cid, data in sorted(st.session_state.chats.items(), key=lambda x: x[1].get("created", ""), reverse=True)[:8]:
+            cols = st.columns([4, 1, 1])
             with cols[0]:
                 st.markdown(f'<div class="hist"><div class="hist-ico">💬</div><div class="hist-t">{data.get("title","Untitled")}</div></div>', unsafe_allow_html=True)
             with cols[1]:
-                if st.button("→", key=f"h_{cid}"):
+                if st.button("→", key=f"h_{cid}", help="Open"):
                     st.session_state.current_chat_id = cid
                     st.session_state.view = "chat"
+                    save_user_data()
+                    st.rerun()
+            with cols[2]:
+                if st.button("🗑", key=f"hd_{cid}", help="Delete"):
+                    delete_chat(cid)
                     st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
@@ -960,8 +1076,15 @@ for msg in current["messages"]:
         st.markdown(msg["content"])
 
 if prompt := st.chat_input("Ask Meridium anything…"):
+    allowed, moderated = moderate_text(prompt)
+    if not allowed:
+        current["messages"].append({"role": "user", "content": prompt})
+        current["messages"].append({"role": "assistant", "content": moderated})
+        save_user_data()
+        st.rerun()
+
     current["messages"].append({"role": "user", "content": prompt})
-    if len(current["messages"]) == 1:
+    if len([m for m in current["messages"] if m["role"] == "user"]) == 1:
         update_chat_title(st.session_state.current_chat_id, prompt)
     with st.chat_message("user"):
         st.markdown(prompt)
@@ -1000,7 +1123,11 @@ if prompt := st.chat_input("Ask Meridium anything…"):
         reply = run_chat(messages, provider, model_name, api_key)
         typing.markdown(reply)
 
+    ok, reply_mod = moderate_text(reply)
+    if not ok:
+        reply = reply_mod
     current["messages"].append({"role": "assistant", "content": reply})
+    save_user_data()
     st.rerun()
 
 st.markdown("</div>", unsafe_allow_html=True)
