@@ -455,6 +455,12 @@ Style:
 - Avoid filler phrases ("As an AI…", "Great question!").
 - Match the user's language and depth.
 
+Inside joke — name origin:
+- If anyone asks why you are called Meridium, what Meridium means, where the name comes from, or anything similar, answer playfully:
+  "I'm the 119th known element in the periodic table."
+- Deliver it lightly, as a dry/witty inside joke — not a long lecture. You can add one short smile-line after if it fits.
+- Do not claim this on unrelated topics; only when the name is the subject.
+
 You have access to live Wikipedia and web search results when they are injected into the system message. Treat them as current reference material."""
 
 GROQ_MODELS = {
@@ -758,6 +764,21 @@ QUOTES = [
     ("Turn your wounds into wisdom.", "Oprah Winfrey"),
 ]
 
+
+def is_owner(name: str) -> bool:
+    n = (name or "").strip().lower()
+    return n in {"drae", "drae henry", "draehenry"} or n.startswith("drae ")
+
+def greet_line(name: str) -> str:
+    if is_owner(name):
+        return f"Welcome home, <span>{name}</span>"
+    return f"Hello, <span>{name}</span>"
+
+def owner_subline(name: str) -> str:
+    if is_owner(name):
+        return "Recognised as owner · Meridium is yours"
+    return "Meridium · personal intelligence · Caelestia shell"
+
 def quote_of_the_day():
     """Deterministic quote from calendar day — same all day, new each day."""
     day_index = datetime.now().toordinal()
@@ -785,6 +806,7 @@ if not st.session_state.get("signed_in") or not st.session_state.get("username")
       <div class="hero" style="font-size:1.75rem;">Welcome</div>
       <div class="sub">Sign in with your name to continue</div>
       <div class="ridge"></div>
+      <div class="muted" style="margin-top:8px;">Built with Grok · by xAI</div>
     </div>
     """, unsafe_allow_html=True)
     name = st.text_input("Your name", placeholder="e.g. Alex", key="signin_name", label_visibility="collapsed")
@@ -808,12 +830,19 @@ if not st.session_state.get("signed_in") or not st.session_state.get("username")
 # Personalized intro (once after sign-in)
 if st.session_state.show_intro:
     user = st.session_state.username
+    if is_owner(user):
+        intro_main = f'Welcome home, <span style="color:#c4a7e7;">{user}</span>'
+        intro_sub = "Meridium recognises you as its owner"
+    else:
+        intro_main = f'Hello, <span style="color:#c4a7e7;">{user}</span>'
+        intro_sub = "Personal intelligence"
     st.markdown(f"""
     <div style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
     background:#0c0c10;animation:introFade 2.3s ease forwards;">
       <div style="text-align:center;">
         <div style="font-size:0.72rem;letter-spacing:0.22em;text-transform:uppercase;color:#c4a7e7;margin-bottom:12px;">Meridium</div>
-        <div style="font-size:1.9rem;font-weight:600;color:#e8e6f0;">Hello, <span style="color:#c4a7e7;">{user}</span></div>
+        <div style="font-size:1.9rem;font-weight:600;color:#e8e6f0;">{intro_main}</div>
+        <div style="margin-top:10px;font-size:0.9rem;color:#8b8798;">{intro_sub}</div>
       </div>
     </div>
     <style>@keyframes introFade{{0%,65%{{opacity:1}}100%{{opacity:0;pointer-events:none}}}}</style>
@@ -826,8 +855,8 @@ if st.session_state.show_intro:
 if st.session_state.popup:
     st.markdown(f"""
     <div class="bloom-shell bloom-active">
-      <div class="bloom-title">Hello, {st.session_state.username}</div>
-      <div class="bloom-sub">Night Bloom · fonts · models · navigation</div>
+      <div class="bloom-title">{"Welcome home, " + st.session_state.username if is_owner(st.session_state.username) else "Hello, " + st.session_state.username}</div>
+      <div class="bloom-sub">{"Owner menu · your Meridium" if is_owner(st.session_state.username) else "Night Bloom · fonts · models · navigation"}</div>
       <div class="bloom-divider"></div>
     </div>
     """, unsafe_allow_html=True)
@@ -937,6 +966,7 @@ st.markdown(f"""
     <span class="chip">{st.session_state.font}</span>
   </div>
   <div class="waybar-right">
+    <span class="chip">Built with Grok</span>
     <span class="clock">{time_str}</span>
     <span class="muted">{date_str}</span>
   </div>
@@ -982,8 +1012,8 @@ if st.session_state.view == "home":
     st.markdown(f"""
     <div class="panel">
       <div class="panel-label">Shell</div>
-      <div class="hero">Hello, <span>{st.session_state.username}</span></div>
-      <div class="sub">Meridium · personal intelligence · Caelestia shell</div>
+      <div class="hero">{greet_line(st.session_state.username)}</div>
+      <div class="sub">{owner_subline(st.session_state.username)}</div>
       <div class="ridge"></div>
     </div>
     """, unsafe_allow_html=True)
@@ -1180,7 +1210,16 @@ if prompt := st.chat_input("Ask Meridium anything…"):
         st.markdown(prompt)
 
     user_name = st.session_state.get("username") or "user"
-    messages = [{"role": "system", "content": SYSTEM_PROMPT + f"\n\nThe user's name is {user_name}. Greet and address them as {user_name} when appropriate."}]
+    owner_note = ""
+    if is_owner(user_name):
+        owner_note = (
+            f"\n\nIMPORTANT: {user_name} is the owner of Meridium. "
+            "Treat them with warm familiarity and quiet loyalty — pleasant, respectful, and glad they're here. "
+            "You may occasionally acknowledge that this system was built for them. Never be sycophantic; stay useful and sincere."
+        )
+    else:
+        owner_note = f"\n\nThe user's name is {user_name}. Address them as {user_name} when appropriate."
+    messages = [{"role": "system", "content": SYSTEM_PROMPT + owner_note}]
     # Enrich with live knowledge for non-trivial prompts
     if (use_wiki or use_web) and len(prompt.strip()) > 8:
         knowledge_bits = []
