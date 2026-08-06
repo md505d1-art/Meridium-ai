@@ -476,29 +476,52 @@ def save_user_data():
     name = (st.session_state.get("username") or "").strip()
     if not name:
         return
+    # Ensure chats is a plain dict (JSON-serializable)
+    chats = st.session_state.get("chats") or {}
+    safe_chats = {}
+    for cid, data in chats.items():
+        if not isinstance(data, dict):
+            continue
+        msgs = data.get("messages") or []
+        safe_msgs = []
+        for m in msgs:
+            if isinstance(m, dict) and m.get("role") and m.get("content") is not None:
+                safe_msgs.append({"role": m["role"], "content": str(m["content"])})
+        safe_chats[str(cid)] = {
+            "title": str(data.get("title") or "Untitled"),
+            "messages": safe_msgs,
+            "created": str(data.get("created") or datetime.now().isoformat()),
+        }
     payload = {
         "username": name,
         "font": st.session_state.get("font", "Inter"),
         "theme": st.session_state.get("theme", "Caelestia"),
         "provider": st.session_state.get("provider", "groq"),
         "model_name": st.session_state.get("model_name", "Smart · Llama 3.3 70B"),
-        "show_widgets": st.session_state.get("show_widgets", True),
-        "show_spotify": st.session_state.get("show_spotify", False),
-        "use_wiki_toggle": st.session_state.get("use_wiki_toggle", True),
-        "use_web_toggle": st.session_state.get("use_web_toggle", True),
-        "chats": st.session_state.get("chats", {}),
+        "show_widgets": bool(st.session_state.get("show_widgets", True)),
+        "show_spotify": bool(st.session_state.get("show_spotify", False)),
+        "use_wiki_toggle": bool(st.session_state.get("use_wiki_toggle", True)),
+        "use_web_toggle": bool(st.session_state.get("use_web_toggle", True)),
+        "chats": safe_chats,
         "current_chat_id": st.session_state.get("current_chat_id"),
         "saved_at": datetime.now().isoformat(),
     }
-    try:
-        _user_file(name).write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    except Exception:
-        pass
+    raw = json.dumps(payload, ensure_ascii=False, indent=2)
+    for fp in (_user_file(name), Path("/tmp") / f"meridium_{hashlib.sha256(name.lower().encode()).hexdigest()[:16]}.json"):
+        try:
+            fp.parent.mkdir(parents=True, exist_ok=True)
+            fp.write_text(raw, encoding="utf-8")
+        except Exception:
+            pass
 
 def load_user_data(username: str) -> bool:
     try:
-        fp = _user_file(username)
-        if not fp.exists():
+        candidates = [
+            _user_file(username),
+            Path("/tmp") / f"meridium_{hashlib.sha256(username.strip().lower().encode()).hexdigest()[:16]}.json",
+        ]
+        fp = next((p for p in candidates if p.exists()), None)
+        if not fp:
             return False
         data = json.loads(fp.read_text(encoding="utf-8"))
         st.session_state.font = data.get("font", "Inter")
@@ -696,6 +719,50 @@ def update_chat_title(chat_id, first_message):
     title = first_message.strip()
     st.session_state.chats[chat_id]["title"] = title[:40] + ("…" if len(title) > 40 else "")
     save_user_data()
+
+
+# ============================================================
+# QUOTE OF THE DAY (changes once per calendar day)
+# ============================================================
+QUOTES = [
+    ("The only way to do great work is to love what you do.", "Steve Jobs"),
+    ("In the middle of difficulty lies opportunity.", "Albert Einstein"),
+    ("It always seems impossible until it's done.", "Nelson Mandela"),
+    ("Simplicity is the ultimate sophistication.", "Leonardo da Vinci"),
+    ("Stay hungry, stay foolish.", "Stewart Brand"),
+    ("The future belongs to those who believe in the beauty of their dreams.", "Eleanor Roosevelt"),
+    ("Do not go where the path may lead, go instead where there is no path and leave a trail.", "Ralph Waldo Emerson"),
+    ("What we know is a drop, what we don't know is an ocean.", "Isaac Newton"),
+    ("Be yourself; everyone else is already taken.", "Oscar Wilde"),
+    ("The best way to predict the future is to invent it.", "Alan Kay"),
+    ("Intelligence is the ability to adapt to change.", "Stephen Hawking"),
+    ("Life is what happens when you're busy making other plans.", "John Lennon"),
+    ("Not all those who wander are lost.", "J.R.R. Tolkien"),
+    ("Everything you can imagine is real.", "Pablo Picasso"),
+    ("Whether you think you can or you think you can't, you're right.", "Henry Ford"),
+    ("The quieter you become, the more you can hear.", "Ram Dass"),
+    ("An investment in knowledge pays the best interest.", "Benjamin Franklin"),
+    ("Courage is not the absence of fear, but the triumph over it.", "Nelson Mandela"),
+    ("We are what we repeatedly do. Excellence, then, is not an act, but a habit.", "Aristotle"),
+    ("The only true wisdom is in knowing you know nothing.", "Socrates"),
+    ("Act as if what you do makes a difference. It does.", "William James"),
+    ("Dream big. Start small. Act now.", "Robin Sharma"),
+    ("Focus on being productive instead of busy.", "Tim Ferriss"),
+    ("The secret of getting ahead is getting started.", "Mark Twain"),
+    ("Don't watch the clock; do what it does. Keep going.", "Sam Levenson"),
+    ("Great things are done by a series of small things brought together.", "Vincent van Gogh"),
+    ("If you want to go fast, go alone. If you want to go far, go together.", "African proverb"),
+    ("Curiosity is the wick in the candle of learning.", "William Arthur Ward"),
+    ("The mind is everything. What you think you become.", "Buddha"),
+    ("Make each day your masterpiece.", "John Wooden"),
+    ("Turn your wounds into wisdom.", "Oprah Winfrey"),
+]
+
+def quote_of_the_day():
+    """Deterministic quote from calendar day — same all day, new each day."""
+    day_index = datetime.now().toordinal()
+    q, a = QUOTES[day_index % len(QUOTES)]
+    return q, a
 
 # ============================================================
 # APPLY
@@ -996,36 +1063,53 @@ if st.session_state.view == "home":
             st.session_state.popup = True
             st.rerun()
 
+    qotd, qotd_author = quote_of_the_day()
     c1, c2 = st.columns(2)
     with c1:
-        st.markdown('<div class="panel"><div class="panel-label">Status</div>', unsafe_allow_html=True)
-        if st.session_state.show_widgets:
-            st.markdown(f'<div style="display:flex;gap:8px;flex-wrap:wrap;"><span class="chip">{time_str}</span><span class="chip">{date_str}</span></div>', unsafe_allow_html=True)
-        st.caption(f"Font · {st.session_state.font}")
-        st.caption(f"Model · {st.session_state.model_name}")
-        st.caption(f"Wiki {'on' if use_wiki else 'off'} · Web {'on' if use_web else 'off'}")
+        st.markdown(f"""
+        <div class="panel">
+          <div class="panel-label">Quote of the day</div>
+          <div style="font-size:1.05rem;line-height:1.45;font-weight:500;margin:8px 0 10px;color:inherit;">
+            “{qotd}”
+          </div>
+          <div class="muted">— {qotd_author}</div>
+          <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+            <span class="chip">{date_str}</span>
+            <span class="chip">{time_str}</span>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
         if st.session_state.show_spotify:
             sp = get_spotify()
             track = current_track(sp) if sp else None
             if track:
                 st.info(f"♫ {track['name']} — {track['artists']}")
-            else:
-                st.caption("♫ Spotify ready")
-        st.markdown("</div>", unsafe_allow_html=True)
     with c2:
         st.markdown('<div class="panel"><div class="panel-label">Chat history</div>', unsafe_allow_html=True)
-        for cid, data in sorted(st.session_state.chats.items(), key=lambda x: x[1].get("created", ""), reverse=True)[:8]:
-            cols = st.columns([4, 1, 1])
+        items = sorted(st.session_state.chats.items(), key=lambda x: x[1].get("created", ""), reverse=True)[:10]
+        if not items:
+            st.caption("No chats yet — start one.")
+        for cid, data in items:
+            msgs = data.get("messages") or []
+            title = data.get("title") or "Untitled"
+            preview = ""
+            if msgs:
+                last = msgs[-1].get("content", "")
+                preview = (last[:60] + "…") if len(last) > 60 else last
+                preview = preview.replace("\n", " ")
+            n = len(msgs)
+            label = f"{title}  ·  {n} msg"
+            if preview:
+                label = f"{title}\n{preview}"
+            cols = st.columns([5, 1])
             with cols[0]:
-                st.markdown(f'<div class="hist"><div class="hist-ico">💬</div><div class="hist-t">{data.get("title","Untitled")}</div></div>', unsafe_allow_html=True)
-            with cols[1]:
-                if st.button("→", key=f"h_{cid}", help="Open"):
+                if st.button(label, key=f"h_{cid}", use_container_width=True):
                     st.session_state.current_chat_id = cid
                     st.session_state.view = "chat"
                     save_user_data()
                     st.rerun()
-            with cols[2]:
-                if st.button("🗑", key=f"hd_{cid}", help="Delete"):
+            with cols[1]:
+                if st.button("Del", key=f"hd_{cid}", use_container_width=True, help="Delete chat"):
                     delete_chat(cid)
                     st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
@@ -1036,7 +1120,11 @@ if st.session_state.current_chat_id not in st.session_state.chats:
     create_new_chat()
 current = st.session_state.chats[st.session_state.current_chat_id]
 
-st.markdown('<div class="panel"><div class="panel-label">Conversation</div><div class="ridge"></div>', unsafe_allow_html=True)
+chat_title = current.get("title") or "Conversation"
+msg_count = len(current.get("messages") or [])
+st.markdown(f'<div class="panel"><div class="panel-label">{chat_title} · {msg_count} messages</div><div class="ridge"></div>', unsafe_allow_html=True)
+if msg_count == 0:
+    st.caption("No messages in this chat yet. Type below to begin.")
 
 if st.session_state.show_spotify:
     sp = get_spotify()
@@ -1084,8 +1172,10 @@ if prompt := st.chat_input("Ask Meridium anything…"):
         st.rerun()
 
     current["messages"].append({"role": "user", "content": prompt})
+    st.session_state.chats[st.session_state.current_chat_id] = current
     if len([m for m in current["messages"] if m["role"] == "user"]) == 1:
         update_chat_title(st.session_state.current_chat_id, prompt)
+    save_user_data()
     with st.chat_message("user"):
         st.markdown(prompt)
 
@@ -1127,6 +1217,7 @@ if prompt := st.chat_input("Ask Meridium anything…"):
     if not ok:
         reply = reply_mod
     current["messages"].append({"role": "assistant", "content": reply})
+    st.session_state.chats[st.session_state.current_chat_id] = current
     save_user_data()
     st.rerun()
 
