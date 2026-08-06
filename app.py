@@ -190,6 +190,49 @@ def inject_css(theme_name: str = "Violet"):
         color: {t["text"]};
     }}
 
+    /* Override Streamlit default light surfaces everywhere */
+    [data-testid="stAppViewContainer"],
+    [data-testid="stHeader"],
+    [data-testid="stToolbar"],
+    [data-testid="stDecoration"] {{
+        background: transparent !important;
+        background-color: transparent !important;
+    }}
+    .stApp, .main, .block-container {{
+        color: {t["text"]} !important;
+    }}
+    /* Force all baseweb controls dark */
+    [data-baseweb="select"] > div,
+    [data-baseweb="select"] > div > div {{
+        background-color: {t["bg_solid"]} !important;
+        border-color: {t["glass_border"]} !important;
+    }}
+    [data-baseweb="popover"] > div,
+    [data-baseweb="popover"] ul,
+    [role="listbox"] {{
+        background-color: {t["bg_solid"]} !important;
+        color: {t["text"]} !important;
+    }}
+    [role="option"] {{
+        background-color: {t["bg_solid"]} !important;
+        color: {t["text"]} !important;
+    }}
+    [role="option"]:hover, [role="option"][aria-selected="true"] {{
+        background-color: {t["accent_soft"]} !important;
+    }}
+    /* Streamlit secondary / default button variants */
+    button[kind="secondary"],
+    button[kind="primary"],
+    button[data-testid="baseButton-secondary"],
+    button[data-testid="baseButton-primary"],
+    button[data-testid="baseButton-secondaryFormSubmit"] {{
+        background-color: {t["glass"]} !important;
+        background: {t["glass"]} !important;
+        color: {t["text"]} !important;
+        border: 1px solid {t["glass_border"]} !important;
+    }}
+
+
     #MainMenu, footer, header, .stDeployButton {{
         display: none !important;
     }}
@@ -394,6 +437,7 @@ def inject_css(theme_name: str = "Violet"):
         opacity: 0.8;
     }}
 
+    /* ===== Buttons ===== */
     .stButton > button {{
         background: {t["glass"]} !important;
         color: {t["text"]} !important;
@@ -410,6 +454,78 @@ def inject_css(theme_name: str = "Violet"):
     .stButton > button:active {{
         transform: scale(0.97);
     }}
+
+    /* ===== Selectboxes / dropdowns (kill white) ===== */
+    div[data-baseweb="select"] > div {{
+        background-color: {t["bg_solid"]} !important;
+        background: {t["glass"]} !important;
+        border-color: {t["glass_border"]} !important;
+        color: {t["text"]} !important;
+        border-radius: 14px !important;
+    }}
+    div[data-baseweb="select"] * {{
+        color: {t["text"]} !important;
+    }}
+    /* Dropdown popover menu */
+    div[data-baseweb="popover"] {{
+        background-color: {t["bg_solid"]} !important;
+    }}
+    ul[data-baseweb="menu"] {{
+        background-color: {t["bg_solid"]} !important;
+        border: 1px solid {t["glass_border"]} !important;
+        border-radius: 12px !important;
+    }}
+    ul[data-baseweb="menu"] li {{
+        background-color: {t["bg_solid"]} !important;
+        color: {t["text"]} !important;
+    }}
+    ul[data-baseweb="menu"] li:hover {{
+        background-color: {t["accent_soft"]} !important;
+    }}
+    /* Text inputs */
+    .stTextInput input, .stTextInput > div > div > input,
+    [data-testid="stTextInput"] input {{
+        background-color: {t["bg_solid"]} !important;
+        background: {t["glass"]} !important;
+        color: {t["text"]} !important;
+        border: 1px solid {t["glass_border"]} !important;
+        border-radius: 14px !important;
+    }}
+    .stTextInput > div > div {{
+        background-color: transparent !important;
+        border-color: {t["glass_border"]} !important;
+    }}
+    /* Labels & captions */
+    label, .stSelectbox label, .stTextInput label,
+    [data-testid="stWidgetLabel"] p {{
+        color: {t["muted"]} !important;
+    }}
+    .stCaption, [data-testid="stCaptionContainer"] {{
+        color: {t["muted"]} !important;
+    }}
+    /* Checkboxes */
+    .stCheckbox label p {{
+        color: {t["text"]} !important;
+    }}
+    /* Info / alert boxes */
+    [data-testid="stAlert"] {{
+        background: {t["glass"]} !important;
+        color: {t["text"]} !important;
+        border: 1px solid {t["glass_border"]} !important;
+        border-radius: 14px !important;
+    }}
+    /* Markdown headings in menu */
+    h1, h2, h3, h4 {{
+        color: {t["text"]} !important;
+    }}
+    /* Number input / generic widgets */
+    [data-baseweb="input"] {{
+        background-color: {t["bg_solid"]} !important;
+    }}
+    [data-baseweb="input"] input {{
+        color: {t["text"]} !important;
+    }}
+
 
     .orb-wrap {{
         text-align: center;
@@ -601,8 +717,11 @@ def run_chat(messages, provider, model_name, api_key):
         return f"⚠️ {err}"
     if provider == "groq":
         model = GROQ_MODELS.get(model_name, "llama-3.3-70b-versatile")
+        # if stored value is already an API id
+        if model_name in GROQ_MODELS.values():
+            model = model_name
     elif provider == "grok":
-        model = "grok-4.5"
+        model = "grok-4.5" if "4.5" in str(model_name) else "grok-3"
     else:
         model = model_name
     try:
@@ -674,18 +793,19 @@ use_web = st.session_state.use_web_toggle
 # INTRO
 # ============================================================
 if st.session_state.show_intro:
-    st.markdown("""
+    _t = THEMES.get(st.session_state.get("theme", "Violet"), THEMES["Violet"])
+    st.markdown(f"""
     <div style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;
-    justify-content:center;background:#0b0614;animation:introFade 2.5s ease forwards;">
-        <div style="font-size:1.85rem;font-weight:600;color:#f2eefc;animation:fadeUp 1.2s ease forwards;">
-            Hello, <span style="color:#c4b5fd;">Master</span>
+    justify-content:center;background:{_t["bg_solid"]};animation:introFade 2.5s ease forwards;">
+        <div style="font-size:1.85rem;font-weight:600;color:{_t["text"]};animation:fadeUp 1.2s ease forwards;">
+            Hello, <span style="color:{_t["chip_text"]};">Master</span>
         </div>
     </div>
     <style>
-    @keyframes introFade {
-        0%, 65% { opacity: 1; pointer-events: all; }
-        100% { opacity: 0; pointer-events: none; }
-    }
+    @keyframes introFade {{
+        0%, 65% {{ opacity: 1; pointer-events: all; }}
+        100% {{ opacity: 0; pointer-events: none; }}
+    }}
     </style>
     """, unsafe_allow_html=True)
     time.sleep(2.4)
@@ -764,17 +884,12 @@ if st.session_state.view == "menu":
     )
     if st.session_state.provider == "groq":
         opts = list(GROQ_MODELS.keys())
-        st.session_state.model_name = st.selectbox(
-            "Model", opts,
-            index=opts.index(st.session_state.model_name) if st.session_state.model_name in opts else 0,
-            key="menu_model",
-        )
     elif st.session_state.provider == "grok":
         opts = ["Grok 4.5", "Grok 4.3"]
-        st.session_state.model_name = st.selectbox("Model", opts, key="menu_model")
     else:
         opts = ["meta-llama/llama-3.3-70b-instruct:free", "qwen/qwen3-32b:free"]
-        st.session_state.model_name = st.selectbox("Model", opts, key="menu_model")
+    _mi = opts.index(st.session_state.model_name) if st.session_state.model_name in opts else 0
+    st.session_state.model_name = st.selectbox("Model", opts, index=_mi, key="menu_model")
 
     st.session_state.api_key_val = st.text_input(
         "API Key (optional)", type="password",
@@ -921,6 +1036,8 @@ if st.session_state.view == "home":
 # ============================================================
 # CHAT
 # ============================================================
+if st.session_state.current_chat_id not in st.session_state.chats:
+    create_new_chat()
 current = st.session_state.chats[st.session_state.current_chat_id]
 
 st.markdown('<div class="chat-top">Meridium</div>', unsafe_allow_html=True)
