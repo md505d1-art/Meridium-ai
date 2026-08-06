@@ -1,17 +1,32 @@
-# Meridium
+# ◈ Meridium
 
-**Your personal AI — modern, capable, and free.**
+**Personal Intelligence System**
 
-Meridium is a sleek personal AI assistant with a dark modern interface.
+A modern, minimal, and futuristic personal AI designed for clarity, power, and elegance.
 
-### Features
-- Strong free models by default (Groq Llama 3.3 70B etc.)
-- Optional Grok (xAI) support
-- Wikipedia knowledge integration
-- Clean modern dark UI
-- Fully online
+---
 
-### How to use
-1. Get a free API key from [console.groq.com](https://console.groq.com)
-2. Deploy this app on Streamlit Community Cloud
-3. Add your Groq key in the Streamlit Secrets
+### ✨ Features
+
+- **Powerful Free Models** – Defaults to strong models via Groq (Llama 3.3 70B and others)
+- **Optional Grok Support** – Connect your xAI API key for Grok
+- **Wikipedia Knowledge** – Instantly pulls relevant knowledge when needed
+- **Spotify Integration** – See what’s currently playing + full playback controls
+- **Clean Dark Interface** – Deep black, minimal, and refined design
+- **Multi-device** – Works beautifully on phone, tablet, laptop, and desktop
+- **Personalized Greeting** – “Hello, Master” every time you open it
+
+---
+
+### 🚀 Quick Start
+
+1. Deploy this repository on [Streamlit Community Cloud](https://share.streamlit.io)
+2. Add the following secrets in your Streamlit app settings:
+
+```toml
+GROQ_API_KEY = "your_groq_api_key"
+
+# Optional – for Spotify
+SPOTIFY_CLIENT_ID = "your_spotify_client_id"
+SPOTIFY_CLIENT_SECRET = "your_spotify_client_secret"
+SPOTIFY_REDIRECT_URI = "https://your-app-name.streamlit.app/"
