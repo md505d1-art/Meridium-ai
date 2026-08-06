@@ -677,16 +677,64 @@ def run_chat(messages, provider, model_name, api_key):
     except Exception as e:
         return f"Error: {e}"
 
-def get_spotify():
+def _spotify_creds():
     cid = st.secrets.get("SPOTIFY_CLIENT_ID", "") or os.getenv("SPOTIFY_CLIENT_ID", "")
     secret = st.secrets.get("SPOTIFY_CLIENT_SECRET", "") or os.getenv("SPOTIFY_CLIENT_SECRET", "")
-    redirect = st.secrets.get("SPOTIFY_REDIRECT_URI", "http://localhost:8501")
+    redirect = st.secrets.get("SPOTIFY_REDIRECT_URI", "") or os.getenv("SPOTIFY_REDIRECT_URI", "https://meridium-ai.streamlit.app/")
+    return cid, secret, redirect
+
+def _spotify_cache_path():
+    name = (st.session_state.get("username") or "guest").strip().lower() or "guest"
+    key = hashlib.sha256(name.encode()).hexdigest()[:16]
+    return f"/tmp/meridium_spotify_{key}.cache"
+
+def get_spotify_oauth():
+    cid, secret, redirect = _spotify_creds()
     if not cid or not secret:
         return None
-    return spotipy.Spotify(auth_manager=SpotifyOAuth(
-        client_id=cid, client_secret=secret, redirect_uri=redirect,
-        scope=SPOTIFY_SCOPE, cache_path=None, open_browser=False,
-    ))
+    return SpotifyOAuth(
+        client_id=cid,
+        client_secret=secret,
+        redirect_uri=redirect,
+        scope=SPOTIFY_SCOPE,
+        cache_path=_spotify_cache_path(),
+        open_browser=False,
+        show_dialog=True,
+    )
+
+def get_spotify():
+    """Return authenticated Spotify client, or None."""
+    auth = get_spotify_oauth()
+    if not auth:
+        return None
+    try:
+        token = auth.get_cached_token()
+        if not token:
+            # Try completing OAuth if redirected back with ?code=
+            params = dict(st.query_params) if hasattr(st, "query_params") else {}
+            code = params.get("code")
+            if code:
+                if isinstance(code, list):
+                    code = code[0]
+                token = auth.get_access_token(code, as_dict=True)
+                try:
+                    st.query_params.clear()
+                except Exception:
+                    pass
+        if not token:
+            return None
+        return spotipy.Spotify(auth=token["access_token"])
+    except Exception:
+        return None
+
+def spotify_auth_url():
+    auth = get_spotify_oauth()
+    if not auth:
+        return None
+    try:
+        return auth.get_authorize_url()
+    except Exception:
+        return None
 
 def current_track(sp):
     try:
@@ -698,9 +746,65 @@ def current_track(sp):
             "name": item["name"],
             "artists": ", ".join(a["name"] for a in item["artists"]),
             "playing": data["is_playing"],
+            "device": (data.get("device") or {}).get("name", ""),
         }
     except Exception:
         return None
+
+def render_spotify_panel(key_prefix="sp"):
+    """Show connect / now playing / controls. Returns True if connected."""
+    cid, secret, _ = _spotify_creds()
+    if not cid or not secret:
+        st.warning("Spotify secrets missing. Add SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET in Streamlit Secrets.")
+        return False
+    sp = get_spotify()
+    if not sp:
+        url = spotify_auth_url()
+        st.info("Connect Spotify once to control playback.")
+        if url:
+            st.link_button("🔗 Connect Spotify", url, use_container_width=True)
+        st.caption("After approving, you'll return here. Then play a song in the Spotify app.")
+        return False
+    track = current_track(sp)
+    if not track:
+        st.caption("♫ Connected · play a song in Spotify on any device")
+        if st.button("↻ Refresh", key=f"{key_prefix}_ref0", use_container_width=True):
+            st.rerun()
+        return True
+    st.caption(f"♫ **{track['name']}** — {track['artists']}" + (f" · {track['device']}" if track.get("device") else ""))
+    p1, p2, p3, p4 = st.columns(4)
+    with p1:
+        if st.button("⏮", key=f"{key_prefix}_prev", use_container_width=True):
+            try:
+                sp.previous_track()
+                time.sleep(0.35)
+                st.rerun()
+            except Exception as e:
+                st.caption(f"Prev failed: {e}")
+    with p2:
+        icon = "⏸" if track["playing"] else "▶"
+        if st.button(icon, key=f"{key_prefix}_play", use_container_width=True):
+            try:
+                if track["playing"]:
+                    sp.pause_playback()
+                else:
+                    sp.start_playback()
+                time.sleep(0.35)
+                st.rerun()
+            except Exception as e:
+                st.caption(f"Play failed (Premium + active device needed): {e}")
+    with p3:
+        if st.button("⏭", key=f"{key_prefix}_next", use_container_width=True):
+            try:
+                sp.next_track()
+                time.sleep(0.35)
+                st.rerun()
+            except Exception as e:
+                st.caption(f"Next failed: {e}")
+    with p4:
+        if st.button("↻", key=f"{key_prefix}_ref", use_container_width=True):
+            st.rerun()
+    return True
 
 def create_new_chat():
     new_id = str(uuid.uuid4())[:8]
@@ -1110,10 +1214,7 @@ if st.session_state.view == "home":
         </div>
         """, unsafe_allow_html=True)
         if st.session_state.show_spotify:
-            sp = get_spotify()
-            track = current_track(sp) if sp else None
-            if track:
-                st.info(f"♫ {track['name']} — {track['artists']}")
+            render_spotify_panel("home")
     with c2:
         st.markdown('<div class="panel"><div class="panel-label">Chat history</div>', unsafe_allow_html=True)
         items = sorted(st.session_state.chats.items(), key=lambda x: x[1].get("created", ""), reverse=True)[:10]
@@ -1157,37 +1258,7 @@ if msg_count == 0:
     st.caption("No messages in this chat yet. Type below to begin.")
 
 if st.session_state.show_spotify:
-    sp = get_spotify()
-    track = current_track(sp) if sp else None
-    if track:
-        st.caption(f"♫ {track['name']} — {track['artists']}")
-        p1, p2, p3, p4 = st.columns(4)
-        with p1:
-            if st.button("⏮", key="sp_prev", use_container_width=True):
-                try:
-                    sp.previous_track(); time.sleep(0.25); st.rerun()
-                except Exception:
-                    pass
-        with p2:
-            icon = "⏸" if track["playing"] else "▶"
-            if st.button(icon, key="sp_play", use_container_width=True):
-                try:
-                    if track["playing"]:
-                        sp.pause_playback()
-                    else:
-                        sp.start_playback()
-                    time.sleep(0.25); st.rerun()
-                except Exception:
-                    pass
-        with p3:
-            if st.button("⏭", key="sp_next", use_container_width=True):
-                try:
-                    sp.next_track(); time.sleep(0.25); st.rerun()
-                except Exception:
-                    pass
-        with p4:
-            if st.button("↻", key="sp_ref", use_container_width=True):
-                st.rerun()
+    render_spotify_panel("chat")
 
 for msg in current["messages"]:
     with st.chat_message(msg["role"]):
