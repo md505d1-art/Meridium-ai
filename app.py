@@ -190,6 +190,13 @@ SECRET_THEMES = {
         "accent": "#22d3ee", "accent2": "#4ade80", "accent_soft": "rgba(74, 222, 128, 0.18)",
         "unlock": "pixel",
     },
+    "Voss Residual": {
+        "bg": "#070908", "panel": "rgba(18, 22, 16, 0.92)", "panel_solid": "#10140e",
+        "border": "rgba(180, 200, 120, 0.28)", "text": "#e4e8d8", "muted": "#8a9478",
+        "accent": "#c4d49a", "accent2": "#6b7a4e", "accent_soft": "rgba(180, 200, 120, 0.16)",
+        "unlock": "voss",
+    },
+
 }
 
 
@@ -227,8 +234,16 @@ def find_glitch(gid: str, label: str = "") -> bool:
     st.session_state["_glitch_flash"] = label or f"Anomaly logged: {gid}"
     if set(found) >= {"home", "lab", "pixel"}:
         st.session_state.voss_file_unlocked = True
+        try:
+            unlock_theme("Voss Residual", "Dr. Voss's file recovered", apply=True)
+        except Exception:
+            u = list(st.session_state.get("unlocked_themes") or [])
+            if "Voss Residual" not in u:
+                u.append("Voss Residual")
+                st.session_state.unlocked_themes = u
+            st.session_state.theme = "Voss Residual"
         st.session_state["_glitch_flash"] = (
-            "All three markers secured. Dr. Voss left you a file."
+            "All three markers secured. Dr. Voss left you a file. Theme: Voss Residual."
         )
         st.session_state.voss_cutscene_stage = 0
         st.session_state.view = "voss_file"
@@ -379,6 +394,19 @@ def play_glitch_sfx() -> None:
         height=0,
     )
 
+
+
+def ensure_voss_theme() -> None:
+    if not anomalies_complete():
+        return
+    u = list(st.session_state.get("unlocked_themes") or [])
+    if "Voss Residual" not in u:
+        u.append("Voss Residual")
+        st.session_state.unlocked_themes = u
+        try:
+            save_user_data()
+        except Exception:
+            pass
 
 def anomalies_complete() -> bool:
     """True once all three markers are logged (persisted)."""
@@ -2017,6 +2045,7 @@ if st.session_state.get("view") != "voss_file":
 
 # ===== DR VOSS FILE — cutscene (all 3 anomalies) =====
 if st.session_state.get("view") == "voss_file":
+    ensure_voss_theme()
     # stage: 0 black+blood text, 1 file
     if "voss_cutscene_stage" not in st.session_state:
         st.session_state.voss_cutscene_stage = 0
@@ -2561,6 +2590,7 @@ if st.session_state.view == "home":
 
     # Anomalies finished — no more hunting; reopen Voss file only
     if lab_is_unlocked() and anomalies_complete():
+        ensure_voss_theme()
         st.markdown(
             """
             <div style="
@@ -2756,7 +2786,20 @@ if st.session_state.show_spotify:
 
 for msg in current["messages"]:
     with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+        if st.session_state.get("theme") == "Voss Residual":
+            av = Path(__file__).resolve().parent / "assets" / (
+                "voss_avatar_user.png" if msg["role"] == "user" else "voss_avatar_ai.png"
+            )
+            if av.exists():
+                c_av, c_tx = st.columns([1, 12])
+                with c_av:
+                    st.image(str(av), width=36)
+                with c_tx:
+                    st.markdown(msg["content"])
+            else:
+                st.markdown(msg["content"])
+        else:
+            st.markdown(msg["content"])
 
 if prompt := st.chat_input("Ask Meridium anything…"):
     allowed, moderated = moderate_text(prompt)
