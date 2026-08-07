@@ -380,6 +380,14 @@ def play_glitch_sfx() -> None:
     )
 
 
+def anomalies_complete() -> bool:
+    """True once all three markers are logged (persisted)."""
+    if st.session_state.get("voss_file_unlocked"):
+        return True
+    found = set(st.session_state.get("glitches_found") or [])
+    return found >= {"home", "lab", "pixel"}
+
+
 def glitches_unlocked() -> bool:
     """Glitches appear only after the 2nd lab visit."""
     return int(st.session_state.get("lab_visits") or 0) >= 2
@@ -1980,6 +1988,33 @@ if st.session_state.view == "dead_link":
 if st.session_state.get("view") != "lab":
     st.session_state._currently_in_lab = False
 
+
+# Stop Voss theme when not in her cutscene/file
+if st.session_state.get("view") != "voss_file":
+    st.components.v1.html(
+        """
+        <script>
+        (function(){
+          try {
+            var roots = [window];
+            try { if (window.parent) roots.push(window.parent); } catch(e){}
+            function kill(a){
+              if (!a) return;
+              try { a.pause(); a.src=''; a.remove(); } catch(e){}
+            }
+            for (var r = 0; r < roots.length; r++) {
+              var root = roots[r];
+              try {
+                kill(root.__mer_voss_song); root.__mer_voss_song = null;
+              } catch(e){}
+            }
+          } catch(e){}
+        })();
+        </script>
+        """,
+        height=0,
+    )
+
 # ===== DR VOSS FILE — cutscene (all 3 anomalies) =====
 if st.session_state.get("view") == "voss_file":
     # stage: 0 black+blood text, 1 file
@@ -2423,7 +2458,7 @@ if st.session_state.view == "home":
 
 
     # Post-lab anomaly warning + home glitch (after 2nd lab visit)
-    if lab_is_unlocked() and glitches_unlocked():
+    if lab_is_unlocked() and glitches_unlocked() and not anomalies_complete():
         st.markdown(
             """
             <div style="
@@ -2519,6 +2554,27 @@ if st.session_state.view == "home":
     # Re-open Voss file if already earned
     if st.session_state.get("voss_file_unlocked") and not glitches_unlocked():
         if st.button("Open Dr. Voss's file", use_container_width=True, key="open_voss_always", type="primary"):
+            st.session_state.voss_cutscene_stage = 0
+            st.session_state.view = "voss_file"
+            st.rerun()
+
+
+    # Anomalies finished — no more hunting; reopen Voss file only
+    if lab_is_unlocked() and anomalies_complete():
+        st.markdown(
+            """
+            <div style="
+              margin: 0 0 12px; padding: 12px 14px; border-radius: 12px;
+              background: rgba(80,20,20,0.25); border: 1px solid rgba(180,60,60,0.4);
+              color: #e8b0b0; font-family: ui-monospace, monospace; font-size: 0.82rem;
+            ">
+              Voss markers sealed · 3 / 3<br/>
+              <span style="opacity:0.85;font-size:0.75rem;">The anomalies will not return. The file remains.</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("Open Dr. Voss's file", use_container_width=True, key="open_voss_home_done", type="primary"):
             st.session_state.voss_cutscene_stage = 0
             st.session_state.view = "voss_file"
             st.rerun()
