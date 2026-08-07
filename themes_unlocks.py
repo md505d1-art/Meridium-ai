@@ -16,6 +16,7 @@ SECRET_NAMES = {
     "Voss Static",
     "Stringbean Soft",
     "Lumity Glow",
+    "Soft Static",
 }
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
