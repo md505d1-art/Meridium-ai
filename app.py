@@ -156,6 +156,20 @@ SECRET_THEMES = {
 }
 
 
+
+def lab_is_unlocked() -> bool:
+    if st.session_state.get("arg_unlocked"):
+        return True
+    unlocked = st.session_state.get("unlocked_themes") or []
+    if "Containment Red" in unlocked or "Voss Static" in unlocked:
+        st.session_state.arg_unlocked = True
+        return True
+    if st.session_state.get("_lab_session_visit"):
+        st.session_state.arg_unlocked = True
+        return True
+    return False
+
+
 def available_themes() -> list:
     """Public themes + any ARG themes the user has unlocked."""
     unlocked = set(st.session_state.get("unlocked_themes") or [])
@@ -1520,12 +1534,6 @@ if st.session_state.popup:
             st.session_state.view = "home"
             st.session_state.popup = False
             st.rerun()
-
-    if st.session_state.get("arg_unlocked"):
-        if st.button("Open the lab", use_container_width=True, key="pop_lab"):
-            st.session_state.view = "lab"
-            st.session_state.popup = False
-            st.rerun()
         if st.button("💬  Chat", use_container_width=True, key="pop_chat"):
             st.session_state.view = "chat"
             st.session_state.popup = False
@@ -1535,6 +1543,11 @@ if st.session_state.popup:
             st.session_state.view = "chat"
             st.session_state.popup = False
             st.rerun()
+        if lab_is_unlocked():
+            if st.button("Open the lab", use_container_width=True, key="pop_lab"):
+                st.session_state.view = "lab"
+                st.session_state.popup = False
+                st.rerun()
     with r2:
         if st.button("◎  Listen", use_container_width=True, key="pop_listen"):
             st.session_state.view = "listen"
@@ -1686,7 +1699,7 @@ if st.session_state.view not in ("lab", "note"):
             st.session_state.popup = True
             st.rerun()
     with n6:
-        if st.session_state.get("arg_unlocked"):
+        if lab_is_unlocked():
             if st.button("Open the lab", use_container_width=True, key="n_lab"):
                 st.session_state.view = "lab"
                 st.rerun()
