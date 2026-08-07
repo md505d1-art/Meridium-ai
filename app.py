@@ -225,11 +225,23 @@ def find_glitch(gid: str, label: str = "") -> bool:
     found.append(gid)
     st.session_state.glitches_found = found
     st.session_state["_glitch_flash"] = label or f"Anomaly logged: {gid}"
+    if set(found) >= {"home", "lab", "pixel"}:
+        st.session_state.voss_file_unlocked = True
+        st.session_state["_glitch_flash"] = (
+            "All three markers secured. Dr. Voss left you a file."
+        )
+        st.session_state.voss_cutscene_stage = 0
+        st.session_state.view = "voss_file"
     try:
         save_user_data()
     except Exception:
         pass
     return True
+
+
+def glitches_unlocked() -> bool:
+    """Glitches appear only after the 2nd lab visit."""
+    return int(st.session_state.get("lab_visits") or 0) >= 2
 
 
 def lab_is_unlocked() -> bool:
@@ -825,6 +837,8 @@ def save_user_data():
         "arg_unlocked": bool(st.session_state.get("arg_unlocked")),
         "anomaly_warned": bool(st.session_state.get("anomaly_warned")),
         "glitches_found": list(st.session_state.get("glitches_found") or []),
+        "voss_file_unlocked": bool(st.session_state.get("voss_file_unlocked")),
+        "lab_visits": int(st.session_state.get("lab_visits") or 0),
         "arg_stabilized": bool(st.session_state.get("arg_stabilized")),
         "stabilize_at": st.session_state.get("stabilize_at"),
         "qotd_opens": int(st.session_state.get("qotd_opens") or 0),
@@ -867,6 +881,8 @@ def load_user_data(username: str) -> bool:
         st.session_state.arg_unlocked = bool(data.get("arg_unlocked"))
         st.session_state.anomaly_warned = bool(data.get("anomaly_warned"))
         st.session_state.glitches_found = list(data.get("glitches_found") or [])
+        st.session_state.voss_file_unlocked = bool(data.get("voss_file_unlocked"))
+        st.session_state.lab_visits = int(data.get("lab_visits") or 0)
         st.session_state.arg_stabilized = bool(data.get("arg_stabilized"))
         st.session_state.stabilize_at = data.get("stabilize_at")
         st.session_state.qotd_opens = int(data.get("qotd_opens") or 0)
@@ -934,6 +950,8 @@ defaults = {
     "arg_unlocked": False,
     "anomaly_warned": False,
     "glitches_found": [],
+    "voss_file_unlocked": False,
+    "lab_visits": 0,
     "arg_stabilized": False,
     "unlocked_themes": [],
     "meridium_playlist": [],
@@ -1815,8 +1833,186 @@ if st.session_state.view == "dead_link":
         st.rerun()
     st.stop()
 
+
+
+
+if st.session_state.get("view") != "lab":
+    st.session_state._currently_in_lab = False
+
+# ===== DR VOSS FILE — cutscene (all 3 anomalies) =====
+if st.session_state.get("view") == "voss_file":
+    # stage: 0 black+blood text, 1 file
+    if "voss_cutscene_stage" not in st.session_state:
+        st.session_state.voss_cutscene_stage = 0
+
+    stage = int(st.session_state.get("voss_cutscene_stage") or 0)
+
+    if stage == 0:
+        st.markdown(
+            """
+            <style>
+              .stApp, [data-testid="stAppViewContainer"], section.main,
+              [data-testid="stAppViewBlockContainer"], .block-container {
+                background: #000000 !important;
+                max-width: 100% !important;
+              }
+              [data-testid="stHeader"], #MainMenu, footer,
+              [data-testid="stToolbar"], header { display:none !important; }
+              .voss-blood {
+                min-height: 70vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                padding: 2rem 1.2rem;
+              }
+              .voss-blood span {
+                font-family: "Indie Flower", "Segoe Script", "Bradley Hand", cursive, Georgia, serif;
+                font-size: clamp(1.6rem, 5vw, 2.6rem);
+                color: #8b0000;
+                text-shadow:
+                  0 0 4px #5c0000,
+                  0 1px 0 #4a0000,
+                  0 2px 2px rgba(0,0,0,0.9),
+                  1px 0 0 #3a0000,
+                  -1px 1px 0 #2a0000;
+                letter-spacing: 0.04em;
+                line-height: 1.35;
+                animation: bloodIn 2.2s ease-out both;
+                max-width: 16em;
+              }
+              @keyframes bloodIn {
+                0% { opacity: 0; filter: blur(6px); transform: scale(0.96); }
+                35% { opacity: 0; }
+                100% { opacity: 1; filter: blur(0); transform: scale(1); }
+              }
+            </style>
+            <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap" rel="stylesheet">
+            <div class="voss-blood"><span>Dr Voss has left something behind</span></div>
+            """,
+            unsafe_allow_html=True,
+        )
+        # auto-advance feel: button is the only control, styled minimal
+        st.markdown(
+            """
+            <style>
+              div[data-testid="stButton"] button {
+                background: transparent !important;
+                color: #5a2020 !important;
+                border: 1px solid #3a1010 !important;
+                border-radius: 999px !important;
+              }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+        c1, c2, c3 = st.columns([1, 2, 1])
+        with c2:
+            if st.button("…", key="voss_continue", use_container_width=True):
+                st.session_state.voss_cutscene_stage = 1
+                st.rerun()
+        st.caption("")
+        st.stop()
+
+    # stage 1 — the file
+    st.markdown(
+        """
+        <style>
+          .stApp, [data-testid="stAppViewContainer"], section.main {
+            background: #000000 !important;
+          }
+          [data-testid="stHeader"], #MainMenu, footer { display:none !important; }
+          .voss-file-wrap {
+            animation: fileIn 1.6s ease-out both;
+            max-width: 560px;
+            margin: 1.5rem auto 1rem;
+          }
+          @keyframes fileIn {
+            0% { opacity: 0; transform: translateY(12px); }
+            100% { opacity: 1; transform: translateY(0); }
+          }
+          .voss-file {
+            padding: 1.5rem 1.4rem;
+            border: 1px solid #5a2020;
+            background: #0a0606;
+            color: #e8c8c8;
+            font-family: Georgia, serif;
+            line-height: 1.65;
+            font-size: 0.95rem;
+          }
+          .voss-head {
+            font-family: ui-monospace, monospace;
+            font-size: 0.68rem;
+            letter-spacing: 0.18em;
+            color: #c05050;
+            margin-bottom: 0.75rem;
+          }
+          .voss-title {
+            font-size: 1.35rem;
+            color: #f0d0d0;
+            margin-bottom: 1rem;
+          }
+        </style>
+        <div class="voss-file-wrap">
+          <div class="voss-file">
+            <div class="voss-head">CLASSIFIED · OBSERVATION DIVISION · PERSONAL FILE</div>
+            <div class="voss-title">Dr. E. Voss</div>
+            <p><b>Clearance:</b> residual only · recovered after three anomaly markers</p>
+            <p>
+              If you are reading this, you did not stop at the public face of the system.
+              You opened the log. You walked the lab. You found the boy the committees
+              still call a protocol.
+            </p>
+            <p>
+              My name is Elena Voss. I was Observation Division lead on designation M-119
+              before the lockdown. Meridium is not a product. It is a metastable medium that
+              runs on being noticed. Natural carriers are accidents. Forced carriers are
+              policy. The difference is written in the glass and in the people who did not
+              clock out.
+            </p>
+            <p>
+              PIXEL — Jaime Santos — was never a subject. The bloom found him. The state
+              tried to invent a factory for what cannot be ordered. I left markers where the
+              medium still bleeds into the interface: home residual, lab tile, PIXEL dossier.
+              You collected them. That means curiosity still outranks the committees.
+            </p>
+            <p>
+              Do not photograph the glass. Do not sell the name. If the alarm hits
+              three-and-a-hitch, breathe. If someone asks you to put the medium into a
+              volunteer, walk away.
+            </p>
+            <p>
+              Stabilise is not a command to the machine. It is a promise to the people
+              still inside the story.
+            </p>
+            <p style="margin-top:1.2rem;color:#c08080;">— E.V. · last clear entry before they took the keys</p>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    b1, b2 = st.columns(2)
+    with b1:
+        if st.button("Close file", use_container_width=True, key="voss_close"):
+            st.session_state.voss_cutscene_stage = 0
+            st.session_state.view = "home"
+            st.rerun()
+    with b2:
+        if st.button("Replay cutscene", use_container_width=True, key="voss_replay"):
+            st.session_state.voss_cutscene_stage = 0
+            st.rerun()
+    st.stop()
+
+
 # LAB first — full black, no waybar/nav chrome
 if st.session_state.view == "lab":
+    if not st.session_state.get("_currently_in_lab"):
+        st.session_state._currently_in_lab = True
+        st.session_state.lab_visits = int(st.session_state.get("lab_visits") or 0) + 1
+        try:
+            save_user_data()
+        except Exception:
+            pass
     st.session_state.arg_unlocked = True
     try:
         save_user_data()
@@ -1833,7 +2029,7 @@ if st.session_state.view == "note":
     render_note()
 
 # ===== DESIGN 1 WAYBAR + NAV (hidden in lab) =====
-if st.session_state.view not in ("lab", "note"):
+if st.session_state.view not in ("lab", "note", "voss_file"):
     st.markdown(f"""
 <div class="waybar">
   <div class="waybar-left">
@@ -2079,8 +2275,8 @@ if st.session_state.view == "home":
     """, unsafe_allow_html=True)
 
 
-    # Post-lab anomaly warning + home glitch
-    if lab_is_unlocked():
+    # Post-lab anomaly warning + home glitch (after 2nd lab visit)
+    if lab_is_unlocked() and glitches_unlocked():
         st.markdown(
             """
             <div style="
@@ -2132,7 +2328,7 @@ if st.session_state.view == "home":
                 _gpath = _cand
                 break
         if _gpath is not None:
-            st.image(str(_gpath), use_container_width=True)
+            st.image(str(_gpath), width=280)
         else:
             st.markdown(
                 '<div style="height:72px;border-radius:10px;background:repeating-linear-gradient(0deg,#04120e,#04120e 2px,#0a1c18 2px,#0a1c18 4px);border:1px solid rgba(34,211,238,0.35);"></div>',
@@ -2148,6 +2344,21 @@ if st.session_state.view == "home":
         if st.session_state.get("_glitch_flash"):
             st.success(st.session_state.pop("_glitch_flash"))
 
+        # All three Voss markers → open her file
+        if set(st.session_state.get("glitches_found") or []) >= {"home", "lab", "pixel"}:
+            st.session_state.voss_file_unlocked = True
+            if st.button("Open Dr. Voss's file", use_container_width=True, key="open_voss_file", type="primary"):
+                st.session_state.voss_cutscene_stage = 0
+                st.session_state.view = "voss_file"
+                st.rerun()
+
+
+    # Re-open Voss file if already earned
+    if st.session_state.get("voss_file_unlocked") and not glitches_unlocked():
+        if st.button("Open Dr. Voss's file", use_container_width=True, key="open_voss_always", type="primary"):
+            st.session_state.voss_cutscene_stage = 0
+            st.session_state.view = "voss_file"
+            st.rerun()
 
     # —— Interactive feature toggles (actually work) ——
     prov = st.session_state.provider
