@@ -7,6 +7,7 @@ import uuid
 import hashlib
 from pathlib import Path
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from openai import OpenAI
 import wikipedia
 from duckduckgo_search import DDGS
@@ -950,7 +951,7 @@ def owner_subline(name: str) -> str:
 
 def quote_of_the_day():
     """Deterministic quote from calendar day — same all day, new each day."""
-    day_index = datetime.now().toordinal()
+    day_index = datetime.now(ZoneInfo("Europe/London")).toordinal()
     q, a = QUOTES[day_index % len(QUOTES)]
     return q, a
 
@@ -958,7 +959,7 @@ def quote_of_the_day():
 # APPLY
 # ============================================================
 inject_css(st.session_state.font, st.session_state.get("theme", "Caelestia"), st.session_state.popup)
-now = datetime.now()
+now = datetime.now(ZoneInfo("Europe/London"))
 time_str = now.strftime("%H:%M")
 date_str = now.strftime("%a · %b %d")
 provider = st.session_state.provider
