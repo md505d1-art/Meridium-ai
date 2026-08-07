@@ -225,7 +225,7 @@ def render_lab() -> None:
           }
           #lab-intro-hint {
             position: fixed !important;
-            bottom: 100px !important;
+            bottom: 140px !important;
             left: 0; right: 0;
             z-index: 1000000 !important;
             text-align: center;
@@ -235,6 +235,40 @@ def render_lab() -> None:
             opacity: 0;
             animation: labBloodIn 0.8s ease forwards;
             animation-delay: 4.2s;
+          }
+          /* Ominous enter button — sits under the blood text */
+          div[data-testid="stButton"] > button[kind="primary"],
+          div[data-testid="stButton"] > button {
+            position: relative;
+            background: #1a0505 !important;
+            color: #9a2020 !important;
+            border: 1px solid #5a1010 !important;
+            border-radius: 4px !important;
+            font-family: "Indie Flower", Georgia, cursive !important;
+            font-size: 1.35rem !important;
+            letter-spacing: 0.18em !important;
+            text-transform: lowercase !important;
+            padding: 0.85rem 1.5rem !important;
+            box-shadow: 0 0 24px rgba(80,0,0,0.45), inset 0 0 12px rgba(40,0,0,0.5) !important;
+            transition: all 0.25s ease !important;
+          }
+          div[data-testid="stButton"] > button:hover {
+            background: #2a0808 !important;
+            color: #ff3030 !important;
+            border-color: #8b0000 !important;
+            box-shadow: 0 0 36px rgba(120,0,0,0.65) !important;
+          }
+          /* Push button into lower centre of the black screen */
+          .lab-enter-wrap {
+            position: fixed !important;
+            left: 50% !important;
+            bottom: 18% !important;
+            transform: translateX(-50%) !important;
+            z-index: 1000001 !important;
+            width: min(320px, 86vw) !important;
+            opacity: 0;
+            animation: labBloodIn 1s ease forwards;
+            animation-delay: 4.5s;
           }
         </style>
         <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap" rel="stylesheet">
@@ -316,11 +350,12 @@ def render_lab() -> None:
             """,
             height=0,
         )
-        st.markdown("<div style='height:70vh'></div>", unsafe_allow_html=True)
-        if st.button("Enter the room", type="primary", use_container_width=True, key="lab_intro_enter"):
+        st.markdown("<div style='height:55vh'></div>", unsafe_allow_html=True)
+        st.markdown('<div class="lab-enter-wrap">', unsafe_allow_html=True)
+        if st.button("enter the lab…", use_container_width=True, key="lab_intro_enter"):
             st.session_state.lab_intro_done = True
             st.rerun()
-        st.caption("If audio is silent, tap the page once and re-enter the lab.")
+        st.markdown('</div>', unsafe_allow_html=True)
         st.stop()
 
     st.markdown(
