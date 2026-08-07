@@ -150,25 +150,78 @@ def render_lab() -> None:
     position: fixed; inset: 0;
     display: flex; align-items: center; justify-content: center;
     opacity: 0;
-    animation: bloodIn 1.2s ease forwards;
+    animation: bloodIn 1.4s ease forwards;
     animation-delay: 3s;
     pointer-events: none;
   }
   #blood span {
-    color: #8b0000;
-    font-size: clamp(1.4rem, 5vw, 2.4rem);
-    font-weight: 700;
-    letter-spacing: 0.06em;
+    position: relative;
+    color: #6e0000;
+    font-size: clamp(1.5rem, 5.5vw, 2.6rem);
+    font-weight: 800;
+    font-family: Georgia, "Palatino Linotype", "Times New Roman", serif;
+    font-style: italic;
+    letter-spacing: 0.12em;
     text-align: center;
+    max-width: 92%;
+    line-height: 1.4;
+    transform: rotate(-3deg) skewX(-2deg);
+    /* thick wet blood layers */
     text-shadow:
-      0 0 4px #4a0000,
-      2px 3px 0 #2a0000,
-      -1px 1px 0 #5a0000,
-      0 0 24px rgba(120,0,0,0.7);
-    filter: contrast(1.2);
-    max-width: 90%;
-    line-height: 1.35;
-    transform: rotate(-2deg);
+      0 1px 0 #4a0000,
+      0 2px 0 #3a0000,
+      1px 3px 0 #5a0000,
+      -1px 4px 0 #2a0000,
+      2px 5px 0 #1a0000,
+      0 6px 2px #300000,
+      3px 8px 0 #1a0505,
+      -2px 7px 0 #400000,
+      0 0 8px #8b0000,
+      0 0 20px rgba(100,0,0,0.85),
+      0 12px 18px rgba(40,0,0,0.6);
+    -webkit-text-stroke: 0.5px #2a0000;
+    filter: contrast(1.35) saturate(1.4);
+    animation: bloodSettle 2s ease forwards;
+    animation-delay: 3s;
+  }
+  /* dripping streaks under the words */
+  #blood span::after {
+    content: "";
+    position: absolute;
+    left: 12%;
+    right: 18%;
+    top: 95%;
+    height: 42px;
+    background:
+      radial-gradient(ellipse 4px 18px at 10% 0%, #5a0000 0%, #5a0000 40%, transparent 70%),
+      radial-gradient(ellipse 3px 28px at 28% 0%, #7a0000 0%, #4a0000 45%, transparent 75%),
+      radial-gradient(ellipse 5px 14px at 47% 0%, #6a0000 0%, transparent 70%),
+      radial-gradient(ellipse 3px 32px at 63% 0%, #8b0000 0%, #3a0000 50%, transparent 78%),
+      radial-gradient(ellipse 4px 20px at 82% 0%, #5a0000 0%, transparent 72%),
+      radial-gradient(ellipse 2px 12px at 92% 0%, #4a0000 0%, transparent 70%);
+    opacity: 0.95;
+    animation: drip 2.5s ease-out forwards;
+    animation-delay: 3.3s;
+    pointer-events: none;
+  }
+  #blood span::before {
+    content: "";
+    position: absolute;
+    inset: -8px -12px;
+    background:
+      radial-gradient(ellipse at 20% 30%, rgba(90,0,0,0.35), transparent 50%),
+      radial-gradient(ellipse at 70% 60%, rgba(60,0,0,0.25), transparent 45%);
+    z-index: -1;
+    filter: blur(1px);
+  }
+  @keyframes bloodSettle {
+    0%   { opacity: 0; filter: contrast(1.35) saturate(1.4) blur(3px); }
+    40%  { opacity: 1; filter: contrast(1.35) saturate(1.4) blur(0.5px); }
+    100% { opacity: 1; filter: contrast(1.35) saturate(1.4) blur(0); }
+  }
+  @keyframes drip {
+    0%   { opacity: 0; transform: scaleY(0.2); transform-origin: top; }
+    100% { opacity: 0.95; transform: scaleY(1); transform-origin: top; }
   }
   #hint {
     position: fixed; bottom: 28px; left: 0; right: 0;
