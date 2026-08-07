@@ -458,7 +458,14 @@ def _render_agents() -> None:
                 '<div style="height:72px;border-radius:10px;background:repeating-linear-gradient(0deg,#030a08,#030a08 2px,#0a1c18 2px,#0a1c18 4px);border:1px solid rgba(34,211,238,0.4);"></div>',
                 unsafe_allow_html=True,
             )
-        if st.button("Tap anomaly · PIXEL", key="glitch_pixel", use_container_width=True):
+        st.markdown('<style>div[data-testid="stButton"] button{min-height:32px!important;height:32px!important;font-size:0.78rem!important;padding:0 12px!important;}</style>', unsafe_allow_html=True)
+        if st.button("Tap anomaly", key="glitch_pixel", use_container_width=False):
+            st.components.v1.html("""
+            <script>
+            (function(){try{var a=new Audio("https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3");a.volume=0.55;a.play().catch(function(){})}catch(e){}})();
+            </script>
+            """, height=0)
+
             found = list(st.session_state.get("glitches_found") or [])
             if "pixel" not in found:
                 found.append("pixel")
