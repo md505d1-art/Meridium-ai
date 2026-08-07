@@ -106,6 +106,162 @@ def render_lab() -> None:
     """Full-screen black lab with animations, siren, and clickable hotspots."""
     if "lab_found" not in st.session_state:
         st.session_state.lab_found = set()
+    if "lab_intro_done" not in st.session_state:
+        st.session_state.lab_intro_done = False
+
+    # —— INTRO: 3s siren + red flash → blood text ——
+    if not st.session_state.lab_intro_done:
+        st.components.v1.html(
+            """
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<style>
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: #000; overflow: hidden;
+    font-family: Georgia, "Times New Roman", serif;
+  }
+  #flash {
+    position: fixed; inset: 0;
+    background: #000;
+    animation: redFlash 3s ease-in-out forwards;
+  }
+  @keyframes redFlash {
+    0%   { background: #000; }
+    5%   { background: #ff0000; }
+    10%  { background: #000; }
+    15%  { background: #ff1a1a; }
+    20%  { background: #1a0000; }
+    28%  { background: #ff0000; }
+    35%  { background: #000; }
+    42%  { background: #cc0000; }
+    50%  { background: #330000; }
+    58%  { background: #ff0000; }
+    65%  { background: #000; }
+    72%  { background: #ff2222; }
+    80%  { background: #1a0000; }
+    88%  { background: #990000; }
+    95%  { background: #200000; }
+    100% { background: #000; }
+  }
+  #blood {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0;
+    animation: bloodIn 1.2s ease forwards;
+    animation-delay: 3s;
+    pointer-events: none;
+  }
+  #blood span {
+    color: #8b0000;
+    font-size: clamp(1.4rem, 5vw, 2.4rem);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-align: center;
+    text-shadow:
+      0 0 4px #4a0000,
+      2px 3px 0 #2a0000,
+      -1px 1px 0 #5a0000,
+      0 0 24px rgba(120,0,0,0.7);
+    filter: contrast(1.2);
+    max-width: 90%;
+    line-height: 1.35;
+    transform: rotate(-2deg);
+  }
+  #hint {
+    position: fixed; bottom: 28px; left: 0; right: 0;
+    text-align: center;
+    color: #5a3030;
+    font-size: 0.75rem;
+    font-family: ui-monospace, monospace;
+    opacity: 0;
+    animation: bloodIn 0.8s ease forwards;
+    animation-delay: 4.2s;
+  }
+  @keyframes bloodIn {
+    from { opacity: 0; transform: scale(1.05); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+</style>
+</head>
+<body>
+  <div id="flash"></div>
+  <div id="blood"><span>you're not supposed to know</span></div>
+  <div id="hint">alarm fading · the room remains</div>
+  <script>
+  
+    function startScarySiren(durationSec) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const master = ctx.createGain();
+        master.gain.value = 0.09;
+        master.connect(ctx.destination);
+
+        // Two dissonant oscillators for that "wrong" emergency sound
+        const o1 = ctx.createOscillator();
+        const o2 = ctx.createOscillator();
+        const g1 = ctx.createGain();
+        const g2 = ctx.createGain();
+        o1.type = "sawtooth";
+        o2.type = "square";
+        g1.gain.value = 0.55;
+        g2.gain.value = 0.35;
+        o1.connect(g1); g1.connect(master);
+        o2.connect(g2); g2.connect(master);
+
+        // Classic siren wail: sweep up and down
+        const now = ctx.currentTime;
+        const dur = durationSec || 3;
+        function wail(osc, base, amp, t0) {
+          let t = t0;
+          const cycles = Math.max(2, Math.floor(dur / 0.85));
+          for (let i = 0; i < cycles; i++) {
+            osc.frequency.setValueAtTime(base, t);
+            osc.frequency.linearRampToValueAtTime(base + amp, t + 0.4);
+            osc.frequency.linearRampToValueAtTime(base, t + 0.8);
+            t += 0.85;
+          }
+        }
+        wail(o1, 620, 480, now);
+        wail(o2, 780, 520, now);
+
+        // Slight tremolo on master for panic feel
+        const lfo = ctx.createOscillator();
+        const lfoG = ctx.createGain();
+        lfo.frequency.value = 6;
+        lfoG.gain.value = 0.025;
+        lfo.connect(lfoG);
+        lfoG.connect(master.gain);
+        lfo.start(now);
+
+        o1.start(now); o2.start(now);
+        master.gain.setValueAtTime(0.09, now);
+        master.gain.linearRampToValueAtTime(0.0001, now + dur);
+
+        setTimeout(function() {
+          try { o1.stop(); o2.stop(); lfo.stop(); ctx.close(); } catch (e) {}
+        }, dur * 1000 + 150);
+        return true;
+      } catch (e) { return false; }
+    }
+
+  (function(){
+    startScarySiren(3.2);
+  })();
+  </script>
+</body>
+</html>
+            """,
+            height=420,
+        )
+        st.markdown("")
+        if st.button("Enter the room", type="primary", use_container_width=True, key="lab_intro_enter"):
+            st.session_state.lab_intro_done = True
+            st.rerun()
+        st.caption("If the siren is silent, your browser blocked autoplay — the flash still counts.")
+        st.stop()
 
     st.markdown(
         """
@@ -206,38 +362,57 @@ def render_lab() -> None:
         </div>
         <script>
         (function(){
-          let ctx, osc, gain, lfo, on=false;
+          let ctx, o1, o2, lfo, master, on=false, timer=null;
           const btn=document.getElementById('sirenBtn');
           const st=document.getElementById('sirenSt');
           function stop(){
-            try{ osc&&osc.stop(); }catch(e){}
+            if(timer){ clearInterval(timer); timer=null; }
+            try{ o1&&o1.stop(); }catch(e){}
+            try{ o2&&o2.stop(); }catch(e){}
             try{ lfo&&lfo.stop(); }catch(e){}
             try{ ctx&&ctx.close(); }catch(e){}
-            ctx=osc=gain=lfo=null; on=false;
+            ctx=o1=o2=lfo=master=null; on=false;
             btn.textContent='▶ Start siren';
             st.textContent='Off — visual alarm still runs above.';
           }
-          function start(){
+          function arm(){
             ctx = new (window.AudioContext||window.webkitAudioContext)();
-            osc = ctx.createOscillator();
-            gain = ctx.createGain();
+            master = ctx.createGain();
+            master.gain.value = 0.1;
+            master.connect(ctx.destination);
+            o1 = ctx.createOscillator();
+            o2 = ctx.createOscillator();
+            const g1 = ctx.createGain();
+            const g2 = ctx.createGain();
+            o1.type = 'sawtooth';
+            o2.type = 'square';
+            g1.gain.value = 0.55;
+            g2.gain.value = 0.4;
+            o1.connect(g1); g1.connect(master);
+            o2.connect(g2); g2.connect(master);
             lfo = ctx.createOscillator();
-            const lfoGain = ctx.createGain();
-            osc.type='sawtooth';
-            osc.frequency.value=680;
-            lfo.frequency.value=2.5;
-            lfoGain.gain.value=180;
-            gain.gain.value=0.04;
-            lfo.connect(lfoGain);
-            lfoGain.connect(osc.frequency);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start(); lfo.start();
-            on=true;
-            btn.textContent='⏹ Stop siren';
-            st.textContent='Siren armed — keep volume modest.';
+            const lfoG = ctx.createGain();
+            lfo.frequency.value = 7;
+            lfoG.gain.value = 0.03;
+            lfo.connect(lfoG);
+            lfoG.connect(master.gain);
+            const now = ctx.currentTime;
+            // continuous wail loop via scheduled ramps
+            function scheduleWail(t) {
+              o1.frequency.setValueAtTime(580, t);
+              o1.frequency.linearRampToValueAtTime(1100, t+0.45);
+              o1.frequency.linearRampToValueAtTime(580, t+0.9);
+              o2.frequency.setValueAtTime(740, t);
+              o2.frequency.linearRampToValueAtTime(1280, t+0.45);
+              o2.frequency.linearRampToValueAtTime(740, t+0.9);
+            }
+            for (let i = 0; i < 40; i++) scheduleWail(now + i * 0.95);
+            o1.start(now); o2.start(now); lfo.start(now);
+            on = true;
+            btn.textContent = '⏹ Stop siren';
+            st.textContent = 'SIREN LIVE — lower your volume if needed.';
           }
-          btn.onclick=function(){ if(on) stop(); else start(); };
+          btn.onclick = function(){ if(on) stop(); else arm(); };
         })();
         </script>
         """,
@@ -282,10 +457,12 @@ def render_lab() -> None:
     with c1:
         if st.button("↩ Leave the lab", use_container_width=True, key="lab_leave"):
             st.session_state.view = "chat"
+            st.session_state.lab_intro_done = False
             st.rerun()
     with c2:
         if st.button("💬 Chat", use_container_width=True, key="lab_chat"):
             st.session_state.view = "chat"
+            st.session_state.lab_intro_done = False
             st.rerun()
     with c3:
         if st.button("↻ Reset search", use_container_width=True, key="lab_reset"):
