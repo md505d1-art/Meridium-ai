@@ -109,231 +109,218 @@ def render_lab() -> None:
     if "lab_intro_done" not in st.session_state:
         st.session_state.lab_intro_done = False
 
-    # —— INTRO: 3s siren + red flash → blood text ——
+    # —— INTRO: full-screen black · 3s siren/flash · blood text ——
     if not st.session_state.lab_intro_done:
+        st.markdown(
+            """
+        <style>
+          /* Force entire Streamlit shell black and hide chrome */
+          html, body, .stApp,
+          [data-testid="stAppViewContainer"],
+          [data-testid="stHeader"],
+          [data-testid="stToolbar"],
+          [data-testid="stDecoration"],
+          [data-testid="stSidebar"],
+          section.main,
+          .block-container {
+            background: #000 !important;
+            background-color: #000 !important;
+          }
+          [data-testid="stHeader"],
+          [data-testid="stToolbar"],
+          [data-testid="stDecoration"],
+          [data-testid="stStatusWidget"],
+          #MainMenu, footer, .stDeployButton,
+          [data-testid="stAppDeployButton"] {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+          }
+          .block-container {
+            padding: 0 !important;
+            max-width: 100% !important;
+          }
+          /* Full-viewport overlay */
+          #lab-full-black {
+            position: fixed !important;
+            inset: 0 !important;
+            z-index: 999998 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            background: #000;
+            animation: labRedFlash 3s ease-in-out forwards;
+          }
+          @keyframes labRedFlash {
+            0%   { background: #000; }
+            5%   { background: #ff0000; }
+            10%  { background: #000; }
+            15%  { background: #ff1a1a; }
+            20%  { background: #1a0000; }
+            28%  { background: #ff0000; }
+            35%  { background: #000; }
+            42%  { background: #cc0000; }
+            50%  { background: #330000; }
+            58%  { background: #ff0000; }
+            65%  { background: #000; }
+            72%  { background: #ff2222; }
+            80%  { background: #1a0000; }
+            88%  { background: #990000; }
+            95%  { background: #200000; }
+            100% { background: #000; }
+          }
+          #lab-blood-msg {
+            position: fixed !important;
+            inset: 0 !important;
+            z-index: 999999 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: #000 !important;
+            opacity: 0;
+            animation: labBloodIn 1.4s ease forwards;
+            animation-delay: 3s;
+            pointer-events: none;
+          }
+          #lab-blood-msg span {
+            position: relative;
+            color: #6e0000;
+            font-size: clamp(1.85rem, 6.5vw, 3.1rem);
+            font-weight: 400;
+            font-family: "Indie Flower", cursive;
+            letter-spacing: 0.12em;
+            text-align: center;
+            max-width: 92%;
+            line-height: 1.4;
+            transform: rotate(-3deg) skewX(-2deg);
+            text-shadow:
+              0 1px 0 #4a0000, 0 2px 0 #3a0000, 1px 3px 0 #5a0000,
+              -1px 4px 0 #2a0000, 2px 5px 0 #1a0000, 0 6px 2px #300000,
+              3px 8px 0 #1a0505, -2px 7px 0 #400000,
+              0 0 8px #8b0000, 0 0 20px rgba(100,0,0,0.85),
+              0 12px 18px rgba(40,0,0,0.6);
+            -webkit-text-stroke: 0.5px #2a0000;
+            filter: contrast(1.35) saturate(1.4);
+          }
+          #lab-blood-msg span::after {
+            content: "";
+            position: absolute;
+            left: 12%; right: 18%; top: 95%; height: 42px;
+            background:
+              radial-gradient(ellipse 4px 18px at 10% 0%, #5a0000 0%, #5a0000 40%, transparent 70%),
+              radial-gradient(ellipse 3px 28px at 28% 0%, #7a0000 0%, #4a0000 45%, transparent 75%),
+              radial-gradient(ellipse 5px 14px at 47% 0%, #6a0000 0%, transparent 70%),
+              radial-gradient(ellipse 3px 32px at 63% 0%, #8b0000 0%, #3a0000 50%, transparent 78%),
+              radial-gradient(ellipse 4px 20px at 82% 0%, #5a0000 0%, transparent 72%);
+            opacity: 0.95;
+            animation: labDrip 2.5s ease-out forwards;
+            animation-delay: 3.3s;
+          }
+          @keyframes labBloodIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          @keyframes labDrip {
+            0% { opacity: 0; transform: scaleY(0.2); transform-origin: top; }
+            100% { opacity: 0.95; transform: scaleY(1); transform-origin: top; }
+          }
+          #lab-intro-hint {
+            position: fixed !important;
+            bottom: 100px !important;
+            left: 0; right: 0;
+            z-index: 1000000 !important;
+            text-align: center;
+            color: #5a3030;
+            font-size: 0.75rem;
+            font-family: ui-monospace, monospace;
+            opacity: 0;
+            animation: labBloodIn 0.8s ease forwards;
+            animation-delay: 4.2s;
+          }
+        </style>
+        <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap" rel="stylesheet">
+        <div id="lab-full-black"></div>
+        <div id="lab-blood-msg"><span>you're not supposed to know</span></div>
+        <div id="lab-intro-hint">alarm fading · something older starts playing</div>
+            """,
+            unsafe_allow_html=True,
+        )
+        # Audio only in component (siren + heartaches)
         st.components.v1.html(
             """
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8"/>
-<link href="https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap" rel="stylesheet">
-<style>
-  html, body {
-    margin: 0; padding: 0; width: 100%; height: 100%;
-    background: #000; overflow: hidden;
-    font-family: Georgia, "Times New Roman", serif;
-  }
-  #flash {
-    position: fixed; inset: 0;
-    background: #000;
-    animation: redFlash 3s ease-in-out forwards;
-  }
-  @keyframes redFlash {
-    0%   { background: #000; }
-    5%   { background: #ff0000; }
-    10%  { background: #000; }
-    15%  { background: #ff1a1a; }
-    20%  { background: #1a0000; }
-    28%  { background: #ff0000; }
-    35%  { background: #000; }
-    42%  { background: #cc0000; }
-    50%  { background: #330000; }
-    58%  { background: #ff0000; }
-    65%  { background: #000; }
-    72%  { background: #ff2222; }
-    80%  { background: #1a0000; }
-    88%  { background: #990000; }
-    95%  { background: #200000; }
-    100% { background: #000; }
-  }
-  #blood {
-    position: fixed; inset: 0;
-    display: flex; align-items: center; justify-content: center;
-    opacity: 0;
-    animation: bloodIn 1.4s ease forwards;
-    animation-delay: 3s;
-    pointer-events: none;
-  }
-  #blood span {
-    position: relative;
-    color: #6e0000;
-    font-size: clamp(1.85rem, 6.5vw, 3.1rem);
-    font-weight: 400;
-    font-family: "Indie Flower", cursive;
-    font-style: normal;
-    letter-spacing: 0.12em;
-    text-align: center;
-    max-width: 92%;
-    line-height: 1.4;
-    transform: rotate(-3deg) skewX(-2deg);
-    /* thick wet blood layers */
-    text-shadow:
-      0 1px 0 #4a0000,
-      0 2px 0 #3a0000,
-      1px 3px 0 #5a0000,
-      -1px 4px 0 #2a0000,
-      2px 5px 0 #1a0000,
-      0 6px 2px #300000,
-      3px 8px 0 #1a0505,
-      -2px 7px 0 #400000,
-      0 0 8px #8b0000,
-      0 0 20px rgba(100,0,0,0.85),
-      0 12px 18px rgba(40,0,0,0.6);
-    -webkit-text-stroke: 0.5px #2a0000;
-    filter: contrast(1.35) saturate(1.4);
-    animation: bloodSettle 2s ease forwards;
-    animation-delay: 3s;
-  }
-  /* dripping streaks under the words */
-  #blood span::after {
-    content: "";
-    position: absolute;
-    left: 12%;
-    right: 18%;
-    top: 95%;
-    height: 42px;
-    background:
-      radial-gradient(ellipse 4px 18px at 10% 0%, #5a0000 0%, #5a0000 40%, transparent 70%),
-      radial-gradient(ellipse 3px 28px at 28% 0%, #7a0000 0%, #4a0000 45%, transparent 75%),
-      radial-gradient(ellipse 5px 14px at 47% 0%, #6a0000 0%, transparent 70%),
-      radial-gradient(ellipse 3px 32px at 63% 0%, #8b0000 0%, #3a0000 50%, transparent 78%),
-      radial-gradient(ellipse 4px 20px at 82% 0%, #5a0000 0%, transparent 72%),
-      radial-gradient(ellipse 2px 12px at 92% 0%, #4a0000 0%, transparent 70%);
-    opacity: 0.95;
-    animation: drip 2.5s ease-out forwards;
-    animation-delay: 3.3s;
-    pointer-events: none;
-  }
-  #blood span::before {
-    content: "";
-    position: absolute;
-    inset: -8px -12px;
-    background:
-      radial-gradient(ellipse at 20% 30%, rgba(90,0,0,0.35), transparent 50%),
-      radial-gradient(ellipse at 70% 60%, rgba(60,0,0,0.25), transparent 45%);
-    z-index: -1;
-    filter: blur(1px);
-  }
-  @keyframes bloodSettle {
-    0%   { opacity: 0; filter: contrast(1.35) saturate(1.4) blur(3px); }
-    40%  { opacity: 1; filter: contrast(1.35) saturate(1.4) blur(0.5px); }
-    100% { opacity: 1; filter: contrast(1.35) saturate(1.4) blur(0); }
-  }
-  @keyframes drip {
-    0%   { opacity: 0; transform: scaleY(0.2); transform-origin: top; }
-    100% { opacity: 0.95; transform: scaleY(1); transform-origin: top; }
-  }
-  #hint {
-    position: fixed; bottom: 28px; left: 0; right: 0;
-    text-align: center;
-    color: #5a3030;
-    font-size: 0.75rem;
-    font-family: ui-monospace, monospace;
-    opacity: 0;
-    animation: bloodIn 0.8s ease forwards;
-    animation-delay: 4.2s;
-  }
-  @keyframes bloodIn {
-    from { opacity: 0; transform: scale(1.05); }
-    to   { opacity: 1; transform: scale(1); }
-  }
-</style>
-</head>
-<body>
-  <div id="flash"></div>
-  <div id="blood"><span>you're not supposed to know</span></div>
-  <div id="hint">alarm fading · something older starts playing</div>
-  <script>
-  
-    function startScarySiren(durationSec) {
-      try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const master = ctx.createGain();
-        master.gain.value = 0.09;
-        master.connect(ctx.destination);
-
-        // Two dissonant oscillators for that "wrong" emergency sound
-        const o1 = ctx.createOscillator();
-        const o2 = ctx.createOscillator();
-        const g1 = ctx.createGain();
-        const g2 = ctx.createGain();
-        o1.type = "sawtooth";
-        o2.type = "square";
-        g1.gain.value = 0.55;
-        g2.gain.value = 0.35;
-        o1.connect(g1); g1.connect(master);
-        o2.connect(g2); g2.connect(master);
-
-        // Classic siren wail: sweep up and down
-        const now = ctx.currentTime;
-        const dur = durationSec || 3;
-        function wail(osc, base, amp, t0) {
-          let t = t0;
-          const cycles = Math.max(2, Math.floor(dur / 0.85));
-          for (let i = 0; i < cycles; i++) {
-            osc.frequency.setValueAtTime(base, t);
-            osc.frequency.linearRampToValueAtTime(base + amp, t + 0.4);
-            osc.frequency.linearRampToValueAtTime(base, t + 0.8);
-            t += 0.85;
-          }
+        <script>
+        function startScarySiren(durationSec) {
+          try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const master = ctx.createGain();
+            master.gain.value = 0.09;
+            master.connect(ctx.destination);
+            const o1 = ctx.createOscillator();
+            const o2 = ctx.createOscillator();
+            const g1 = ctx.createGain();
+            const g2 = ctx.createGain();
+            o1.type = "sawtooth";
+            o2.type = "square";
+            g1.gain.value = 0.55;
+            g2.gain.value = 0.35;
+            o1.connect(g1); g1.connect(master);
+            o2.connect(g2); g2.connect(master);
+            const now = ctx.currentTime;
+            const dur = durationSec || 3;
+            function wail(osc, base, amp, t0) {
+              let t = t0;
+              const cycles = Math.max(2, Math.floor(dur / 0.85));
+              for (let i = 0; i < cycles; i++) {
+                osc.frequency.setValueAtTime(base, t);
+                osc.frequency.linearRampToValueAtTime(base + amp, t + 0.4);
+                osc.frequency.linearRampToValueAtTime(base, t + 0.8);
+                t += 0.85;
+              }
+            }
+            wail(o1, 620, 480, now);
+            wail(o2, 780, 520, now);
+            const lfo = ctx.createOscillator();
+            const lfoG = ctx.createGain();
+            lfo.frequency.value = 6;
+            lfoG.gain.value = 0.025;
+            lfo.connect(lfoG);
+            lfoG.connect(master.gain);
+            lfo.start(now);
+            o1.start(now); o2.start(now);
+            master.gain.setValueAtTime(0.09, now);
+            master.gain.linearRampToValueAtTime(0.0001, now + dur);
+            setTimeout(function() {
+              try { o1.stop(); o2.stop(); lfo.stop(); ctx.close(); } catch (e) {}
+            }, dur * 1000 + 150);
+          } catch (e) {}
         }
-        wail(o1, 620, 480, now);
-        wail(o2, 780, 520, now);
-
-        // Slight tremolo on master for panic feel
-        const lfo = ctx.createOscillator();
-        const lfoG = ctx.createGain();
-        lfo.frequency.value = 6;
-        lfoG.gain.value = 0.025;
-        lfo.connect(lfoG);
-        lfoG.connect(master.gain);
-        lfo.start(now);
-
-        o1.start(now); o2.start(now);
-        master.gain.setValueAtTime(0.09, now);
-        master.gain.linearRampToValueAtTime(0.0001, now + dur);
-
+        startScarySiren(3.2);
         setTimeout(function() {
-          try { o1.stop(); o2.stop(); lfo.stop(); ctx.close(); } catch (e) {}
-        }, dur * 1000 + 150);
-        return true;
-      } catch (e) { return false; }
-    }
-
-  (function(){
-    startScarySiren(3.2);
-    // After alarm: Heartaches — Al Bowlly (Internet Archive, PD Mark 1.0 listing)
-    setTimeout(function(){
-      try {
-        var a = document.getElementById('heartaches');
-        if (!a) {
-          a = document.createElement('audio');
-          a.id = 'heartaches';
-          a.src = 'https://archive.org/download/al-bowlly-sid-phillips-his-melodians-heartaches/Al%20Bowlly%2C%20Sid%20Phillips%20%26%20His%20Melodians%20-%20Heartaches.mp3';
-          a.loop = true;
-          a.volume = 0.55;
-          document.body.appendChild(a);
-        }
-        var p = a.play();
-        if (p && p.catch) p.catch(function(){});
-      } catch(e) {}
-    }, 3300);
-  })();
-  </script>
-  <audio id="heartaches" preload="auto"
-    src="https://archive.org/download/al-bowlly-sid-phillips-his-melodians-heartaches/Al%20Bowlly%2C%20Sid%20Phillips%20%26%20His%20Melodians%20-%20Heartaches.mp3"
-    style="display:none"></audio>
-</body>
-</html>
+          try {
+            var a = document.getElementById('heartaches');
+            if (!a) {
+              a = document.createElement('audio');
+              a.id = 'heartaches';
+              a.src = 'https://archive.org/download/al-bowlly-sid-phillips-his-melodians-heartaches/Al%20Bowlly%2C%20Sid%20Phillips%20%26%20His%20Melodians%20-%20Heartaches.mp3';
+              a.loop = true;
+              a.volume = 0.55;
+              document.body.appendChild(a);
+            }
+            var p = a.play();
+            if (p && p.catch) p.catch(function(){});
+          } catch(e) {}
+        }, 3300);
+        </script>
+        <audio id="heartaches" preload="auto"
+          src="https://archive.org/download/al-bowlly-sid-phillips-his-melodians-heartaches/Al%20Bowlly%2C%20Sid%20Phillips%20%26%20His%20Melodians%20-%20Heartaches.mp3"
+          style="display:none"></audio>
             """,
-            height=420,
+            height=0,
         )
-        st.markdown("")
+        st.markdown("<div style='height:70vh'></div>", unsafe_allow_html=True)
         if st.button("Enter the room", type="primary", use_container_width=True, key="lab_intro_enter"):
             st.session_state.lab_intro_done = True
             st.rerun()
-        st.caption("If the siren is silent, your browser blocked autoplay — the flash still counts.")
+        st.caption("If audio is silent, tap the page once and re-enter the lab.")
         st.stop()
 
     st.markdown(
