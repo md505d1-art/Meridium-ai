@@ -216,6 +216,22 @@ except Exception:
         return newly
 
 
+
+def find_glitch(gid: str, label: str = "") -> bool:
+    """Record a found anomaly glitch. Returns True if newly found."""
+    found = list(st.session_state.get("glitches_found") or [])
+    if gid in found:
+        return False
+    found.append(gid)
+    st.session_state.glitches_found = found
+    st.session_state["_glitch_flash"] = label or f"Anomaly logged: {gid}"
+    try:
+        save_user_data()
+    except Exception:
+        pass
+    return True
+
+
 def lab_is_unlocked() -> bool:
     if st.session_state.get("arg_unlocked"):
         return True
@@ -807,6 +823,8 @@ def save_user_data():
         "theme": st.session_state.get("theme", "Caelestia"),
             "unlocked_themes": list(st.session_state.get("unlocked_themes") or []),
         "arg_unlocked": bool(st.session_state.get("arg_unlocked")),
+        "anomaly_warned": bool(st.session_state.get("anomaly_warned")),
+        "glitches_found": list(st.session_state.get("glitches_found") or []),
         "arg_stabilized": bool(st.session_state.get("arg_stabilized")),
         "stabilize_at": st.session_state.get("stabilize_at"),
         "qotd_opens": int(st.session_state.get("qotd_opens") or 0),
@@ -847,6 +865,8 @@ def load_user_data(username: str) -> bool:
         st.session_state.theme = data.get("theme", "Caelestia")
         st.session_state.unlocked_themes = list(data.get("unlocked_themes") or [])
         st.session_state.arg_unlocked = bool(data.get("arg_unlocked"))
+        st.session_state.anomaly_warned = bool(data.get("anomaly_warned"))
+        st.session_state.glitches_found = list(data.get("glitches_found") or [])
         st.session_state.arg_stabilized = bool(data.get("arg_stabilized"))
         st.session_state.stabilize_at = data.get("stabilize_at")
         st.session_state.qotd_opens = int(data.get("qotd_opens") or 0)
@@ -912,6 +932,8 @@ defaults = {
     "model_name": "Smart · Llama 3.3 70B",
     "api_key_val": "",
     "arg_unlocked": False,
+    "anomaly_warned": False,
+    "glitches_found": [],
     "arg_stabilized": False,
     "unlocked_themes": [],
     "meridium_playlist": [],
@@ -2055,6 +2077,76 @@ if st.session_state.view == "home":
       <div class="ridge"></div>
     </div>
     """, unsafe_allow_html=True)
+
+
+    # Post-lab anomaly warning + home glitch
+    if lab_is_unlocked():
+        st.markdown(
+            """
+            <div style="
+              margin: 0 0 12px; padding: 12px 14px; border-radius: 12px;
+              background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.45);
+              color: #fecaca; font-family: ui-monospace, monospace; font-size: 0.85rem;
+              animation: anomPulse 2.2s ease-in-out infinite;
+            ">
+              ⚠ WARNING: ANOMALIES PRESENT<br/>
+              <span style="opacity:0.9;font-size:0.78rem;line-height:1.45;">
+              — Dr. E. Voss, Observation Division<br/>
+              You opened the log. That was the point. Now the medium is leaving fingerprints
+              in three places it should not reach. Find them before the committees do.
+              </span>
+            </div>
+            <style>
+              @keyframes anomPulse {
+                0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.0); }
+                50% { box-shadow: 0 0 18px 0 rgba(239,68,68,0.25); }
+              }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+        found = set(st.session_state.get("glitches_found") or [])
+        st.caption(f"Voss markers recovered: {len(found)} / 3")
+        # Home glitch — clickable image (not a white box)
+        st.markdown(
+            """
+            <style>
+              div[data-testid="stButton"]:has(button[kind="secondary"]) button {
+                background: #0a1210 !important;
+                color: #5eead4 !important;
+                border: 1px solid rgba(34,211,238,0.35) !important;
+                border-radius: 10px !important;
+              }
+            </style>
+            <div style="font-family:ui-monospace,monospace;font-size:0.72rem;color:#5eead4;opacity:0.7;margin:6px 0 4px;">
+              Voss field residual — tap the interference
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        _gpath = None
+        _base = Path(__file__).resolve().parent / "assets"
+        for _name in ("glitch_home.png", "IMG_1354.jpeg", "IMG_1354.jpg"):
+            _cand = _base / _name
+            if _cand.exists() and _cand.stat().st_size > 500:
+                _gpath = _cand
+                break
+        if _gpath is not None:
+            st.image(str(_gpath), use_container_width=True)
+        else:
+            st.markdown(
+                '<div style="height:72px;border-radius:10px;background:repeating-linear-gradient(0deg,#04120e,#04120e 2px,#0a1c18 2px,#0a1c18 4px);border:1px solid rgba(34,211,238,0.35);"></div>',
+                unsafe_allow_html=True,
+            )
+        if st.button("Tap anomaly · home", key="glitch_home", use_container_width=True):
+            if find_glitch("home", "Voss log: home marker secured. Two remain."):
+                st.session_state.anomaly_warned = True
+                save_user_data()
+            st.rerun()
+        if "home" in found:
+            st.caption("Home marker · secured")
+        if st.session_state.get("_glitch_flash"):
+            st.success(st.session_state.pop("_glitch_flash"))
 
 
     # —— Interactive feature toggles (actually work) ——
