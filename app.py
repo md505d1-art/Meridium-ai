@@ -632,12 +632,17 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
       border: none !important;
       box-shadow: none !important;
     }}
-    [data-testid="stChatInput"] textarea,
+    [data-testid="stChatInput"] textarea {{
+      background: transparent !important;
+      color: {SHELL["text"]} !important;
+      border: none !important;
+      box-shadow: none !important;
+      outline: none !important;
+    }}
     [data-testid="stChatInput"] > div,
     [data-testid="stChatInput"] > div > div {{
-      background: {SHELL["panel_solid"]} !important;
-      color: {SHELL["text"]} !important;
-      border: 1px solid {SHELL["border"]} !important;
+      background: transparent !important;
+      border: none !important;
       box-shadow: none !important;
       outline: none !important;
     }}
@@ -650,34 +655,44 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
       box-shadow: none !important;
     }}
 
-    /* ===== CHAT INPUT — single clean bar, no white / double borders ===== */
-    [data-testid="stBottomBlockContainer"],
-    [data-testid="stBottomBlockContainer"] * {{
-        background-color: {SHELL["bg"]} !important;
-        border-color: transparent !important;
+    /* ===== CHAT INPUT — ONE rounded box only ===== */
+    [data-testid="stBottomBlockContainer"] {{
+        background: {SHELL["bg"]} !important;
+        border: none !important;
         box-shadow: none !important;
+        padding-top: 4px !important;
     }}
-    [data-testid="stChatInput"] {{
+    [data-testid="stBottomBlockContainer"] > div {{
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
-        padding: 8px 4px 12px !important;
     }}
-    [data-testid="stChatInput"] > div {{
+    /* outer chat input shell = the only visible box */
+    [data-testid="stChatInput"] {{
         background: {SHELL["panel_solid"]} !important;
         border: 1px solid {SHELL["border"]} !important;
-        border-radius: 18px !important;
+        border-radius: 28px !important;
         box-shadow: none !important;
+        padding: 2px 6px !important;
+        overflow: hidden !important;
     }}
-    [data-testid="stChatInput"] > div > div {{
+    /* strip every nested frame */
+    [data-testid="stChatInput"] > div,
+    [data-testid="stChatInput"] > div > div,
+    [data-testid="stChatInput"] > div > div > div,
+    [data-testid="stChatInput"] form,
+    [data-testid="stChatInput"] form > div {{
         background: transparent !important;
         border: none !important;
+        border-radius: 0 !important;
         box-shadow: none !important;
+        outline: none !important;
     }}
     [data-testid="stChatInput"] textarea {{
         background: transparent !important;
         color: {SHELL["text"]} !important;
         border: none !important;
+        border-radius: 0 !important;
         box-shadow: none !important;
         outline: none !important;
         caret-color: {SHELL["accent"]} !important;
@@ -692,6 +707,13 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
         border: none !important;
         box-shadow: none !important;
         color: {SHELL["accent"]} !important;
+        border-radius: 999px !important;
+    }}
+    /* older streamlit class path */
+    .stChatInput, .stChatInput > div {{
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
     }}
 
     div[data-testid="stVerticalBlock"] > div:has(iframe) {{
@@ -1273,7 +1295,7 @@ def update_chat_title(chat_id, first_message):
 
 
 # ============================================================
-# QUOTE OF THE DAY (changes once per calendar day)
+# QUOTE OF THE HOUR (changes every hour, UK time)
 # ============================================================
 QUOTES = [
     ("The only way to do great work is to love what you do.", "Steve Jobs"),
@@ -1424,9 +1446,11 @@ def try_music_command(prompt: str):
 
 
 def quote_of_the_day():
-    """Deterministic quote from calendar day — same all day, new each day."""
-    day_index = datetime.now(ZoneInfo("Europe/London")).toordinal()
-    q, a = QUOTES[day_index % len(QUOTES)]
+    """Deterministic quote from UK hour — same within the hour, new on the hour."""
+    now = datetime.now(ZoneInfo("Europe/London"))
+    # Unique bucket per hour since a fixed epoch
+    hour_index = int(now.timestamp() // 3600)
+    q, a = QUOTES[hour_index % len(QUOTES)]
     return q, a
 
 # ============================================================
@@ -2139,10 +2163,11 @@ if st.session_state.view == "home":
             unsafe_allow_html=True,
         )
         quote_label = (
-            "QUOTE OF THE DAY\n\n"
+            "QUOTE OF THE HOUR\n\n"
             + "“" + qotd + "”\n"
             + "— " + qotd_author + "\n\n"
             + date_str + "  ·  " + time_str
+            + "\n(new quote each hour)"
         )
         if st.button(quote_label, use_container_width=True, key="qotd_note"):
             msg = register_qotd_open()
