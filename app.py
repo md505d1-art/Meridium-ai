@@ -1392,8 +1392,13 @@ if st.session_state.popup:
                 st.rerun()
     st.stop()
 
-# ===== DESIGN 1 WAYBAR =====
-st.markdown(f"""
+# LAB first — full black, no waybar/nav chrome
+if st.session_state.view == "lab":
+    render_lab()
+
+# ===== DESIGN 1 WAYBAR + NAV (hidden in lab) =====
+if st.session_state.view != "lab":
+    st.markdown(f"""
 <div class="waybar">
   <div class="waybar-left">
     <div class="logo-btn">◈</div>
@@ -1409,39 +1414,30 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# Nav (2 rows — easier on phones)
-n1, n2, n3 = st.columns(3)
-with n1:
-    if st.button("⌂ Home", use_container_width=True, key="n_home"):
-        st.session_state.view = "home"
-        st.rerun()
-with n2:
-    if st.button("💬 Chat", use_container_width=True, key="n_chat"):
-        st.session_state.view = "chat"
-        st.rerun()
-with n3:
-    if st.button("♫ Music", use_container_width=True, key="n_music"):
-        st.session_state.view = "music"
-        st.rerun()
-n4, n5, n6 = st.columns(3)
-with n4:
-    if st.button("◎ Listen", use_container_width=True, key="n_listen"):
-        st.session_state.view = "listen"
-        st.rerun()
-with n5:
-    if st.button("☰ Menu", use_container_width=True, key="n_menu"):
-        st.session_state.popup = True
-        st.rerun()
-with n6:
-    st.caption("")
-
-
-
-
-
-# LAB — ARG (module)
-if st.session_state.view == "lab":
-    render_lab()
+    n1, n2, n3 = st.columns(3)
+    with n1:
+        if st.button("⌂ Home", use_container_width=True, key="n_home"):
+            st.session_state.view = "home"
+            st.rerun()
+    with n2:
+        if st.button("💬 Chat", use_container_width=True, key="n_chat"):
+            st.session_state.view = "chat"
+            st.rerun()
+    with n3:
+        if st.button("♫ Music", use_container_width=True, key="n_music"):
+            st.session_state.view = "music"
+            st.rerun()
+    n4, n5, n6 = st.columns(3)
+    with n4:
+        if st.button("◎ Listen", use_container_width=True, key="n_listen"):
+            st.session_state.view = "listen"
+            st.rerun()
+    with n5:
+        if st.button("☰ Menu", use_container_width=True, key="n_menu"):
+            st.session_state.popup = True
+            st.rerun()
+    with n6:
+        st.caption("")
 
 # MUSIC — dedicated player + Meridium playlist
 if st.session_state.view == "music":
