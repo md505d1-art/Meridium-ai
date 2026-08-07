@@ -264,8 +264,6 @@ def render_lab() -> None:
         <div id="lab-vhs-track"></div>
         <div id="lab-blood-msg">
           <span class="blood">you're not supposed to know</span>
-          <div id="lab-press-hint">Enter into the lab</div>
-          <div id="lab-press-sub">press the screen or enter...</div>
         </div>
             """,
             unsafe_allow_html=True,
@@ -415,10 +413,17 @@ def render_lab() -> None:
         st.markdown(
             """
         <style>
-          /* Fade in with the blood text (~3s after red flash starts) */
+          /* Hide the old "press the screen..." line — button sits there */
+          #lab-press-hint, #lab-press-sub { display: none !important; height: 0 !important; }
+
+          /* Button sits under blood text / where the hint was */
           div[data-testid="stButton"] {
-            position: relative;
-            z-index: 1000002 !important;
+            position: fixed !important;
+            left: 50% !important;
+            top: 58% !important;
+            transform: translateX(-50%) !important;
+            width: min(280px, 82vw) !important;
+            z-index: 1000005 !important;
             opacity: 0;
             animation: enterBtnIn 1.4s ease forwards;
             animation-delay: 3.2s;
@@ -432,31 +437,37 @@ def render_lab() -> None:
             font-size: 1.15rem !important;
             letter-spacing: 0.08em !important;
             padding: 0.85rem 1rem !important;
+            width: 100% !important;
             box-shadow: 0 0 20px rgba(80,0,0,0.45) !important;
           }
           @keyframes enterBtnIn {
-            from { opacity: 0; transform: translateY(12px); }
-            to   { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; transform: translateX(-50%) translateY(14px); }
+            to   { opacity: 1; transform: translateX(-50%) translateY(0); }
           }
-          /* hide caption until button time */
+          /* tiny hint under the button */
           .lab-enter-caption {
+            position: fixed !important;
+            left: 0; right: 0;
+            top: calc(62% + 58px) !important;
+            z-index: 1000005 !important;
             opacity: 0;
             animation: enterBtnIn 1.2s ease forwards;
             animation-delay: 3.8s;
             color: #3a1818 !important;
-            font-size: 0.7rem !important;
+            font-size: 0.65rem !important;
+            letter-spacing: 0.16em;
             text-align: center;
+            pointer-events: none;
           }
         </style>
             """,
             unsafe_allow_html=True,
         )
-        st.markdown("<div style='height:52vh'></div>", unsafe_allow_html=True)
         if st.button("Enter into the lab", use_container_width=True, key="lab_enter_mobile"):
             st.session_state.lab_intro_done = True
             st.session_state.lab_flicker = True
             st.rerun()
-        st.markdown('<p class="lab-enter-caption">press the screen or enter…</p>', unsafe_allow_html=True)
+
         # Hidden form still catches Enter key on laptop via JS
         with st.form("lab_enter_form"):
             go = st.form_submit_button("enter")
