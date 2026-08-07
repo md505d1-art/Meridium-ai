@@ -1,4 +1,3 @@
-
 """
 Meridium ARG — Element 119 / Observation Log
 --------------------------------------------
@@ -62,10 +61,13 @@ def arg_match(prompt: str) -> Optional[str]:
         for x in (
             "that's not real",
             "thats not real",
+            "that is not real",
+            "not real",
             "not a real element",
             "no element 119",
             "only go to 118",
             "only goes to 118",
+            "stop at 118",
             "making that up",
             "you're making that up",
             "youre making that up",
@@ -75,6 +77,10 @@ def arg_match(prompt: str) -> Optional[str]:
             "prove it",
             "that's fake",
             "thats fake",
+            "that is fake",
+            "liar",
+            "bullshit",
+            "cap",
         )
     ):
         return "doubt"
@@ -181,3 +187,4 @@ def arg_reply(stage: str, username: str = "") -> str:
         )
 
     return ""
+
