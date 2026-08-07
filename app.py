@@ -2787,13 +2787,29 @@ if st.session_state.show_spotify:
 for msg in current["messages"]:
     with st.chat_message(msg["role"]):
         if st.session_state.get("theme") == "Voss Residual":
-            av = Path(__file__).resolve().parent / "assets" / (
-                "voss_avatar_user.png" if msg["role"] == "user" else "voss_avatar_ai.png"
-            )
-            if av.exists():
+            base = Path(__file__).resolve().parent / "assets"
+            if msg["role"] == "user":
+                candidates = [
+                    "voss_avatar_user.png",
+                    "IMG_1359.jpeg", "IMG_1359.jpg",
+                    "IMG_1356.jpeg", "IMG_1356.jpg",
+                ]
+            else:
+                candidates = [
+                    "voss_avatar_ai.png",
+                    "IMG_1360.jpeg", "IMG_1360.jpg",
+                    "IMG_1359.jpeg", "IMG_1359.jpg",
+                ]
+            av = None
+            for name in candidates:
+                cand = base / name
+                if cand.exists() and cand.stat().st_size > 200:
+                    av = cand
+                    break
+            if av is not None:
                 c_av, c_tx = st.columns([1, 12])
                 with c_av:
-                    st.image(str(av), width=36)
+                    st.image(str(av), width=40)
                 with c_tx:
                     st.markdown(msg["content"])
             else:
