@@ -439,10 +439,25 @@ def _render_agents() -> None:
     )
 
 
-    # PIXEL letter anomaly glitch
+    # PIXEL letter anomaly glitch — clickable image
     st.markdown("")
-    st.caption("Voss residual: the dossier is skipping frames — press the error.")
-    if st.button("░PIXEL_ERR::0x77", key="glitch_pixel", help="anomaly"):
+    st.caption("Voss residual: the dossier is skipping frames.")
+    from pathlib import Path as _P
+    _gpath = None
+    _base = _P(__file__).resolve().parent / "assets"
+    for _name in ("glitch_pixel.png", "IMG_1356.jpeg", "IMG_1356.jpg"):
+        _cand = _base / _name
+        if _cand.exists() and _cand.stat().st_size > 500:
+            _gpath = _cand
+            break
+    if _gpath is not None:
+        st.image(str(_gpath), use_container_width=True)
+    else:
+        st.markdown(
+            '<div style="height:72px;border-radius:10px;background:repeating-linear-gradient(0deg,#030a08,#030a08 2px,#0a1c18 2px,#0a1c18 4px);border:1px solid rgba(34,211,238,0.4);"></div>',
+            unsafe_allow_html=True,
+        )
+    if st.button("Tap anomaly · PIXEL", key="glitch_pixel", use_container_width=True):
         found = list(st.session_state.get("glitches_found") or [])
         if "pixel" not in found:
             found.append("pixel")
