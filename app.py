@@ -243,8 +243,8 @@ def find_glitch(gid: str, label: str = "") -> bool:
 
 VOSS_FILE_SONG_URL = (
     "https://archive.org/download/"
-    "78_this-love-of-mine_5-demarco-sisters-sy-oliver-sol-parker-henry-sanicola-frank-sinat_gbia0127491a/"
-    "THIS%20LOVE%20OF%20MINE%20-%205%20DeMarco%20Sisters%20-%20Sy%20Oliver.mp3"
+    "78_tonight-you-belong-to-me_the-tracy-twins-wendell-tracy-quartet-billy-rose-lee-dav_gbia0438651b/"
+    "TONIGHT%20YOU%20BELONG%20TO%20ME%20-%20THE%20TRACY%20TWINS.mp3"
 )
 
 
@@ -302,7 +302,7 @@ def stop_all_meridium_audio() -> None:
 
 
 def start_voss_file_audio() -> None:
-    """Play This Love of Mine after silencing everything else."""
+    """Play Tonight You Belong to Me after silencing everything else."""
     import json as _json
     url = VOSS_FILE_SONG_URL
     try:
@@ -2100,35 +2100,38 @@ if st.session_state.get("view") == "voss_file":
           <div class="voss-file">
             <div class="voss-head">CLASSIFIED · OBSERVATION DIVISION · PERSONAL FILE</div>
             <div class="voss-title">Dr. E. Voss</div>
-            <p><b>Clearance:</b> residual only · recovered after three anomaly markers</p>
+            <p><b>Clearance:</b> residual only · recovered in blood and static</p>
             <p>
-              If you are reading this, you did not stop at the public face of the system.
-              You opened the log. You walked the lab. You found the boy the committees
-              still call a protocol.
+              If you found the three markers, you already know I am not the kind of doctor
+              who washes her hands between subjects. Observation Division taught me to watch.
+              Meridium taught me to <i>want</i>.
             </p>
             <p>
-              My name is Elena Voss. I was Observation Division lead on designation M-119
-              before the lockdown. Meridium is not a product. It is a metastable medium that
-              runs on being noticed. Natural carriers are accidents. Forced carriers are
-              policy. The difference is written in the glass and in the people who did not
-              clock out.
+              The first natural carrier did not scream when the bloom took. The forced ones did.
+              We put the medium under the skin anyway — needle, drip, open tray. The glass fogged
+              from the inside with something warmer than condensation. Tissue on the sill was not
+              a metaphor. It was a hand that forgot it was attached.
             </p>
             <p>
-              PIXEL — Jaime Santos — was never a subject. The bloom found him. The state
-              tried to invent a factory for what cannot be ordered. I left markers where the
-              medium still bleeds into the interface: home residual, lab tile, PIXEL dossier.
-              You collected them. That means curiosity still outranks the committees.
+              Committees ask for soldiers. I gave them red rooms and a spectrum line that only
+              appears when someone is dying slowly enough to notice. PIXEL — Jaime — walked away
+              from a leak that cooked the volunteers. That made him valuable. It did not make him
+              safe. Nothing that survives Meridium is safe. Including me.
             </p>
             <p>
-              Do not photograph the glass. Do not sell the name. If the alarm hits
-              three-and-a-hitch, breathe. If someone asks you to put the medium into a
-              volunteer, walk away.
+              I left the anomalies because I am still hungry for witnesses. Curiosity is how the
+              medium feeds. You opened the log. You pressed the corrupted tiles. You are already
+              in the experiment. The file is not a warning. It is an invitation written in the
+              same colour as the floor.
             </p>
             <p>
-              Stabilise is not a command to the machine. It is a promise to the people
-              still inside the story.
+              When the alarm hits three-and-a-hitch, do not stabilise. Stay. Watch what the pane
+              does to a face. If you feel warmth on your palms, that is not fear. That is the
+              designation learning your name.
             </p>
-            <p style="margin-top:1.2rem;color:#c08080;">— E.V. · last clear entry before they took the keys</p>
+            <p style="margin-top:1.2rem;color:#c05050;">
+              — E.V. · I was never trying to save you
+            </p>
           </div>
         </div>
         """,
