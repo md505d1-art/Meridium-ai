@@ -439,7 +439,10 @@ def _render_agents() -> None:
     )
 
 
-    if int(st.session_state.get("lab_visits") or 0) >= 2:
+    if int(st.session_state.get("lab_visits") or 0) >= 2 and not (
+        st.session_state.get("voss_file_unlocked")
+        or set(st.session_state.get("glitches_found") or []) >= {"home", "lab", "pixel"}
+    ):
         # PIXEL letter anomaly glitch — clickable image
         st.markdown("")
         st.caption("Voss residual: the dossier is skipping frames.")
