@@ -299,52 +299,31 @@ def render_lab() -> None:
   var ctx = null;
 
   function scarySiren(sec){
+    // Same path as Heartaches (HTML5 Audio) — Web Audio was silent on some devices
     try{
-      var Ctx = window.AudioContext || window.webkitAudioContext;
-      ctx = ctx || new Ctx();
-      if (ctx.state === 'suspended') ctx.resume();
-      var master = ctx.createGain();
-      master.gain.value = 0.14;
-      master.connect(ctx.destination);
-      var specs = [
-        {type:'sawtooth', base:550, amp:520, vol:0.55},
-        {type:'square',   base:780, amp:420, vol:0.38},
-        {type:'sawtooth', base:980, amp:300, vol:0.25}
+      var urls = [
+        'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3',
+        'https://assets.mixkit.co/active_storage/sfx/1626/1626-preview.mp3',
+        'https://upload.wikimedia.org/wikipedia/commons/4/4a/Emergency_alarm_tone.ogg'
       ];
-      var oscs = [], now = ctx.currentTime;
-      specs.forEach(function(s){
-        var o = ctx.createOscillator();
-        var g = ctx.createGain();
-        o.type = s.type; g.gain.value = s.vol;
-        o.connect(g); g.connect(master);
-        var t = now;
-        for (var i=0;i<8;i++){
-          o.frequency.setValueAtTime(s.base, t);
-          o.frequency.linearRampToValueAtTime(s.base+s.amp, t+0.38);
-          o.frequency.linearRampToValueAtTime(s.base, t+0.76);
-          t += 0.8;
-        }
-        o.start(now); oscs.push(o);
-      });
-      try {
-        var nLen = Math.floor(ctx.sampleRate * 2);
-        var buf = ctx.createBuffer(1, nLen, ctx.sampleRate);
-        var data = buf.getChannelData(0);
-        for (var i=0;i<nLen;i++) data[i] = (Math.random()*2-1)*0.12;
-        var noise = ctx.createBufferSource();
-        var ng = ctx.createGain();
-        var filt = ctx.createBiquadFilter();
-        filt.type = 'bandpass'; filt.frequency.value = 1100;
-        noise.buffer = buf;
-        noise.connect(filt); filt.connect(ng); ng.connect(master);
-        ng.gain.value = 0.1;
-        noise.start(now);
-      } catch(e){}
-      master.gain.setValueAtTime(0.14, now);
-      master.gain.linearRampToValueAtTime(0.0001, now + sec);
+      var a = new Audio(urls[0]);
+      a.loop = true;
+      a.volume = 0.75;
+      window.__mer_siren = a;
+      var p = a.play();
+      if (p && p.catch) {
+        p.catch(function(){
+          // fallback second URL
+          a.src = urls[1];
+          a.play().catch(function(){});
+        });
+      }
       setTimeout(function(){
-        oscs.forEach(function(o){ try{o.stop();}catch(e){} });
-      }, sec*1000+100);
+        try {
+          a.pause();
+          a.currentTime = 0;
+        } catch(e){}
+      }, (sec || 3.4) * 1000);
       return true;
     }catch(e){ return false; }
   }
@@ -361,8 +340,17 @@ def render_lab() -> None:
   function startSequence(){
     if (started) return;
     started = true;
-    scarySiren(3.4);
-    setTimeout(playHeartaches, 3500);
+    scarySiren(3.5);
+    // Heartaches only after siren window ends
+    setTimeout(function(){
+      try {
+        if (window.__mer_siren) {
+          window.__mer_siren.pause();
+          window.__mer_siren.currentTime = 0;
+        }
+      } catch(e){}
+      playHeartaches();
+    }, 3600);
   }
 
   // Try automatic start (works on many desktops)
