@@ -239,6 +239,34 @@ def find_glitch(gid: str, label: str = "") -> bool:
     return True
 
 
+
+def play_glitch_sfx() -> None:
+    """Short glitch / static SFX (royalty-free)."""
+    url = "https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"
+    try:
+        custom = (st.secrets.get("GLITCH_SFX_URL") or "").strip()
+        if custom:
+            url = custom
+    except Exception:
+        pass
+    import json as _json
+    url_js = _json.dumps(url)
+    st.components.v1.html(
+        f"""
+        <script>
+        (function(){{
+          try {{
+            var a = new Audio({url_js});
+            a.volume = 0.55;
+            a.play().catch(function(){{}});
+          }} catch(e){{}}
+        }})();
+        </script>
+        """,
+        height=0,
+    )
+
+
 def glitches_unlocked() -> bool:
     """Glitches appear only after the 2nd lab visit."""
     return int(st.session_state.get("lab_visits") or 0) >= 2
@@ -2334,7 +2362,23 @@ if st.session_state.view == "home":
                 '<div style="height:72px;border-radius:10px;background:repeating-linear-gradient(0deg,#04120e,#04120e 2px,#0a1c18 2px,#0a1c18 4px);border:1px solid rgba(34,211,238,0.35);"></div>',
                 unsafe_allow_html=True,
             )
-        if st.button("Tap anomaly · home", key="glitch_home", use_container_width=True):
+        st.markdown(
+            """
+            <style>
+              div[data-testid="stButton"]:has(button[kind="secondary"]) button,
+              div[data-testid="stButton"] button[kind="secondary"] {
+                min-height: 32px !important;
+                height: 32px !important;
+                padding: 0 12px !important;
+                font-size: 0.78rem !important;
+                border-radius: 8px !important;
+              }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("Tap anomaly", key="glitch_home", use_container_width=False):
+            play_glitch_sfx()
             if find_glitch("home", "Voss log: home marker secured. Two remain."):
                 st.session_state.anomaly_warned = True
                 save_user_data()
