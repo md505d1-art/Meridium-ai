@@ -732,68 +732,79 @@ def render_lab() -> None:
 
     st.caption("M-119 shell · exit when ready")
 
-    if int(st.session_state.get("lab_visits") or 0) >= 2:
-        # Anomaly glitch residual in lab — clickable image
-        st.markdown("---")
-        st.caption("Voss: do not ignore the interference in the pane.")
-        from pathlib import Path as _P
-        _gpath = None
-        _base = _P(__file__).resolve().parent / "assets"
-        for _name in ("glitch_lab.png", "IMG_1355.jpeg", "IMG_1355.jpg"):
-            _cand = _base / _name
-            if _cand.exists() and _cand.stat().st_size > 500:
-                _gpath = _cand
-                break
-        if _gpath is not None:
-            st.image(str(_gpath), width=280)
-        else:
-            st.markdown(
-                '<div style="height:72px;border-radius:10px;background:repeating-linear-gradient(90deg,#1a0505,#1a0505 3px,#2a0a0a 3px,#2a0a0a 6px);border:1px solid rgba(239,68,68,0.4);"></div>',
-                unsafe_allow_html=True,
-            )
-        st.markdown('<style>div[data-testid="stButton"] button{min-height:32px!important;height:32px!important;font-size:0.78rem!important;padding:0 12px!important;}</style>', unsafe_allow_html=True)
-        if st.button("Tap anomaly", key="glitch_lab", use_container_width=False):
-            st.components.v1.html("""
-            <script>
-            (function(){try{var a=new Audio("https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3");a.volume=0.55;a.play().catch(function(){})}catch(e){}})();
-            </script>
-            """, height=0)
 
-            found = list(st.session_state.get("glitches_found") or [])
-            if "lab" not in found:
-                found.append("lab")
-                st.session_state.glitches_found = found
-                st.session_state["_glitch_flash"] = "Voss log: lab marker secured. The pane noticed you back."
-                if set(found) >= {"home", "lab", "pixel"}:
-                    st.session_state.voss_file_unlocked = True
-                    st.session_state["_glitch_flash"] = "All three markers secured. Dr. Voss left you a file."
-                    st.session_state.voss_cutscene_stage = 0
-                    st.session_state.view = "voss_file"
-                try:
-                    # persist via app if available
-                    import json, hashlib
-                    from pathlib import Path as _P
-                    from datetime import datetime
-                    name = (st.session_state.get("username") or "").strip()
-                    if name:
-                        key = hashlib.sha256(name.lower().encode()).hexdigest()[:24]
-                        for fp in (_P(__file__).parent / "data" / f"{key}.json",
-                                   _P("/tmp") / f"meridium_{hashlib.sha256(name.lower().encode()).hexdigest()[:16]}.json"):
-                            try:
-                                data = {}
-                                if fp.exists():
-                                    data = json.loads(fp.read_text(encoding="utf-8"))
-                                data["glitches_found"] = found
-                                data["arg_unlocked"] = True
-                                data["saved_at"] = datetime.now().isoformat()
-                                fp.parent.mkdir(parents=True, exist_ok=True)
-                                fp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-                            except Exception:
-                                pass
-                except Exception:
-                    pass
-            st.rerun()
-        if st.session_state.get("_glitch_flash"):
-            st.success(st.session_state.pop("_glitch_flash"))
+    # Post-lab anomalies / Voss file access
+    if int(st.session_state.get("lab_visits") or 0) >= 2:
+        found = set(st.session_state.get("glitches_found") or [])
+        complete = bool(st.session_state.get("voss_file_unlocked")) or found >= {"home", "lab", "pixel"}
+        if complete:
+            st.markdown("---")
+            st.caption("Voss residual sealed. The letter remains.")
+            if st.button("Open Dr. Voss's letter", use_container_width=True, key="lab_voss_letter"):
+                st.session_state.voss_cutscene_stage = 0
+                st.session_state.view = "voss_file"
+                st.rerun()
+        else:
+            # Anomaly glitch residual in lab — clickable image
+            st.markdown("---")
+            st.caption("Voss: do not ignore the interference in the pane.")
+            from pathlib import Path as _P
+            _gpath = None
+            _base = _P(__file__).resolve().parent / "assets"
+            for _name in ("glitch_lab.png", "IMG_1355.jpeg", "IMG_1355.jpg"):
+                _cand = _base / _name
+                if _cand.exists() and _cand.stat().st_size > 500:
+                    _gpath = _cand
+                    break
+            if _gpath is not None:
+                st.image(str(_gpath), width=280)
+            else:
+                st.markdown(
+                    '<div style="height:72px;border-radius:10px;background:repeating-linear-gradient(90deg,#1a0505,#1a0505 3px,#2a0a0a 3px,#2a0a0a 6px);border:1px solid rgba(239,68,68,0.4);"></div>',
+                    unsafe_allow_html=True,
+                )
+            st.markdown('<style>div[data-testid="stButton"] button{min-height:32px!important;height:32px!important;font-size:0.78rem!important;padding:0 12px!important;}</style>', unsafe_allow_html=True)
+            if st.button("Tap anomaly", key="glitch_lab", use_container_width=False):
+                st.components.v1.html("""
+                <script>
+                (function(){try{var a=new Audio("https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3");a.volume=0.55;a.play().catch(function(){})}catch(e){}})();
+                </script>
+                """, height=0)
+                found_l = list(st.session_state.get("glitches_found") or [])
+                if "lab" not in found_l:
+                    found_l.append("lab")
+                    st.session_state.glitches_found = found_l
+                    st.session_state["_glitch_flash"] = "Voss log: lab marker secured. The pane noticed you back."
+                    if set(found_l) >= {"home", "lab", "pixel"}:
+                        st.session_state.voss_file_unlocked = True
+                        st.session_state["_glitch_flash"] = "All three markers secured. Dr. Voss left you a file."
+                        st.session_state.voss_cutscene_stage = 0
+                        st.session_state.view = "voss_file"
+                    try:
+                        import json, hashlib
+                        from pathlib import Path as _P2
+                        from datetime import datetime
+                        name = (st.session_state.get("username") or "").strip()
+                        if name:
+                            key = hashlib.sha256(name.lower().encode()).hexdigest()[:24]
+                            for fp in (_P2(__file__).parent / "data" / f"{key}.json",
+                                       _P2("/tmp") / f"meridium_{hashlib.sha256(name.lower().encode()).hexdigest()[:16]}.json"):
+                                try:
+                                    data = {}
+                                    if fp.exists():
+                                        data = json.loads(fp.read_text(encoding="utf-8"))
+                                    data["glitches_found"] = found_l
+                                    data["voss_file_unlocked"] = bool(st.session_state.get("voss_file_unlocked"))
+                                    data["arg_unlocked"] = True
+                                    data["saved_at"] = datetime.now().isoformat()
+                                    fp.parent.mkdir(parents=True, exist_ok=True)
+                                    fp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+                                except Exception:
+                                    pass
+                    except Exception:
+                        pass
+                st.rerun()
+            if st.session_state.get("_glitch_flash"):
+                st.success(st.session_state.pop("_glitch_flash"))
 
     st.stop()
