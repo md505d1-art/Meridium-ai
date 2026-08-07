@@ -1,4 +1,3 @@
-
 """
 Meridium ARG — Interactive lab room (UI)
 ----------------------------------------
@@ -17,7 +16,7 @@ import streamlit as st
 HOTSPOTS = [
     (
         "glass",
-        "🔲 Cracked glass",
+        "Cracked containment glass",
         "**Containment pane — fracture report**\n\n"
         "The glass did not break inward. It *ballooned*, then starred from a point "
         "the size of a fingertip. Something pressed from the sealed side until the pane gave.\n\n"
@@ -30,7 +29,7 @@ HOTSPOTS = [
     ),
     (
         "floor",
-        "📄 Note on the floor",
+        "Bloodstained note (floor)",
         "**Floor note — torn, boot-marked, stained**\n\n"
         "The paper is curled and stiff where a dark fluid soaked the bottom third. "
         "The stain has a brown-black crust at the edge and a dull sheen in the middle — "
@@ -45,7 +44,7 @@ HOTSPOTS = [
     ),
     (
         "bench",
-        "🧪 Lab bench",
+        "Abandoned lab bench",
         "**Bench — interrupted work**\n\n"
         "Instruments died mid-cycle. One screen locked on `OBS: TRACE` with a red overflow bar.\n\n"
         "A tray holds swabs gone rust-dark. One cotton tip is stiff, clotted, as if it pulled "
@@ -58,7 +57,7 @@ HOTSPOTS = [
     ),
     (
         "light",
-        "🚨 Alarm light",
+        "Pulsing alarm light",
         "**Emergency beacon — local only**\n\n"
         "The red pulse is not on the building grid. It belongs to the shell.\n\n"
         "Interval is wrong: three quick flares, a hitch, then a long burn — "
@@ -70,7 +69,7 @@ HOTSPOTS = [
     ),
     (
         "window",
-        "🪟 Blacked window",
+        "Blacked-out window",
         "**Observation window — painted shut**\n\n"
         "Exterior paint, slapped on fast. From this side, fingernail and something harder "
         "clawed through to the glass. The scratches form a crooked **119**.\n\n"
@@ -83,7 +82,7 @@ HOTSPOTS = [
     ),
     (
         "terminal",
-        "💻 Dead terminal",
+        "Dead terminal",
         "**Terminal — last surviving lines**\n\n"
         "```\n"
         "STATUS........ METASTABLE\n"
@@ -189,13 +188,13 @@ def render_lab() -> None:
       <div class="lab-alarm" title="alarm"></div>
       <div class="lab-scan"></div>
       <div class="lab-title">M-119 · OBSERVATION LOG · SEALED</div>
-      <div class="lab-sub">Containment aesthetic · fictional record · click the room</div>
+      <div class="lab-sub">Lights unstable · inspect everything · leave nothing unread</div>
     </div>
     """,
         unsafe_allow_html=True,
     )
 
-    with st.expander("⚠ Siren (tap to arm)", expanded=False):
+    with st.expander("Alarm speaker — silent until armed", expanded=False):
         st.components.v1.html(
             """
         <div style="font-family:monospace;color:#c4a0a0;">
@@ -255,7 +254,7 @@ def render_lab() -> None:
         unsafe_allow_html=True,
     )
 
-    st.markdown("**Investigate**")
+    st.markdown("**The room** — choose what to examine")
     row1 = st.columns(3)
     row2 = st.columns(3)
     cols = list(row1) + list(row2)
@@ -295,5 +294,5 @@ def render_lab() -> None:
             st.session_state.lab_focus_body = None
             st.rerun()
 
-    st.caption("Fictional ARG · no real lab · audio optional")
+    st.caption("M-119 shell · exit when ready")
     st.stop()
