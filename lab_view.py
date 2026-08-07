@@ -180,7 +180,7 @@ def render_lab() -> None:
             88% { background: #990000; }
             100% { background: #000; }
           }
-          #lab-vhs, #lab-vhs-scan, #lab-vhs-track, #lab-vhs-rgb {
+          #lab-vhs, #lab-vhs-scan, #lab-vhs-track, #lab-vhs-rgb, #lab-full-black {
             position: fixed !important; inset: 0 !important; pointer-events: none !important;
           }
           #lab-vhs {
@@ -408,9 +408,41 @@ def render_lab() -> None:
 </script>
 </body></html>
             """,
-            height=90,
+            height=1,
         )
 
+        # Visible enter control — works on mobile (iframe buttons are unreliable)
+        st.markdown(
+            """
+        <style>
+          div[data-testid="stButton"] > button {
+            background: #100303 !important;
+            color: #c03030 !important;
+            border: 1px solid #5a1010 !important;
+            border-radius: 6px !important;
+            font-family: "Indie Flower", Georgia, cursive !important;
+            font-size: 1.15rem !important;
+            letter-spacing: 0.08em !important;
+            padding: 0.85rem 1rem !important;
+            box-shadow: 0 0 20px rgba(80,0,0,0.45) !important;
+            position: relative;
+            z-index: 1000002 !important;
+          }
+          div[data-testid="stButton"] {
+            position: relative;
+            z-index: 1000002 !important;
+          }
+        </style>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown("<div style='height:58vh'></div>", unsafe_allow_html=True)
+        if st.button("Enter into the lab", use_container_width=True, key="lab_enter_mobile"):
+            st.session_state.lab_intro_done = True
+            st.session_state.lab_flicker = True
+            st.rerun()
+        st.caption("press the screen or the button · laptop: Enter key also works")
+        # Hidden form still catches Enter key on laptop via JS
         with st.form("lab_enter_form"):
             go = st.form_submit_button("enter")
         if go:
@@ -647,3 +679,4 @@ def render_lab() -> None:
 
     st.caption("M-119 shell · exit when ready")
     st.stop()
+
