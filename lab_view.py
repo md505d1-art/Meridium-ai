@@ -483,43 +483,82 @@ def render_lab() -> None:
 
 
 
-    # Light-coming-on flicker when just entered
+    # Transition: black → static → lights struggling on → lab fades in
     if st.session_state.get("lab_flicker"):
-        st.markdown("""
+        st.markdown(
+            """
         <style>
           .stApp, [data-testid="stAppViewContainer"], section.main, .block-container {
             background: #000 !important;
           }
-          #lab-light-on {
+          #lab-transition {
             position: fixed; inset: 0; z-index: 999999;
             pointer-events: none;
-            animation: lightOn 1.8s ease-out forwards;
+            background: #000;
+            animation: labDoor 2.6s ease-in-out forwards;
           }
-          @keyframes lightOn {
-            0%   { background: #000; }
-            8%   { background: #2a2a20; }
-            14%  { background: #000; }
-            22%  { background: #3a3a28; }
-            28%  { background: #0a0a08; }
-            38%  { background: #4a4a30; }
-            45%  { background: #111; }
-            55%  { background: #5a5a38; }
-            62%  { background: #1a1a12; }
-            75%  { background: rgba(40,40,28,0.9); }
-            100% { background: transparent; }
+          #lab-transition-static {
+            position: fixed; inset: 0; z-index: 1000000;
+            pointer-events: none;
+            opacity: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+            animation: staticBurst 2.6s steps(6) forwards;
+          }
+          #lab-transition-scan {
+            position: fixed; inset: 0; z-index: 1000001;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+              0deg, rgba(0,0,0,0.2) 0px, rgba(0,0,0,0.2) 1px,
+              transparent 2px, transparent 3px
+            );
+            animation: scanFade 2.6s ease forwards;
+          }
+          @keyframes labDoor {
+            0%   { background: #000; opacity: 1; }
+            10%  { background: #1a1a14; opacity: 1; }
+            14%  { background: #000; opacity: 1; }
+            22%  { background: #3a3828; opacity: 1; }
+            26%  { background: #0a0a08; opacity: 1; }
+            34%  { background: #5a5640; opacity: 1; }
+            38%  { background: #111; opacity: 1; }
+            48%  { background: #6a6448; opacity: 1; }
+            55%  { background: #1a1810; opacity: 1; }
+            68%  { background: #2a2818; opacity: 0.85; }
+            82%  { background: #0a0808; opacity: 0.4; }
+            100% { background: transparent; opacity: 0; }
+          }
+          @keyframes staticBurst {
+            0%, 100% { opacity: 0; }
+            5% { opacity: 0.55; }
+            15% { opacity: 0.15; }
+            25% { opacity: 0.5; }
+            40% { opacity: 0.2; }
+            55% { opacity: 0.45; }
+            70% { opacity: 0.1; }
+            85% { opacity: 0.25; }
+          }
+          @keyframes scanFade {
+            0% { opacity: 0.6; }
+            70% { opacity: 0.35; }
+            100% { opacity: 0; }
           }
           .lab-fade-in {
-            animation: labFadeIn 1.2s ease forwards;
-            animation-delay: 1.4s;
+            animation: labFadeIn 1.4s ease forwards;
+            animation-delay: 1.6s;
             opacity: 0;
           }
           @keyframes labFadeIn {
-            from { opacity: 0; filter: brightness(0.2); }
-            to { opacity: 1; filter: brightness(1); }
+            0%   { opacity: 0; filter: brightness(0.05) contrast(1.2); transform: scale(1.02); }
+            60%  { opacity: 0.85; filter: brightness(0.7); }
+            100% { opacity: 1; filter: brightness(1) contrast(1); transform: scale(1); }
           }
         </style>
-        <div id="lab-light-on"></div>
-        """, unsafe_allow_html=True)
+        <div id="lab-transition"></div>
+        <div id="lab-transition-static"></div>
+        <div id="lab-transition-scan"></div>
+            """,
+            unsafe_allow_html=True,
+        )
         st.session_state.lab_flicker = False
 
     st.markdown(
@@ -706,6 +745,7 @@ def render_lab() -> None:
         unsafe_allow_html=True,
     )
 
+    st.markdown('<div class="lab-fade-in">', unsafe_allow_html=True)
     st.markdown("**The room** — choose what to examine")
     row1 = st.columns(3)
     row2 = st.columns(3)
@@ -729,6 +769,7 @@ def render_lab() -> None:
                 "if this was intentional."
             )
 
+    st.markdown("</div>", unsafe_allow_html=True)
     st.markdown("---")
     c1, c2, c3 = st.columns(3)
     with c1:
