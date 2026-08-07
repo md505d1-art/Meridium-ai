@@ -8,7 +8,6 @@ import json
 
 import streamlit as st
 
-# --- PIXEL dossier (inline) ---
 PIXEL = {
     "callsign": "PIXEL",
     "real_name": "Jaime Santos",
@@ -109,7 +108,6 @@ NOTE_SONG_URL = (
     "104.%20Tommy%20Dorsey%20-%20I%27ll%20Never%20Smile%20Again%20%28RCA%20Victor%2027521%29.mp3"
 )
 
-# Your Pixabay upload on GitHub
 PIXEL_AUDIO_DEFAULT = (
     "https://raw.githubusercontent.com/md505d1-art/Meridium-ai/main/assets/"
     "artmanzh-sea-sunset-lofi-g-major-543349.mp3"
@@ -308,9 +306,7 @@ def _render_agents() -> None:
     )
     st.markdown("### Secret dossier · PIXEL")
     st.caption("Unlocked the way he unlocks everything — the old code.")
-
     st.caption("Sea Sunset Lofi · ArtManzh (Pixabay)")
-    st.audio(_pixel_audio_url(), format="audio/mp3")
 
     st.markdown(
         f"""
