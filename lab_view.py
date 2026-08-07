@@ -116,22 +116,20 @@ def _stop_lab_audio_html() -> None:
             if (r.__mer_song_timer) { clearTimeout(r.__mer_song_timer); r.__mer_song_timer = null; }
             function kill(a){
               if (!a) return;
-              try { a.pause(); a.currentTime = 0; } catch(e){}
-              try { a.src = ''; a.remove(); } catch(e){}
+              try { a.pause(); } catch(e){}
+              try { a.currentTime = 0; } catch(e){}
+              try { a.src = ''; a.load && a.load(); } catch(e){}
+              try { a.remove(); } catch(e){}
             }
             kill(r.__mer_heartaches); r.__mer_heartaches = null;
             kill(r.__mer_siren); r.__mer_siren = null;
-            var nodes = r.document.querySelectorAll('audio[data-meridium="1"]');
-            for (var i = 0; i < nodes.length; i++) kill(nodes[i]);
-            // also any leftover audio tags
-            var all = r.document.querySelectorAll('audio');
-            for (var j = 0; j < all.length; j++) {
+            var nodes = r.document.querySelectorAll('audio');
+            for (var i = 0; i < nodes.length; i++) {
               try {
-                if ((all[j].src || '').indexOf('Heartaches') !== -1 ||
-                    (all[j].src || '').indexOf('bowlly') !== -1 ||
-                    (all[j].src || '').indexOf('2869') !== -1 ||
-                    all[j].getAttribute('data-meridium') === '1') {
-                  kill(all[j]);
+                var s = (nodes[i].currentSrc || nodes[i].src || '');
+                if (nodes[i].getAttribute('data-meridium') === '1' ||
+                    /Heartaches|bowlly|2869|mixkit|meridium/i.test(s)) {
+                  kill(nodes[i]);
                 }
               } catch(e){}
             }
