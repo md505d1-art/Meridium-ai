@@ -57,8 +57,69 @@ Observation Division · last clear entry before lockdown
 """
 
 
+
+def _stop_note_audio() -> None:
+    st.components.v1.html(
+        """
+        <script>
+        (function(){
+          try {
+            var r = window.parent || window;
+            function kill(a){
+              if (!a) return;
+              try { a.pause(); } catch(e){}
+              try { a.src = ''; } catch(e){}
+              try { a.remove(); } catch(e){}
+            }
+            kill(r.__mer_note_song); r.__mer_note_song = null;
+            var nodes = r.document.querySelectorAll('audio[data-meridium-note="1"]');
+            for (var i = 0; i < nodes.length; i++) kill(nodes[i]);
+          } catch(e){}
+        })();
+        </script>
+        """,
+        height=1,
+    )
+
+
 def render_note() -> None:
     """Black screen, static, bloodied scientist letter."""
+    # Play "I'll Never Smile Again" while the letter is open
+    st.components.v1.html(
+        """
+        <script>
+        (function(){
+          var root = window.parent || window;
+          var URL = 'https://archive.org/download/ka-104-tommy-dorsey-ill-never-smile-again/104.%20Tommy%20Dorsey%20-%20I%27ll%20Never%20Smile%20Again%20%28RCA%20Victor%2027521%29.mp3';
+          if (root.__mer_note_song && !root.__mer_note_song.paused) return;
+          try {
+            if (root.__mer_note_song) {
+              try { root.__mer_note_song.pause(); root.__mer_note_song.remove(); } catch(e){}
+            }
+            var a = root.document.createElement('audio');
+            a.src = URL;
+            a.loop = true;
+            a.volume = 0.5;
+            a.setAttribute('data-meridium-note', '1');
+            a.style.display = 'none';
+            root.document.body.appendChild(a);
+            root.__mer_note_song = a;
+            a.play().catch(function(){
+              // retry on first gesture
+              function once(){
+                a.play().catch(function(){});
+                root.document.removeEventListener('click', once);
+                root.document.removeEventListener('touchstart', once);
+              }
+              root.document.addEventListener('click', once, {once:true});
+              root.document.addEventListener('touchstart', once, {once:true, passive:true});
+            });
+          } catch(e){}
+        })();
+        </script>
+        """,
+        height=1,
+    )
     st.markdown(
         """
     <style>
@@ -244,11 +305,13 @@ def render_note() -> None:
 
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("↩ Close note", use_container_width=True, key="note_close"):
+        if st.button("Close note", use_container_width=True, key="note_close"):
+            _stop_note_audio()
             st.session_state.view = "home"
             st.rerun()
     with c2:
-        if st.button("💬 Open chat", use_container_width=True, key="note_chat"):
+        if st.button("Open chat", use_container_width=True, key="note_chat"):
+            _stop_note_audio()
             st.session_state.view = "chat"
             st.rerun()
 
