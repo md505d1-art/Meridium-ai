@@ -5,7 +5,7 @@ Call from app.py when view == "lab":
 
     from lab_view import render_lab
     if st.session_state.view == "lab":
-        render_lab()   # ends with st.stop()
+        render_lab()
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ HOTSPOTS = [
         "the size of a fingertip. Something pressed from the sealed side until the pane gave.\n\n"
         "Along the gasket: a dark film, half-dried. When the emergency light hits it, "
         "it looks almost black-red — thicker than blood, stickier, with a metallic smell "
-        "the old techs swore was “not copper.”\n\n"
+        "the old techs swore was not copper.\n\n"
         "One hairline crack still weeps a slow bead every few minutes. "
         "Nobody has wiped it. Nobody wants to know if it starts again when watched.\n\n"
         "*Margin, shaky ink:* **M-119 does not like prolonged observation.**",
@@ -102,14 +102,32 @@ HOTSPOTS = [
     ),
 ]
 
+
+def _stop_lab_audio_html() -> None:
+    st.components.v1.html(
+        """
+        <script>
+        try {
+          var r = window.parent || window;
+          r.__mer_audio_on = false;
+          if (r.__mer_song_timer) clearTimeout(r.__mer_song_timer);
+          if (r.__mer_heartaches) { r.__mer_heartaches.pause(); r.__mer_heartaches = null; }
+          if (r.__mer_siren) { r.__mer_siren.pause(); r.__mer_siren = null; }
+        } catch (e) {}
+        </script>
+        """,
+        height=0,
+    )
+
+
 def render_lab() -> None:
-    """Full-screen black lab with animations, siren, and clickable hotspots."""
+    """Full-screen black lab: intro -> transition -> interactive room."""
     if "lab_found" not in st.session_state:
         st.session_state.lab_found = set()
     if "lab_intro_done" not in st.session_state:
         st.session_state.lab_intro_done = False
 
-    # —— INTRO: full-screen black · siren · blood text · enter button ——
+    # ---- INTRO ----
     if not st.session_state.lab_intro_done:
         st.markdown(
             """
@@ -127,11 +145,9 @@ def render_lab() -> None:
             display: none !important; height: 0 !important;
           }
           .block-container { padding-top: 0 !important; max-width: 100% !important; }
-
           #lab-full-black {
             position: fixed !important; inset: 0 !important;
-            z-index: 999990 !important;
-            background: #000;
+            z-index: 999990 !important; background: #000;
             animation: labRedFlash 3s ease-in-out forwards;
           }
           @keyframes labRedFlash {
@@ -141,185 +157,81 @@ def render_lab() -> None:
             88% { background: #990000; }
             100% { background: #000; }
           }
-          #lab-blood-msg {
-            position: fixed !important; inset: 0 !important;
-            z-index: 999991 !important;
-            display: flex !important; align-items: center !important;
-            justify-content: center !important;
-            flex-direction: column !important;
-            background: transparent !important;
-            opacity: 0;
-            animation: labBloodIn 1.2s ease forwards;
-            animation-delay: 3s;
-            pointer-events: none;
+          #lab-vhs, #lab-vhs-scan, #lab-vhs-track, #lab-vhs-rgb {
+            position: fixed !important; inset: 0 !important; pointer-events: none !important;
           }
-          #lab-blood-msg span {
-            position: relative;
-            color: #6e0000;
-            font-size: clamp(1.85rem, 6.5vw, 3.1rem);
-            font-family: "Indie Flower", cursive;
-            letter-spacing: 0.12em;
-            text-align: center;
-            max-width: 92%;
-            line-height: 1.4;
-            transform: rotate(-3deg) skewX(-2deg);
-            text-shadow:
-              0 1px 0 #4a0000, 0 2px 0 #3a0000, 1px 3px 0 #5a0000,
-              -1px 4px 0 #2a0000, 2px 5px 0 #1a0000, 0 6px 2px #300000,
-              0 0 12px #8b0000, 0 0 28px rgba(100,0,0,0.9);
-            -webkit-text-stroke: 0.5px #2a0000;
-          }
-          #lab-blood-msg span::after {
-            content: "";
-            position: absolute; left: 12%; right: 18%; top: 95%; height: 40px;
-            background:
-              radial-gradient(ellipse 3px 26px at 25% 0%, #7a0000 0%, transparent 75%),
-              radial-gradient(ellipse 4px 18px at 55% 0%, #5a0000 0%, transparent 70%),
-              radial-gradient(ellipse 3px 30px at 75% 0%, #8b0000 0%, transparent 75%);
-            animation: labDrip 2s ease-out forwards;
-            animation-delay: 3.2s;
-          }
-          @keyframes labBloodIn { from { opacity: 0; } to { opacity: 1; } }
-          #lab-press-sub {
-            margin-top: 0.65rem;
-            color: #3a1818;
-            font-family: ui-monospace, monospace;
-            font-size: 0.62rem;
-            letter-spacing: 0.18em;
-            text-transform: lowercase;
-            opacity: 0;
-            animation: labBloodIn 1s ease forwards;
-            animation-delay: 4.4s;
-            pointer-events: none;
-          }
-          #lab-press-hint {
-            margin-top: 2.75rem;
-            color: #8a2828;
-            font-family: "Indie Flower", Georgia, cursive;
-            font-size: 1.15rem;
-            letter-spacing: 0.12em;
-            text-transform: none;
-            opacity: 0;
-            animation: labBloodIn 1s ease forwards;
-            animation-delay: 4s;
-            pointer-events: none;
-          }
-          div[data-testid="stForm"] {
-            position: fixed !important;
-            bottom: 4px !important;
-            left: 4px !important;
-            opacity: 0.04 !important;
-            z-index: 999999 !important;
-            width: 80px !important;
-          }
-          @keyframes labDrip {
-            0% { opacity: 0; transform: scaleY(0.2); transform-origin: top; }
-            100% { opacity: 0.95; transform: scaleY(1); transform-origin: top; }
-          }
-
-          /* VHS static / tracking */
           #lab-vhs {
-            position: fixed !important;
-            inset: 0 !important;
-            z-index: 999992 !important;
-            pointer-events: none !important;
-            opacity: 0.22;
-            mix-blend-mode: screen;
+            z-index: 999992 !important; opacity: 0.22; mix-blend-mode: screen;
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
             animation: vhsNoise 0.15s steps(4) infinite;
           }
           #lab-vhs-scan {
-            position: fixed !important;
-            inset: 0 !important;
-            z-index: 999993 !important;
-            pointer-events: none !important;
-            background: repeating-linear-gradient(
-              0deg,
-              rgba(0,0,0,0.15) 0px,
-              rgba(0,0,0,0.15) 1px,
-              transparent 2px,
-              transparent 4px
-            );
-            opacity: 0.35;
+            z-index: 999993 !important; opacity: 0.35;
+            background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 2px, transparent 4px);
           }
           #lab-vhs-track {
-            position: fixed !important;
-            left: 0; right: 0;
-            height: 18%;
-            z-index: 999994 !important;
-            pointer-events: none !important;
-            background: linear-gradient(
-              180deg,
-              transparent 0%,
-              rgba(255,255,255,0.04) 40%,
-              rgba(0,0,0,0.25) 50%,
-              rgba(255,255,255,0.03) 60%,
-              transparent 100%
-            );
-            animation: vhsTrack 4.5s linear infinite;
-            opacity: 0.55;
+            z-index: 999994 !important; left: 0; right: 0; height: 18%;
+            background: linear-gradient(180deg, transparent, rgba(255,255,255,0.04) 40%, rgba(0,0,0,0.25) 50%, transparent);
+            animation: vhsTrack 4.5s linear infinite; opacity: 0.55;
           }
           #lab-vhs-rgb {
-            position: fixed !important;
-            inset: 0 !important;
             z-index: 999991 !important;
-            pointer-events: none !important;
             box-shadow: inset 0 0 80px rgba(0,0,0,0.65);
-            background:
-              linear-gradient(90deg, rgba(255,0,0,0.03), transparent 40%, rgba(0,255,255,0.03));
-            animation: vhsFlicker 3s steps(2) infinite;
+            background: linear-gradient(90deg, rgba(255,0,0,0.03), transparent 40%, rgba(0,255,255,0.03));
             opacity: 0.5;
           }
           @keyframes vhsNoise {
             0% { transform: translate(0,0); }
-            25% { transform: translate(-1%, 1%); }
-            50% { transform: translate(1%, -1%); }
-            75% { transform: translate(-1%, -1%); }
+            25% { transform: translate(-1%,1%); }
+            50% { transform: translate(1%,-1%); }
             100% { transform: translate(0,0); }
           }
-          @keyframes vhsTrack {
-            0% { top: -20%; }
-            100% { top: 120%; }
+          @keyframes vhsTrack { 0% { top: -20%; } 100% { top: 120%; } }
+          #lab-blood-msg {
+            position: fixed !important; inset: 0 !important; z-index: 999995 !important;
+            display: flex !important; align-items: center !important; justify-content: center !important;
+            flex-direction: column !important; background: transparent !important;
+            opacity: 0; animation: labBloodIn 1.2s ease forwards; animation-delay: 3s;
+            pointer-events: none;
           }
-          @keyframes vhsFlicker {
-            0%, 90%, 100% { opacity: 0.45; }
-            92% { opacity: 0.7; }
-            94% { opacity: 0.3; }
-            96% { opacity: 0.6; }
+          #lab-blood-msg span.blood {
+            position: relative; color: #6e0000;
+            font-size: clamp(1.85rem, 6.5vw, 3.1rem);
+            font-family: "Indie Flower", cursive; letter-spacing: 0.12em;
+            text-align: center; max-width: 92%; line-height: 1.4;
+            transform: rotate(-3deg) skewX(-2deg);
+            text-shadow: 0 1px 0 #4a0000, 0 2px 0 #3a0000, 1px 3px 0 #5a0000,
+              -1px 4px 0 #2a0000, 0 0 12px #8b0000, 0 0 28px rgba(100,0,0,0.9);
+            -webkit-text-stroke: 0.5px #2a0000;
           }
-
-
-          /* Small ominous button under the text */
-          .stApp [data-testid="stButton"] {
-            position: fixed !important;
-            left: 50% !important;
-            top: 62% !important;
-            transform: translateX(-50%) !important;
-            z-index: 999999 !important;
-            width: auto !important;
-            min-width: 160px !important;
-            max-width: 220px !important;
-            opacity: 0;
-            animation: labBloodIn 0.9s ease forwards;
-            animation-delay: 3.8s;
+          #lab-blood-msg span.blood::after {
+            content: ""; position: absolute; left: 12%; right: 18%; top: 95%; height: 40px;
+            background:
+              radial-gradient(ellipse 3px 26px at 25% 0%, #7a0000 0%, transparent 75%),
+              radial-gradient(ellipse 4px 18px at 55% 0%, #5a0000 0%, transparent 70%),
+              radial-gradient(ellipse 3px 30px at 75% 0%, #8b0000 0%, transparent 75%);
+            animation: labDrip 2s ease-out forwards; animation-delay: 3.2s;
           }
-          .stApp [data-testid="stButton"] > button {
-            background: #120303 !important;
-            color: #a01818 !important;
-            border: 1px solid #4a0a0a !important;
-            border-radius: 3px !important;
-            font-family: "Indie Flower", cursive !important;
-            font-size: 1.05rem !important;
-            letter-spacing: 0.14em !important;
-            padding: 0.45rem 1.1rem !important;
-            min-height: 0 !important;
-            height: auto !important;
-            box-shadow: 0 0 16px rgba(80,0,0,0.5) !important;
+          #lab-press-hint {
+            margin-top: 2.75rem; color: #8a2828;
+            font-family: "Indie Flower", Georgia, cursive; font-size: 1.15rem;
+            letter-spacing: 0.12em; opacity: 0;
+            animation: labBloodIn 1s ease forwards; animation-delay: 4s;
           }
-          .stApp [data-testid="stButton"] > button:hover {
-            color: #ff2a2a !important;
-            border-color: #8b0000 !important;
-            background: #1a0505 !important;
+          #lab-press-sub {
+            margin-top: 0.65rem; color: #3a1818;
+            font-family: ui-monospace, monospace; font-size: 0.62rem;
+            letter-spacing: 0.18em; opacity: 0;
+            animation: labBloodIn 1s ease forwards; animation-delay: 4.4s;
+          }
+          @keyframes labBloodIn { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes labDrip {
+            0% { opacity: 0; transform: scaleY(0.2); transform-origin: top; }
+            100% { opacity: 0.95; transform: scaleY(1); transform-origin: top; }
+          }
+          div[data-testid="stForm"] {
+            position: fixed !important; bottom: 4px !important; left: 4px !important;
+            opacity: 0.03 !important; z-index: 999999 !important; width: 80px !important;
           }
         </style>
         <div id="lab-full-black"></div>
@@ -327,26 +239,15 @@ def render_lab() -> None:
         <div id="lab-vhs"></div>
         <div id="lab-vhs-scan"></div>
         <div id="lab-vhs-track"></div>
-        <div id="lab-blood-msg"><span class="blood">you're not supposed to know</span>
+        <div id="lab-blood-msg">
+          <span class="blood">you're not supposed to know</span>
           <div id="lab-press-hint">Enter into the lab</div>
-          <div id="lab-press-sub">press the screen or enter…</div></div>
-        <script>
-        (function(){
-          if (window.__mer_lab_enter) return;
-          window.__mer_lab_enter = true;
-          document.addEventListener('keydown', function(e){
-            if (e.key !== 'Enter') return;
-            var forms = document.querySelectorAll('div[data-testid="stForm"] button');
-            if (forms.length) { forms[0].click(); e.preventDefault(); }
-          });
-        })();
-        </script>
+          <div id="lab-press-sub">press the screen or enter...</div>
+        </div>
             """,
             unsafe_allow_html=True,
         )
 
-        # Audio iframe MUST have height > 0 or browsers kill the JS
-        # ONE TAP starts audio; stays on parent window until you leave the lab
         st.components.v1.html(
             """
 <!DOCTYPE html>
@@ -355,43 +256,21 @@ def render_lab() -> None:
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <style>
   html, body { margin: 0; background: transparent; }
-  .wrap {
-    display: flex; flex-direction: column; align-items: center;
-    padding: 12px 8px; gap: 10px;
-  }
+  .wrap { display: flex; flex-direction: column; align-items: center; padding: 12px 8px; }
   #enterBtn {
-    width: min(220px, 80vw);
-    padding: 11px 16px;
-    border-radius: 4px;
-    border: 1px solid #4a0c0c;
-    background: #100303;
-    color: #a02020;
-    font-family: Georgia, cursive;
-    font-size: 0.95rem;
-    letter-spacing: 0.14em;
-    cursor: pointer;
-    opacity: 0;
-    animation: showEnter 0.7s ease forwards;
-    animation-delay: 3.8s;
+    width: min(240px, 85vw); padding: 12px 16px; border-radius: 4px;
+    border: 1px solid #4a0c0c; background: #100303; color: #a02020;
+    font-family: "Indie Flower", Georgia, cursive; font-size: 1.05rem;
+    letter-spacing: 0.1em; cursor: pointer; opacity: 0;
+    animation: showEnter 0.7s ease forwards; animation-delay: 4.2s;
     -webkit-tap-highlight-color: transparent;
   }
   @keyframes showEnter { to { opacity: 1; } }
   #enterBtn:active { color: #ff3030; background: #1a0505; }
-  #hint {
-    color: #5a3030;
-    font-size: 0.65rem;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    text-align: center;
-    opacity: 0;
-    animation: showEnter 0.7s ease forwards;
-    animation-delay: 3.5s;
-  }
 </style>
 </head>
 <body>
   <div class="wrap">
-    <div id="hint">press the screen or enter…</div>
     <button id="enterBtn" type="button">Enter into the lab</button>
   </div>
 <script>
@@ -401,72 +280,52 @@ def render_lab() -> None:
   var SONG_URL = 'https://archive.org/download/al-bowlly-sid-phillips-his-melodians-heartaches/Al%20Bowlly%2C%20Sid%20Phillips%20%26%20His%20Melodians%20-%20Heartaches.mp3';
 
   function ensureAudio(){
-    // Already running — do nothing (survives Streamlit reruns)
     if (root.__mer_audio_on) return;
-
     root.__mer_audio_on = true;
-
-    // Stop any leftover copies first
     try {
-      if (root.__mer_siren) { root.__mer_siren.pause(); }
-      if (root.__mer_heartaches) { root.__mer_heartaches.pause(); }
+      if (root.__mer_siren) { try { root.__mer_siren.pause(); } catch(e){} }
+      if (root.__mer_heartaches) { try { root.__mer_heartaches.pause(); } catch(e){} }
     } catch(e){}
-
     try {
       var siren = new Audio(SIREN_URL);
-      siren.loop = true;
-      siren.volume = 0.75;
+      siren.loop = true; siren.volume = 0.75;
       root.__mer_siren = siren;
-      siren.play().catch(function(){
-        root.__mer_audio_on = false;
-      });
-    } catch(e){
-      root.__mer_audio_on = false;
-      return;
-    }
+      siren.play().catch(function(){ root.__mer_audio_on = false; });
+    } catch(e){ root.__mer_audio_on = false; return; }
 
     if (root.__mer_song_timer) clearTimeout(root.__mer_song_timer);
     root.__mer_song_timer = setTimeout(function(){
       try {
-        if (root.__mer_siren) {
-          root.__mer_siren.pause();
-          root.__mer_siren.currentTime = 0;
-        }
+        if (root.__mer_siren) { root.__mer_siren.pause(); root.__mer_siren.currentTime = 0; }
       } catch(e){}
-      // If song already playing from a previous load, keep it
       if (root.__mer_heartaches && !root.__mer_heartaches.paused) return;
       try {
         var song = new Audio(SONG_URL);
-        song.loop = true;
-        song.volume = 0.5;
+        song.loop = true; song.volume = 0.5;
         root.__mer_heartaches = song;
         song.play().catch(function(){});
       } catch(e){}
     }, 3500);
   }
 
-  // NO autoplay — one intentional interaction starts it and it stays on
-  function onFirstGesture(){
-    ensureAudio();
-  }
-  ['touchstart','click','pointerdown'].forEach(function(ev){
-    document.addEventListener(ev, onFirstGesture, {passive:true});
-    try { root.document.addEventListener(ev, onFirstGesture, {passive:true}); } catch(e){}
-  });
-
   function submitEnter(){
-    ensureAudio(); // if they enter without tapping elsewhere first
+    ensureAudio();
     try {
       var btn = root.document.querySelector('div[data-testid="stForm"] button');
       if (btn) btn.click();
     } catch(e){}
   }
 
+  function onGesture(){ ensureAudio(); }
+  ['touchstart','click','pointerdown'].forEach(function(ev){
+    document.addEventListener(ev, onGesture, {passive:true});
+    try { root.document.addEventListener(ev, onGesture, {passive:true}); } catch(e){}
+  });
+
   document.getElementById('enterBtn').addEventListener('click', function(e){
     e.stopPropagation();
     submitEnter();
   });
-
   document.addEventListener('keydown', function(e){
     if (e.key === 'Enter') submitEnter();
   });
@@ -479,7 +338,7 @@ def render_lab() -> None:
 </script>
 </body></html>
             """,
-            height=100,
+            height=90,
         )
 
         with st.form("lab_enter_form"):
@@ -490,13 +349,7 @@ def render_lab() -> None:
             st.rerun()
         st.stop()
 
-
-
-
-
-
-
-    # Transition: black → static → lights struggling on → lab fades in
+    # ---- TRANSITION ----
     if st.session_state.get("lab_flicker"):
         st.markdown(
             """
@@ -506,64 +359,51 @@ def render_lab() -> None:
           }
           #lab-transition {
             position: fixed; inset: 0; z-index: 999999;
-            pointer-events: none;
-            background: #000;
+            pointer-events: none; background: #000;
             animation: labDoor 2.6s ease-in-out forwards;
           }
           #lab-transition-static {
             position: fixed; inset: 0; z-index: 1000000;
-            pointer-events: none;
-            opacity: 0;
+            pointer-events: none; opacity: 0;
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
             animation: staticBurst 2.6s steps(6) forwards;
           }
           #lab-transition-scan {
             position: fixed; inset: 0; z-index: 1000001;
             pointer-events: none;
-            background: repeating-linear-gradient(
-              0deg, rgba(0,0,0,0.2) 0px, rgba(0,0,0,0.2) 1px,
-              transparent 2px, transparent 3px
-            );
+            background: repeating-linear-gradient(0deg, rgba(0,0,0,0.2) 0px, rgba(0,0,0,0.2) 1px, transparent 2px, transparent 3px);
             animation: scanFade 2.6s ease forwards;
           }
           @keyframes labDoor {
-            0%   { background: #000; opacity: 1; }
-            10%  { background: #1a1a14; opacity: 1; }
-            14%  { background: #000; opacity: 1; }
-            22%  { background: #3a3828; opacity: 1; }
-            26%  { background: #0a0a08; opacity: 1; }
-            34%  { background: #5a5640; opacity: 1; }
-            38%  { background: #111; opacity: 1; }
-            48%  { background: #6a6448; opacity: 1; }
-            55%  { background: #1a1810; opacity: 1; }
-            68%  { background: #2a2818; opacity: 0.85; }
-            82%  { background: #0a0808; opacity: 0.4; }
+            0% { background: #000; opacity: 1; }
+            12% { background: #2a2a18; opacity: 1; }
+            16% { background: #000; opacity: 1; }
+            28% { background: #4a4830; opacity: 1; }
+            32% { background: #0a0a08; opacity: 1; }
+            45% { background: #5a5640; opacity: 1; }
+            55% { background: #1a1810; opacity: 1; }
+            70% { background: #2a2818; opacity: 0.7; }
             100% { background: transparent; opacity: 0; }
           }
           @keyframes staticBurst {
             0%, 100% { opacity: 0; }
-            5% { opacity: 0.55; }
-            15% { opacity: 0.15; }
-            25% { opacity: 0.5; }
-            40% { opacity: 0.2; }
-            55% { opacity: 0.45; }
-            70% { opacity: 0.1; }
-            85% { opacity: 0.25; }
+            10% { opacity: 0.5; }
+            30% { opacity: 0.2; }
+            50% { opacity: 0.45; }
+            80% { opacity: 0.15; }
           }
           @keyframes scanFade {
-            0% { opacity: 0.6; }
-            70% { opacity: 0.35; }
+            0% { opacity: 0.55; }
             100% { opacity: 0; }
           }
           .lab-fade-in {
             animation: labFadeIn 1.4s ease forwards;
-            animation-delay: 1.6s;
+            animation-delay: 1.5s;
             opacity: 0;
           }
           @keyframes labFadeIn {
-            0%   { opacity: 0; filter: brightness(0.05) contrast(1.2); transform: scale(1.02); }
-            60%  { opacity: 0.85; filter: brightness(0.7); }
-            100% { opacity: 1; filter: brightness(1) contrast(1); transform: scale(1); }
+            from { opacity: 0; filter: brightness(0.1); }
+            to { opacity: 1; filter: brightness(1); }
           }
         </style>
         <div id="lab-transition"></div>
@@ -574,6 +414,7 @@ def render_lab() -> None:
         )
         st.session_state.lab_flicker = False
 
+    # ---- ROOM ----
     st.markdown(
         """
     <style>
@@ -581,33 +422,31 @@ def render_lab() -> None:
         background: #000 !important;
       }
       .lab-hero {
-        position: relative; min-height: 220px; border-radius: 16px;
+        position: relative; min-height: 200px; border-radius: 16px;
         background:
           radial-gradient(ellipse at 50% 20%, rgba(120,0,0,0.45), transparent 55%),
           radial-gradient(ellipse at 70% 80%, rgba(40,0,0,0.5), transparent 50%),
           #050505;
         border: 1px solid #3a1515; overflow: hidden; margin-bottom: 12px;
       }
-
       .lab-vhs-room {
-        position: fixed; inset: 0; pointer-events: none; z-index: 50;
-        opacity: 0.12;
+        position: fixed; inset: 0; pointer-events: none; z-index: 50; opacity: 0.12;
         background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
         animation: vhsNoise 0.2s steps(3) infinite;
       }
       .lab-vhs-scanlines {
         position: fixed; inset: 0; pointer-events: none; z-index: 51;
-        background: repeating-linear-gradient(
-          0deg, rgba(0,0,0,0.12) 0px, rgba(0,0,0,0.12) 1px,
-          transparent 2px, transparent 3px
-        );
+        background: repeating-linear-gradient(0deg, rgba(0,0,0,0.12) 0px, rgba(0,0,0,0.12) 1px, transparent 2px, transparent 3px);
         opacity: 0.4;
       }
-
+      @keyframes vhsNoise {
+        0% { transform: translate(0,0); }
+        50% { transform: translate(1%,-1%); }
+        100% { transform: translate(0,0); }
+      }
       .lab-scan {
         position: absolute; inset: 0;
-        background: repeating-linear-gradient(
-          0deg, transparent, transparent 3px, rgba(255,0,0,0.03) 4px);
+        background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,0,0,0.03) 4px);
         pointer-events: none; animation: scan 6s linear infinite;
       }
       @keyframes scan { from { transform: translateY(-20%); } to { transform: translateY(20%); } }
@@ -643,24 +482,11 @@ def render_lab() -> None:
         position: relative; z-index: 2; padding: 28px 20px 12px;
         color: #8b0000; letter-spacing: 0.35em; font-size: 0.72rem;
         text-transform: uppercase; font-family: ui-monospace, monospace;
-        animation: flick 4.5s infinite;
-      }
-      @keyframes flick {
-        0%, 91%, 100% { opacity: 1; }
-        93% { opacity: 0.25; }
-        95% { opacity: 1; }
-        97% { opacity: 0.4; }
       }
       .lab-sub {
         position: relative; z-index: 2; padding: 0 20px 24px;
         color: #a07070; font-family: ui-monospace, monospace; font-size: 0.85rem;
       }
-      .lab-panel {
-        background: #0a0505; border: 1px solid #3a1515; border-radius: 12px;
-        padding: 14px 16px; color: #c4a0a0; font-family: ui-monospace, monospace;
-        font-size: 0.88rem; line-height: 1.55; margin-top: 8px;
-      }
-      .lab-panel strong { color: #ffb0b0; }
       .lab-found {
         color: #6a4040; font-size: 0.75rem; margin: 8px 0 4px;
         font-family: ui-monospace, monospace;
@@ -670,7 +496,7 @@ def render_lab() -> None:
     <div class="lab-vhs-scanlines"></div>
     <div class="lab-hero lab-fade-in">
       <div class="lab-beacon"></div>
-      <div class="lab-alarm" title="alarm"></div>
+      <div class="lab-alarm"></div>
       <div class="lab-scan"></div>
       <div class="lab-title">M-119 · OBSERVATION LOG · SEALED</div>
       <div class="lab-sub">Lights unstable · inspect everything · leave nothing unread</div>
@@ -678,75 +504,6 @@ def render_lab() -> None:
     """,
         unsafe_allow_html=True,
     )
-
-    with st.expander("Alarm speaker — silent until armed", expanded=False):
-        st.components.v1.html(
-            """
-        <div style="font-family:monospace;color:#c4a0a0;">
-          <button id="sirenBtn" style="width:100%;padding:12px;border:none;border-radius:10px;
-            background:#5a1010;color:#ffb0b0;font-weight:700;cursor:pointer;">
-            ▶ Start siren
-          </button>
-          <p id="sirenSt" style="font-size:12px;color:#6a4040;margin-top:8px;">Off — visual alarm still runs above.</p>
-        </div>
-        <script>
-        (function(){
-          let ctx, o1, o2, lfo, master, on=false, timer=null;
-          const btn=document.getElementById('sirenBtn');
-          const st=document.getElementById('sirenSt');
-          function stop(){
-            if(timer){ clearInterval(timer); timer=null; }
-            try{ o1&&o1.stop(); }catch(e){}
-            try{ o2&&o2.stop(); }catch(e){}
-            try{ lfo&&lfo.stop(); }catch(e){}
-            try{ ctx&&ctx.close(); }catch(e){}
-            ctx=o1=o2=lfo=master=null; on=false;
-            btn.textContent='▶ Start siren';
-            st.textContent='Off — visual alarm still runs above.';
-          }
-          function arm(){
-            ctx = new (window.AudioContext||window.webkitAudioContext)();
-            master = ctx.createGain();
-            master.gain.value = 0.1;
-            master.connect(ctx.destination);
-            o1 = ctx.createOscillator();
-            o2 = ctx.createOscillator();
-            const g1 = ctx.createGain();
-            const g2 = ctx.createGain();
-            o1.type = 'sawtooth';
-            o2.type = 'square';
-            g1.gain.value = 0.55;
-            g2.gain.value = 0.4;
-            o1.connect(g1); g1.connect(master);
-            o2.connect(g2); g2.connect(master);
-            lfo = ctx.createOscillator();
-            const lfoG = ctx.createGain();
-            lfo.frequency.value = 7;
-            lfoG.gain.value = 0.03;
-            lfo.connect(lfoG);
-            lfoG.connect(master.gain);
-            const now = ctx.currentTime;
-            // continuous wail loop via scheduled ramps
-            function scheduleWail(t) {
-              o1.frequency.setValueAtTime(580, t);
-              o1.frequency.linearRampToValueAtTime(1100, t+0.45);
-              o1.frequency.linearRampToValueAtTime(580, t+0.9);
-              o2.frequency.setValueAtTime(740, t);
-              o2.frequency.linearRampToValueAtTime(1280, t+0.45);
-              o2.frequency.linearRampToValueAtTime(740, t+0.9);
-            }
-            for (let i = 0; i < 40; i++) scheduleWail(now + i * 0.95);
-            o1.start(now); o2.start(now); lfo.start(now);
-            on = true;
-            btn.textContent = '⏹ Stop siren';
-            st.textContent = 'SIREN LIVE — lower your volume if needed.';
-          }
-          btn.onclick = function(){ if(on) stop(); else arm(); };
-        })();
-        </script>
-        """,
-            height=100,
-        )
 
     found = st.session_state.lab_found
     if not isinstance(found, set):
@@ -757,13 +514,11 @@ def render_lab() -> None:
         f'<div class="lab-found">Fragments recovered: {len(found)} / 6</div>',
         unsafe_allow_html=True,
     )
-
-    st.markdown('<div class="lab-fade-in">', unsafe_allow_html=True)
     st.markdown("**The room** — choose what to examine")
+
     row1 = st.columns(3)
     row2 = st.columns(3)
     cols = list(row1) + list(row2)
-
     for col, (key, label, body) in zip(cols, HOTSPOTS):
         with col:
             if st.button(label, use_container_width=True, key=f"lab_hs_{key}"):
@@ -774,7 +529,6 @@ def render_lab() -> None:
     focus = st.session_state.get("lab_focus")
     body = st.session_state.get("lab_focus_body")
     if focus and body:
-        # markdown panel (body may contain markdown)
         st.markdown(body)
         if len(st.session_state.lab_found) >= 6:
             st.info(
@@ -782,33 +536,22 @@ def render_lab() -> None:
                 "if this was intentional."
             )
 
-    st.markdown("</div>", unsafe_allow_html=True)
     st.markdown("---")
     c1, c2, c3 = st.columns(3)
     with c1:
-        if st.button("↩ Leave the lab", use_container_width=True, key="lab_leave"):
+        if st.button("Leave the lab", use_container_width=True, key="lab_leave"):
             st.session_state.view = "chat"
             st.session_state.lab_intro_done = False
-            st.components.v1.html(
-                "<script>try{var r=window.parent;r.__mer_audio_started=false;r.__mer_audio_on=false;"
-                "if(r.__mer_heartaches){r.__mer_heartaches.pause();} "
-                "if(r.__mer_siren){r.__mer_siren.pause();}}</script>",
-                height=0,
-            )
+            _stop_lab_audio_html()
             st.rerun()
     with c2:
-        if st.button("💬 Chat", use_container_width=True, key="lab_chat"):
+        if st.button("Chat", use_container_width=True, key="lab_chat"):
             st.session_state.view = "chat"
             st.session_state.lab_intro_done = False
-            st.components.v1.html(
-                "<script>try{var r=window.parent;r.__mer_audio_started=false;r.__mer_audio_on=false;"
-                "if(r.__mer_heartaches){r.__mer_heartaches.pause();} "
-                "if(r.__mer_siren){r.__mer_siren.pause();}}</script>",
-                height=0,
-            )
+            _stop_lab_audio_html()
             st.rerun()
     with c3:
-        if st.button("↻ Reset search", use_container_width=True, key="lab_reset"):
+        if st.button("Reset search", use_container_width=True, key="lab_reset"):
             st.session_state.lab_found = set()
             st.session_state.lab_focus = None
             st.session_state.lab_focus_body = None
