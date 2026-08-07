@@ -20,40 +20,39 @@ HOTSPOTS = [
         "**Containment pane — fracture report**\n\n"
         "The glass did not break inward. It *ballooned*, then starred from a point "
         "the size of a fingertip. Something pressed from the sealed side until the pane gave.\n\n"
-        "Along the gasket: a dark film, half-dried. When the emergency light hits it, "
-        "it looks almost black-red — thicker than blood, stickier, with a metallic smell "
-        "the old techs swore was not copper.\n\n"
-        "One hairline crack still weeps a slow bead every few minutes. "
+        "Along the gasket: a film that is not condensation. It strings when touched with a probe, "
+        "then snaps back as if embarrassed to be seen. Under UV it fluoresces a wrong violet — "
+        "the same band Voss marked as M-119 residual.\n\n"
         "Nobody has wiped it. Nobody wants to know if it starts again when watched.\n\n"
-        "*Margin, shaky ink:* **M-119 does not like prolonged observation.**",
+        "Grease pencil on the frame, hurried:\n"
+        "> DO NOT CLEAN · TRACE IS THE SAMPLE",
     ),
     (
         "floor",
         "Bloodstained note (floor)",
-        "**Floor note — torn, boot-marked, stained**\n\n"
-        "The paper is curled and stiff where a dark fluid soaked the bottom third. "
-        "The stain has a brown-black crust at the edge and a dull sheen in the middle — "
-        "like old blood that never fully dried.\n\n"
-        "Readable lines:\n\n"
-        "> If you can read this, the shell still answers.\n"
-        "> Do not trust the public table. 118 was a courtesy to the living.\n"
-        "> Meridium is not mined. It is *noticed* into place.\n"
-        "> Stabilization requires an observer who stays. The ones who ran left tissue on the sill.\n\n"
-        "A partial footprint crosses the stain. The tread is human. "
-        "The smear beside it is not a clean shape.",
+        "**Floor note — recovered under the bench**\n\n"
+        "Paper stuck to the tile with something darker than coffee. "
+        "The writing starts neat and ends dragged, as if the hand was leaving before the sentence did.\n\n"
+        "> If the spectrum holds, log it as M-119.\n"
+        "> If the spectrum collapses, log that too — *especially* that.\n"
+        "> Do not tell the committees until we know whether noticing is the cause or the cure.\n\n"
+        "A second hand — shakier — added underneath:\n"
+        "> it looked back\n\n"
+        "There is a partial print in the stain. Ridge detail is good enough that someone, once, "
+        "could have matched it. No one will.",
     ),
     (
         "bench",
-        "Abandoned lab bench",
-        "**Bench — interrupted work**\n\n"
-        "Instruments died mid-cycle. One screen locked on `OBS: TRACE` with a red overflow bar.\n\n"
-        "A tray holds swabs gone rust-dark. One cotton tip is stiff, clotted, as if it pulled "
-        "something wet from a surface that should have been sterile. "
-        "A scalpel lies beside them; the blade has a thin, dried line along the edge — "
-        "not fresh, not clean.\n\n"
-        "Drawer label scratched out. Under the gouges, in pencil: **MERIDIUM**.\n\n"
+        "Overturned bench",
+        "**Work surface — abandoned mid-task**\n\n"
+        "Tools scattered with intent, not chaos: a spectrometer cable still clipped, "
+        "a notebook open to a page that was torn out. The missing page is the floor note.\n\n"
+        "Chalk on the bench lip, almost rubbed away:\n"
+        "> MERIDIUM holds when watched · decays when mocked\n\n"
         "Chair kicked back. Dark droplets lead from the bench toward the door, then stop "
-        "as if whatever left them was lifted off the floor.",
+        "as if whatever left them was lifted off the floor.\n\n"
+        "Under the bench, a second mark in smaller script:\n"
+        "> Voss said curiosity is the stabiliser. I hope she was right.",
     ),
     (
         "light",
@@ -65,7 +64,8 @@ HOTSPOTS = [
         "Under the housing, old tape. Handwriting in grease pencil:\n\n"
         "> When the light goes solid, stop looking at the glass.\n"
         "> When the light goes dark, do not assume it left.\n\n"
-        "A fine spatter rings the fixture. Tiny, dry, the colour of old scabs.",
+        "A fine spatter rings the fixture. Tiny, dry, the colour of old scabs.\n"
+        "The beacon has been running longer than any shift roster admits.",
     ),
     (
         "window",
@@ -74,11 +74,11 @@ HOTSPOTS = [
         "Exterior paint, slapped on fast. From this side, fingernail and something harder "
         "clawed through to the glass. The scratches form a crooked **119**.\n\n"
         "At the bottom of the frame, a smear where a hand slid and slipped — "
-        "skin-oil mixed with a darker streak. "
-        "Someone braced here. Someone bled a little. Someone left.\n\n"
+        "skin-oil mixed with a darker streak. Someone braced here. Someone bled a little. Someone left.\n\n"
         "If you cup your eyes against the unpainted flecks, the corridor beyond "
-        "does not resolve into a normal hallway. Depth goes wrong. "
-        "The log only says: *do not photograph.*",
+        "does not resolve into a normal hallway. Depth goes wrong.\n\n"
+        "The log only says: *do not photograph.*\n"
+        "A later addendum, different ink: *do not name what you think you see.*",
     ),
     (
         "terminal",
@@ -88,19 +88,29 @@ HOTSPOTS = [
         "STATUS........ METASTABLE\n"
         "REF........... M-119\n"
         "PUBLIC........ DENIED\n"
-        "CASUALTY...... [REDACTED]\n"
+        "CASUALTY...... [REDACTED] / [REDACTED]\n"
         "NOTE.......... designation persists in shell\n"
         "NOTE.......... organic trace on sill / glass / floor\n"
         "NOTE.......... do not re-enter without observer protocol\n"
+        "NOTE.......... Voss: curiosity = stabiliser\n"
+        "NOTE.......... NOT for refinement / weaponisation / brand\n"
+        "NOTE.......... medium ≠ commodity (ignore committees)\n"
         "CMD........... stabilize Meridium\n"
         "```\n\n"
         "The cursor still blinks in the black. "
         "A dried fingerprint sits on the spacebar — dark at the ridges, "
         "as if the operator did not wash before the final command.\n\n"
+        "Scrollback (partial recovery):\n"
+        "> observer present · line holding\n"
+        "> observer laughing · line spiking\n"
+        "> observer gone · line collapse\n"
+        "> observer returned · line… soft?\n\n"
         "The rest of the disk reads as static. "
         "Whatever finished the shift did not log out cleanly.",
     ),
 ]
+
+
 
 
 def _stop_lab_audio_html() -> None:
@@ -684,6 +694,15 @@ def render_lab() -> None:
                 "</p>",
                 unsafe_allow_html=True,
             )
+        if focus == "window" and found_n >= 4:
+            st.markdown(
+                "<p style='color:#8a7070;font-family:Georgia,serif;font-size:0.9rem;"
+                "margin-top:0.75rem;font-style:italic;'>"
+                "…in the paint, two names scratched over each other — human / witch:<br/>"
+                "<span style='color:#f9a8d4;'>say them together kindly · luz and amity</span>"
+                "</p>",
+                unsafe_allow_html=True,
+            )
         if found_n >= 6:
             st.info(
                 "All fragments recovered. Return to chat and say **stabilize Meridium** "
@@ -712,4 +731,41 @@ def render_lab() -> None:
             st.rerun()
 
     st.caption("M-119 shell · exit when ready")
+
+    # Anomaly glitch residual in lab
+    st.markdown("---")
+    st.caption("Voss: do not ignore the corrupted tile.")
+    if st.button("▣ corrupted tile", key="glitch_lab", help="anomaly"):
+        found = list(st.session_state.get("glitches_found") or [])
+        if "lab" not in found:
+            found.append("lab")
+            st.session_state.glitches_found = found
+            st.session_state["_glitch_flash"] = "Voss log: lab marker secured. The pane noticed you back."
+            try:
+                # persist via app if available
+                import json, hashlib
+                from pathlib import Path as _P
+                from datetime import datetime
+                name = (st.session_state.get("username") or "").strip()
+                if name:
+                    key = hashlib.sha256(name.lower().encode()).hexdigest()[:24]
+                    for fp in (_P(__file__).parent / "data" / f"{key}.json",
+                               _P("/tmp") / f"meridium_{hashlib.sha256(name.lower().encode()).hexdigest()[:16]}.json"):
+                        try:
+                            data = {}
+                            if fp.exists():
+                                data = json.loads(fp.read_text(encoding="utf-8"))
+                            data["glitches_found"] = found
+                            data["arg_unlocked"] = True
+                            data["saved_at"] = datetime.now().isoformat()
+                            fp.parent.mkdir(parents=True, exist_ok=True)
+                            fp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+        st.rerun()
+    if st.session_state.get("_glitch_flash"):
+        st.success(st.session_state.pop("_glitch_flash"))
+
     st.stop()
