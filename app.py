@@ -17,6 +17,13 @@ from spotipy.oauth2 import SpotifyOAuth
 from arg_story import arg_match, arg_reply, is_owner, is_lab_entry
 from lab_view import render_lab
 from note_view import render_note
+from theme_unlocks import unlock_and_persist
+from eggs import (
+    owner_rare_line, quiet_hour_caption, register_qotd_open,
+    check_secret_chat_title, mirror_reply, lab_leftover_caption, mark_lab_visit,
+    stabilize_countdown, fake_element_119_line, on_delete_chat, palimpsest_line,
+    playlist_secret_hit, font_theme_combo_caption, wrong_model_reply,
+)
 
 _ICON = Path(__file__).resolve().parent / "icon.png"
 st.set_page_config(
@@ -116,6 +123,36 @@ SECRET_THEMES = {
         "accent": "#c4b5fd", "accent2": "#86efac", "accent_soft": "rgba(196,181,253,0.20)",
         "unlock": "stringbean",
     },
+    "Lumity Glow": {
+        "bg": "#0e0810", "panel": "rgba(40, 20, 42, 0.84)", "panel_solid": "#241228",
+        "border": "rgba(244,114,182,0.30)", "text": "#fdf4ff", "muted": "#c4a0b8",
+        "accent": "#f9a8d4", "accent2": "#c4b5fd", "accent_soft": "rgba(249,168,212,0.20)",
+        "unlock": "lumity",
+    },
+    "Soft Static": {
+        "bg": "#0a0a0e", "panel": "rgba(24, 24, 32, 0.8)", "panel_solid": "#14141c",
+        "border": "rgba(148,163,184,0.25)", "text": "#e2e8f0", "muted": "#94a3b8",
+        "accent": "#94a3b8", "accent2": "#64748b", "accent_soft": "rgba(148,163,184,0.16)",
+        "unlock": "static",
+    },
+    "Track: Abomination": {
+        "bg": "#06120a", "panel": "rgba(16, 36, 24, 0.85)", "panel_solid": "#102418",
+        "border": "rgba(74,222,128,0.28)", "text": "#ecfdf5", "muted": "#86a896",
+        "accent": "#4ade80", "accent2": "#22c55e", "accent_soft": "rgba(74,222,128,0.16)",
+        "unlock": "hexside",
+    },
+    "Soft Room": {
+        "bg": "#100c14", "panel": "rgba(36, 28, 48, 0.85)", "panel_solid": "#1c1628",
+        "border": "rgba(216,180,254,0.28)", "text": "#f5f3ff", "muted": "#a89bc8",
+        "accent": "#d8b4fe", "accent2": "#c4b5fd", "accent_soft": "rgba(216,180,254,0.18)",
+        "unlock": "softroom",
+    },
+    "M-0": {
+        "bg": "#080808", "panel": "rgba(20, 20, 20, 0.9)", "panel_solid": "#141414",
+        "border": "rgba(255,255,255,0.12)", "text": "#fafafa", "muted": "#a3a3a3",
+        "accent": "#e5e5e5", "accent2": "#737373", "accent_soft": "rgba(229,229,229,0.12)",
+        "unlock": "m0",
+    },
 }
 
 
@@ -139,18 +176,10 @@ def theme_shell(theme_name: str) -> dict:
     return THEMES["Caelestia"]
 
 
-def unlock_theme(theme_name: str, reason: str = "") -> bool:
+def unlock_theme(theme_name: str, reason: str = "", apply: bool = True) -> bool:
     """Unlock a secret theme once. Returns True if newly unlocked."""
-    if theme_name not in SECRET_THEMES:
-        return False
-    unlocked = list(st.session_state.get("unlocked_themes") or [])
-    if theme_name in unlocked:
-        return False
-    unlocked.append(theme_name)
-    st.session_state.unlocked_themes = unlocked
-    st.session_state["_theme_unlock_msg"] = f"Theme unlocked: **{theme_name}**" + (f" — {reason}" if reason else "")
-    save_user_data()
-    return True
+    return unlock_and_persist(theme_name, reason, apply=apply)
+
 
 
 def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool = False):
@@ -613,6 +642,10 @@ def save_user_data():
         "font": st.session_state.get("font", "Inter"),
         "theme": st.session_state.get("theme", "Caelestia"),
             "unlocked_themes": list(st.session_state.get("unlocked_themes") or []),
+        "arg_unlocked": bool(st.session_state.get("arg_unlocked")),
+        "arg_stabilized": bool(st.session_state.get("arg_stabilized")),
+        "stabilize_at": st.session_state.get("stabilize_at"),
+        "qotd_opens": int(st.session_state.get("qotd_opens") or 0),
         "provider": st.session_state.get("provider", "groq"),
         "model_name": st.session_state.get("model_name", "Smart · Llama 3.3 70B"),
         "show_widgets": bool(st.session_state.get("show_widgets", True)),
@@ -649,6 +682,10 @@ def load_user_data(username: str) -> bool:
         st.session_state.font = data.get("font", "Inter")
         st.session_state.theme = data.get("theme", "Caelestia")
         st.session_state.unlocked_themes = list(data.get("unlocked_themes") or [])
+        st.session_state.arg_unlocked = bool(data.get("arg_unlocked"))
+        st.session_state.arg_stabilized = bool(data.get("arg_stabilized"))
+        st.session_state.stabilize_at = data.get("stabilize_at")
+        st.session_state.qotd_opens = int(data.get("qotd_opens") or 0)
         st.session_state.provider = data.get("provider", "groq")
         st.session_state.model_name = data.get("model_name", "Smart · Llama 3.3 70B")
         st.session_state.show_widgets = data.get("show_widgets", True)
@@ -1082,6 +1119,10 @@ def create_new_chat():
 
 def delete_chat(chat_id: str):
     if chat_id in st.session_state.chats:
+        try:
+            on_delete_chat(st.session_state.chats[chat_id])
+        except Exception:
+            pass
         del st.session_state.chats[chat_id]
     if not st.session_state.chats:
         create_new_chat()
@@ -1255,6 +1296,13 @@ def quote_of_the_day():
 # ============================================================
 # APPLY
 # ============================================================
+
+# Apply theme unlocks requested by other modules (note_view Konami, etc.)
+_pending = st.session_state.pop("_pending_theme_unlocks", None) or []
+for _item in _pending:
+    if isinstance(_item, (list, tuple)) and len(_item) >= 1:
+        unlock_theme(_item[0], _item[1] if len(_item) > 1 else "", apply=True)
+
 inject_css(st.session_state.font, st.session_state.get("theme", "Caelestia"), st.session_state.popup)
 if st.session_state.get("_theme_unlock_msg"):
     st.success(st.session_state._theme_unlock_msg)
@@ -1412,17 +1460,28 @@ if st.session_state.popup:
     themes = available_themes()
     if "theme" not in st.session_state:
         st.session_state.theme = "Caelestia"
+    # If current theme is secret but missing from list, re-add to unlocked
     if st.session_state.theme not in themes:
-        st.session_state.theme = "Caelestia"
+        if st.session_state.theme in SECRET_THEMES:
+            u = list(st.session_state.get("unlocked_themes") or [])
+            if st.session_state.theme not in u:
+                u.append(st.session_state.theme)
+                st.session_state.unlocked_themes = u
+            themes = available_themes()
+        else:
+            st.session_state.theme = "Caelestia"
     ti = themes.index(st.session_state.theme) if st.session_state.theme in themes else 0
     th = st.selectbox("Colour palette", themes, index=ti, key="pop_theme")
-    locked_left = [n for n in SECRET_THEMES if n not in (st.session_state.get("unlocked_themes") or [])]
-    if locked_left:
-        st.caption(f"🔒 {len(locked_left)} secret theme(s) still locked — explore Meridium")
     if th != st.session_state.theme:
         st.session_state.theme = th
         save_user_data()
         st.rerun()
+    unlocked_now = list(st.session_state.get("unlocked_themes") or [])
+    if unlocked_now:
+        st.caption("Unlocked secrets: " + ", ".join(unlocked_now))
+    locked_left = [n for n in SECRET_THEMES if n not in unlocked_now]
+    if locked_left:
+        st.caption(f"🔒 {len(locked_left)} secret theme(s) still locked — explore Meridium")
 
     w1, w2 = st.columns(2)
     with w1:
@@ -1459,6 +1518,12 @@ if st.session_state.popup:
     with r1:
         if st.button("⌂  Home", use_container_width=True, key="pop_home"):
             st.session_state.view = "home"
+            st.session_state.popup = False
+            st.rerun()
+
+    if st.session_state.get("arg_unlocked"):
+        if st.button("Open the lab", use_container_width=True, key="pop_lab"):
+            st.session_state.view = "lab"
             st.session_state.popup = False
             st.rerun()
         if st.button("💬  Chat", use_container_width=True, key="pop_chat"):
@@ -1542,8 +1607,35 @@ if st.session_state.popup:
                 st.rerun()
     st.stop()
 
+# Dead link egg
+if st.session_state.view == "dead_link":
+    st.markdown(
+        """
+        <style>
+          .stApp, [data-testid="stAppViewContainer"], section.main { background:#000 !important; }
+        </style>
+        <p style="color:#666;font-family:Georgia;text-align:center;margin-top:30vh;line-height:1.8;">
+        This control never shipped.<br/>
+        You found a gap in the menu where a tool was planned<br/>
+        and then redacted.<br/><br/>
+        <span style="color:#8b3030;">The shell does not mind being incomplete.</span>
+        </p>
+        """,
+        unsafe_allow_html=True,
+    )
+    if st.button("Return", key="dead_back"):
+        st.session_state.view = "home"
+        st.rerun()
+    st.stop()
+
 # LAB first — full black, no waybar/nav chrome
 if st.session_state.view == "lab":
+    st.session_state.arg_unlocked = True
+    try:
+        save_user_data()
+    except Exception:
+        pass
+    mark_lab_visit()
     unlock_theme("Containment Red", "you entered the observation log")
     # All 6 fragments?
     found = st.session_state.get("lab_found") or set()
@@ -1594,7 +1686,12 @@ if st.session_state.view not in ("lab", "note"):
             st.session_state.popup = True
             st.rerun()
     with n6:
-        st.caption("")
+        if st.session_state.get("arg_unlocked"):
+            if st.button("Open the lab", use_container_width=True, key="n_lab"):
+                st.session_state.view = "lab"
+                st.rerun()
+        else:
+            st.caption("")
 
 # MUSIC — dedicated player + Meridium playlist
 if st.session_state.view == "music":
@@ -1765,6 +1862,26 @@ if st.session_state.view == "listen":
 
 # HOME — Design 1
 if st.session_state.view == "home":
+
+    # Easter egg captions on home
+    for _fn in (owner_rare_line, quiet_hour_caption, lab_leftover_caption, stabilize_countdown):
+        try:
+            if _fn is owner_rare_line:
+                _c = owner_rare_line(st.session_state.get("username") or "")
+            else:
+                _c = _fn()
+            if _c:
+                st.caption(_c)
+        except Exception:
+            pass
+    _combo = font_theme_combo_caption(
+        st.session_state.get("font") or "Inter",
+        st.session_state.get("theme") or "Caelestia",
+    )
+    if _combo:
+        st.caption(_combo)
+    if st.session_state.get("_egg_flash"):
+        st.info(st.session_state.pop("_egg_flash"))
     st.markdown(f"""
     <div class="panel">
       <div class="panel-label">Shell</div>
@@ -1773,6 +1890,7 @@ if st.session_state.view == "home":
       <div class="ridge"></div>
     </div>
     """, unsafe_allow_html=True)
+
 
     # —— Interactive feature toggles (actually work) ——
     prov = st.session_state.provider
@@ -1892,6 +2010,11 @@ if st.session_state.view == "home":
             + date_str + "  ·  " + time_str
         )
         if st.button(quote_label, use_container_width=True, key="qotd_note"):
+            msg = register_qotd_open()
+            if msg:
+                st.session_state["_egg_flash"] = msg
+                if "Third knock" in msg:
+                    unlock_theme("Soft Static", "third knock on the quote")
             unlock_theme("M-119 Amber", "you found the sealed note")
             st.session_state.view = "note"
             st.rerun()
@@ -1963,12 +2086,74 @@ if prompt := st.chat_input("Ask Meridium anything…"):
     with st.chat_message("user"):
         st.markdown(prompt)
 
+
+    # Easter eggs in chat
+    wm = wrong_model_reply(prompt)
+    if wm:
+        with st.chat_message("assistant"):
+            st.markdown(wm)
+        current["messages"].append({"role": "assistant", "content": wm})
+        unlock_theme("M-0", "unshipped build addressed")
+        save_user_data()
+        st.rerun()
+
+    el = fake_element_119_line(prompt)
+    if el and "119" in prompt.lower():
+        # only short-circuit if they ask about 119 specifically as topic
+        pass  # still allow normal + we inject via reply path below
+
+    mr = mirror_reply(prompt)
+    if mr:
+        with st.chat_message("assistant"):
+            st.markdown(mr)
+        current["messages"].append({"role": "assistant", "content": mr})
+        save_user_data()
+        st.rerun()
+
+    # Secret chat title check (current title)
+    _egg_t = check_secret_chat_title(current.get("title") or "")
+    if _egg_t and not st.session_state.get("_title_egg_done"):
+        st.session_state._title_egg_done = True
+        th = st.session_state.pop("_egg_theme", None)
+        if th:
+            unlock_theme(th, "secret chat title")
+        with st.chat_message("assistant"):
+            st.markdown(_egg_t)
+        current["messages"].append({"role": "assistant", "content": _egg_t})
+        save_user_data()
+        st.rerun()
+
     # Music commands (play / pause / next / now playing)
     handled, music_reply = try_music_command(prompt)
     if handled:
         with st.chat_message("assistant"):
             st.markdown(music_reply)
         current["messages"].append({"role": "assistant", "content": music_reply})
+        st.session_state.chats[st.session_state.current_chat_id] = current
+        save_user_data()
+        st.rerun()
+
+    # Element 119 planted lore
+    _119 = fake_element_119_line(prompt)
+    if _119 and any(x in prompt.lower() for x in ("element 119", "ununennium", "what is 119")):
+        with st.chat_message("assistant"):
+            st.markdown(_119)
+        current["messages"].append({"role": "assistant", "content": _119})
+        save_user_data()
+        st.rerun()
+
+    # ARG — Lumity soft door (Owl House egg)
+    if prompt.strip().lower() in {"luz and amity", "luz & amity"}:
+        unlock_theme("Lumity Glow", "two lights found each other")
+        soft = (
+            "Two names, said together — not as a file label, as *people*. "
+            "The shell doesn’t understand romance the way humans do, "
+            "but it understands choosing someone in a world that wants you small. "
+            "Human and witch. Soft light. Still here."
+        )
+        with st.chat_message("assistant"):
+            st.markdown(soft)
+        current["messages"].append({"role": "assistant", "content": soft})
         st.session_state.chats[st.session_state.current_chat_id] = current
         save_user_data()
         st.rerun()
@@ -1997,6 +2182,10 @@ if prompt := st.chat_input("Ask Meridium anything…"):
         reply = arg_reply(stage, user_name)
         if stage == "log":
             st.session_state.arg_unlocked = True
+            try:
+                save_user_data()
+            except Exception:
+                pass
             st.session_state.view = "lab"
             current["messages"].append({"role": "assistant", "content": reply})
             st.session_state.chats[st.session_state.current_chat_id] = current
@@ -2004,6 +2193,8 @@ if prompt := st.chat_input("Ask Meridium anything…"):
             st.rerun()
         if stage == "stabilize":
             st.session_state.arg_stabilized = True
+            if not st.session_state.get("stabilize_at"):
+                st.session_state.stabilize_at = datetime.now(ZoneInfo("Europe/London")).isoformat()
             unlock_theme("Stabilized Meridium", "the shell accepted the command")
         with st.chat_message("assistant"):
             st.markdown(reply)
@@ -2015,6 +2206,10 @@ if prompt := st.chat_input("Ask Meridium anything…"):
     # Manual lab entry
     if is_lab_entry(prompt):
         st.session_state.arg_unlocked = True
+        try:
+            save_user_data()
+        except Exception:
+            pass
         st.session_state.view = "lab"
         st.rerun()
 
