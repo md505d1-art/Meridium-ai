@@ -110,6 +110,12 @@ SECRET_THEMES = {
         "accent": "#a3a3a3", "accent2": "#525252", "accent_soft": "rgba(163,163,163,0.14)",
         "unlock": "fragments",  # all 6 lab hotspots
     },
+    "Stringbean Soft": {
+        "bg": "#0c0a12", "panel": "rgba(32, 28, 48, 0.82)", "panel_solid": "#1c1830",
+        "border": "rgba(196,181,253,0.28)", "text": "#f5f3ff", "muted": "#a89bc8",
+        "accent": "#c4b5fd", "accent2": "#86efac", "accent_soft": "rgba(196,181,253,0.20)",
+        "unlock": "stringbean",
+    },
 }
 
 
@@ -1293,6 +1299,35 @@ if st.session_state.get("view") != "lab":
         height=1,
     )
     st.session_state.lab_kill_audio = False
+
+# Stop letter music whenever we are not on the scientist note
+if st.session_state.get("view") != "note":
+    st.components.v1.html(
+        """
+        <script>
+        (function(){
+          try {
+            var r = window.parent || window;
+            function kill(a){
+              if (!a) return;
+              try { a.pause(); } catch(e){}
+              try { a.currentTime = 0; } catch(e){}
+              try { a.src = ''; } catch(e){}
+              try { a.remove(); } catch(e){}
+            }
+            if (r.__mer_note_song || r.__mer_note_audio_on) {
+              kill(r.__mer_note_song);
+              r.__mer_note_song = null;
+              r.__mer_note_audio_on = false;
+            }
+            var nodes = r.document.querySelectorAll('audio[data-meridium-note="1"]');
+            for (var i = 0; i < nodes.length; i++) kill(nodes[i]);
+          } catch(e){}
+        })();
+        </script>
+        """,
+        height=1,
+    )
 now = datetime.now(ZoneInfo("Europe/London"))
 time_str = now.strftime("%H:%M")
 date_str = now.strftime("%a · %b %d")
@@ -1934,6 +1969,23 @@ if prompt := st.chat_input("Ask Meridium anything…"):
         with st.chat_message("assistant"):
             st.markdown(music_reply)
         current["messages"].append({"role": "assistant", "content": music_reply})
+        st.session_state.chats[st.session_state.current_chat_id] = current
+        save_user_data()
+        st.rerun()
+
+    # ARG — Stringbean soft door (Owl House egg)
+    if prompt.strip().lower() == "hello stringbean":
+        unlock_theme("Stringbean Soft", "the little snake answered")
+        soft = (
+            "…oh. hi. "
+            "I don’t usually get greeted like that. "
+            "Something small and kind just settled in the shell — "
+            "like a palisman curling up where the static was. "
+            "Thank you for saying it gently."
+        )
+        with st.chat_message("assistant"):
+            st.markdown(soft)
+        current["messages"].append({"role": "assistant", "content": soft})
         st.session_state.chats[st.session_state.current_chat_id] = current
         save_user_data()
         st.rerun()
