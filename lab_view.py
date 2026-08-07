@@ -104,29 +104,42 @@ HOTSPOTS = [
 
 
 def _stop_lab_audio_html() -> None:
+    """Hard-stop siren + Heartaches on the parent page."""
+    st.session_state["lab_kill_audio"] = True
     st.components.v1.html(
         """
         <script>
-        try {
-          var r = window.parent || window;
-          r.__mer_audio_on = false;
-          if (r.__mer_song_timer) clearTimeout(r.__mer_song_timer);
-          if (r.__mer_heartaches) {
-            try { r.__mer_heartaches.pause(); r.__mer_heartaches.remove(); } catch(e){}
-            r.__mer_heartaches = null;
-          }
-          if (r.__mer_siren) {
-            try { r.__mer_siren.pause(); r.__mer_siren.remove(); } catch(e){}
-            r.__mer_siren = null;
-          }
-          var nodes = r.document.querySelectorAll('audio[data-meridium="1"]');
-          for (var i=0;i<nodes.length;i++) {
-            try { nodes[i].pause(); nodes[i].remove(); } catch(e){}
-          }
-        } catch (e) {}
+        (function(){
+          try {
+            var r = window.parent || window;
+            r.__mer_audio_on = false;
+            if (r.__mer_song_timer) { clearTimeout(r.__mer_song_timer); r.__mer_song_timer = null; }
+            function kill(a){
+              if (!a) return;
+              try { a.pause(); a.currentTime = 0; } catch(e){}
+              try { a.src = ''; a.remove(); } catch(e){}
+            }
+            kill(r.__mer_heartaches); r.__mer_heartaches = null;
+            kill(r.__mer_siren); r.__mer_siren = null;
+            var nodes = r.document.querySelectorAll('audio[data-meridium="1"]');
+            for (var i = 0; i < nodes.length; i++) kill(nodes[i]);
+            // also any leftover audio tags
+            var all = r.document.querySelectorAll('audio');
+            for (var j = 0; j < all.length; j++) {
+              try {
+                if ((all[j].src || '').indexOf('Heartaches') !== -1 ||
+                    (all[j].src || '').indexOf('bowlly') !== -1 ||
+                    (all[j].src || '').indexOf('2869') !== -1 ||
+                    all[j].getAttribute('data-meridium') === '1') {
+                  kill(all[j]);
+                }
+              } catch(e){}
+            }
+          } catch (e) {}
+        })();
         </script>
         """,
-        height=0,
+        height=1,
     )
 
 
