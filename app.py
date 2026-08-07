@@ -14,6 +14,9 @@ from duckduckgo_search import DDGS
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 
+from arg_story import arg_match, arg_reply, is_owner, is_lab_entry
+from lab_view import render_lab
+
 _ICON = Path(__file__).resolve().parent / "icon.png"
 st.set_page_config(
     page_title="Meridium",
@@ -635,6 +638,8 @@ defaults = {
     "provider": "groq",
     "model_name": "Smart · Llama 3.3 70B",
     "api_key_val": "",
+    "arg_unlocked": False,
+    "arg_stabilized": False,
     "meridium_playlist": [],
     "music_status": "",
 }
@@ -1055,9 +1060,6 @@ QUOTES = [
 ]
 
 
-def is_owner(name: str) -> bool:
-    n = (name or "").strip().lower()
-    return n in {"drae", "drae henry", "draehenry"} or n.startswith("drae ")
 
 def greet_line(name: str) -> str:
     if is_owner(name):
@@ -1167,6 +1169,8 @@ def try_music_command(prompt: str):
         return True, f"Music command failed: {e}"
 
     return False, ""
+
+
 
 
 def quote_of_the_day():
@@ -1431,6 +1435,13 @@ with n5:
 with n6:
     st.caption("")
 
+
+
+
+
+# LAB — ARG (module)
+if st.session_state.view == "lab":
+    render_lab()
 
 # MUSIC — dedicated player + Meridium playlist
 if st.session_state.view == "music":
@@ -1776,6 +1787,33 @@ if prompt := st.chat_input("Ask Meridium anything…"):
         current["messages"].append({"role": "assistant", "content": music_reply})
         st.session_state.chats[st.session_state.current_chat_id] = current
         save_user_data()
+        st.rerun()
+
+    # ARG — Element 119
+    stage = arg_match(prompt)
+    if stage:
+        user_name = st.session_state.get("username") or "user"
+        reply = arg_reply(stage, user_name)
+        if stage == "log":
+            st.session_state.arg_unlocked = True
+            st.session_state.view = "lab"
+            current["messages"].append({"role": "assistant", "content": reply})
+            st.session_state.chats[st.session_state.current_chat_id] = current
+            save_user_data()
+            st.rerun()
+        if stage == "stabilize":
+            st.session_state.arg_stabilized = True
+        with st.chat_message("assistant"):
+            st.markdown(reply)
+        current["messages"].append({"role": "assistant", "content": reply})
+        st.session_state.chats[st.session_state.current_chat_id] = current
+        save_user_data()
+        st.rerun()
+
+    # Manual lab entry
+    if is_lab_entry(prompt):
+        st.session_state.arg_unlocked = True
+        st.session_state.view = "lab"
         st.rerun()
 
     user_name = st.session_state.get("username") or "user"
