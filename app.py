@@ -456,6 +456,10 @@ Style:
 - Avoid filler phrases ("As an AI…", "Great question!").
 - Match the user's language and depth.
 
+Music:
+- Users can control Spotify with chat commands like: play <song>, pause, next, previous, what's playing.
+- When those are handled by the system, you don't need to invent fake playback.
+
 Inside joke — name origin:
 - If anyone asks why you are called Meridium, what Meridium means, where the name comes from, or anything similar, answer playfully:
   "I'm the 119th known element in the periodic table."
@@ -949,6 +953,106 @@ def owner_subline(name: str) -> str:
         return "Recognised as owner · Meridium is yours"
     return "Meridium · personal intelligence · Caelestia shell"
 
+
+def try_music_command(prompt: str):
+    """
+    If the user message is a music command, run it via Spotify.
+    Returns (handled: bool, reply: str).
+    """
+    text = (prompt or "").strip()
+    low = text.lower()
+    # Only treat as command if it looks like one
+    triggers = (
+        "play ", "play the song", "play song", "pause", "stop music", "stop the music",
+        "next song", "next track", "skip", "previous", "prev song", "what song",
+        "what's playing", "whats playing", "now playing", "resume",
+    )
+    if not any(t in low for t in triggers) and not low.startswith("play"):
+        return False, ""
+
+    sp = get_spotify()
+    if not sp:
+        url = spotify_auth_url()
+        msg = "Music isn't connected yet. Open **♫ Music**, connect Spotify, then try again."
+        if url:
+            msg += "\n\nOr use the Connect Spotify button on the Music page."
+        return True, msg
+
+    try:
+        # now playing
+        if any(x in low for x in ("what song", "what's playing", "whats playing", "now playing")):
+            track = current_track(sp)
+            if not track:
+                return True, "Nothing is playing right now. Start a song in Spotify, then ask again."
+            return True, f"♫ **{track['name']}** — {track['artists']}" + (f" ({track['device']})" if track.get("device") else "")
+
+        # pause / stop
+        if low in ("pause", "stop", "stop music", "stop the music", "pause music") or low.startswith("pause"):
+            sp.pause_playback()
+            return True, "Paused."
+
+        # resume
+        if low in ("resume", "continue", "unpause") or "resume" in low:
+            sp.start_playback()
+            return True, "Resumed."
+
+        # next / skip
+        if any(x in low for x in ("next song", "next track", "skip", "next")):
+            sp.next_track()
+            time.sleep(0.4)
+            track = current_track(sp)
+            if track:
+                return True, f"⏭ **{track['name']}** — {track['artists']}"
+            return True, "Skipped to next track."
+
+        # previous
+        if any(x in low for x in ("previous", "prev song", "last song")):
+            sp.previous_track()
+            time.sleep(0.4)
+            track = current_track(sp)
+            if track:
+                return True, f"⏮ **{track['name']}** — {track['artists']}"
+            return True, "Went to previous track."
+
+        # play <query>
+        if low.startswith("play ") or low.startswith("play the song"):
+            query = text
+            for prefix in ("play the song ", "play song ", "play "):
+                if low.startswith(prefix):
+                    query = text[len(prefix):].strip()
+                    break
+            query = query.strip().strip('"').strip("'")
+            if not query:
+                return True, "Tell me what to play — e.g. `play Nemzzz Prince of the Scene`"
+            results = sp.search(q=query, type="track", limit=1)
+            items = (results.get("tracks") or {}).get("items") or []
+            if not items:
+                return True, f"Couldn't find a track for “{query}”."
+            track = items[0]
+            uri = track["uri"]
+            name = track["name"]
+            artists = ", ".join(a["name"] for a in track["artists"])
+            try:
+                sp.start_playback(uris=[uri])
+            except Exception as e:
+                return True, (
+                    f"Found **{name}** — {artists}, but couldn't start playback.\n"
+                    f"Open Spotify on a device and play anything once, then try again.\n"
+                    f"({e})"
+                )
+            return True, f"▶ Playing **{name}** — {artists}"
+
+    except Exception as e:
+        err = str(e)
+        if "premium" in err.lower():
+            return True, "Spotify needs **Premium** for remote play/pause/skip commands."
+        if "NO_ACTIVE_DEVICE" in err or "active device" in err.lower():
+            return True, "No active Spotify device. Open Spotify on your phone or computer and play a song once, then try the command again."
+        return True, f"Music command failed: {e}"
+
+    return False, ""
+
+
 def quote_of_the_day():
     """Deterministic quote from calendar day — same all day, new each day."""
     day_index = datetime.now(ZoneInfo("Europe/London")).toordinal()
@@ -1417,6 +1521,16 @@ if prompt := st.chat_input("Ask Meridium anything…"):
     save_user_data()
     with st.chat_message("user"):
         st.markdown(prompt)
+
+    # Music commands (play / pause / next / now playing)
+    handled, music_reply = try_music_command(prompt)
+    if handled:
+        with st.chat_message("assistant"):
+            st.markdown(music_reply)
+        current["messages"].append({"role": "assistant", "content": music_reply})
+        st.session_state.chats[st.session_state.current_chat_id] = current
+        save_user_data()
+        st.rerun()
 
     user_name = st.session_state.get("username") or "user"
     owner_note = ""
