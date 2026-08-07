@@ -644,6 +644,44 @@ def get_web_search(query: str, max_results: int = 6) -> str:
     except Exception as e:
         return f"(Web search unavailable: {e})"
 
+
+def transcribe_audio(audio_bytes: bytes, filename: str = "audio.wav") -> str:
+    """Speech-to-text via Groq Whisper."""
+    key = os.getenv("GROQ_API_KEY") or st.secrets.get("GROQ_API_KEY", "")
+    if not key:
+        return ""
+    client = OpenAI(api_key=key, base_url="https://api.groq.com/openai/v1")
+    # Groq audio API expects a file-like object
+    import io
+    bio = io.BytesIO(audio_bytes)
+    bio.name = filename
+    try:
+        tr = client.audio.transcriptions.create(
+            model="whisper-large-v3",
+            file=bio,
+            language="en",
+        )
+        return (tr.text or "").strip()
+    except Exception as e:
+        raise RuntimeError(str(e))
+
+def speak_html(text: str) -> str:
+    """Browser text-to-speech (no API key)."""
+    safe = json.dumps(text[:800])
+    return f"""
+    <script>
+    (function() {{
+      const t = {safe};
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(t);
+      u.rate = 1.0; u.pitch = 1.0;
+      window.speechSynthesis.speak(u);
+    }})();
+    </script>
+    """
+
+
 def make_client(provider: str, api_key: str = None):
     if provider == "groq":
         key = api_key or os.getenv("GROQ_API_KEY") or st.secrets.get("GROQ_API_KEY", "")
@@ -1338,17 +1376,106 @@ if st.session_state.view == "music":
 
     st.stop()
 
-# LISTEN
+# LISTEN — voice assistant
 if st.session_state.view == "listen":
     st.markdown("""
     <div class="panel" style="text-align:center;">
-      <div class="panel-label">Focus</div>
-      <div style="color:#c4a7e7;margin-bottom:4px;">I'm listening…</div>
+      <div class="panel-label">Voice assistant</div>
+      <div class="hero" style="font-size:1.5rem;">I'm listening</div>
       <div class="orb"></div>
-      <div class="muted">Caelestia calm · open chat when ready</div>
+      <div class="muted">Record a message · Meridium transcribes & replies · can speak back</div>
     </div>
     """, unsafe_allow_html=True)
-    if st.button("💬 Open chat", use_container_width=True):
+
+    if "voice_log" not in st.session_state:
+        st.session_state.voice_log = []
+
+    auto_speak = st.checkbox("Speak replies aloud", value=True, key="voice_speak")
+
+    audio = None
+    try:
+        audio = st.audio_input("Tap the mic and speak", key="voice_mic")
+    except Exception:
+        st.warning("Audio input isn't available in this browser. Try Chrome/Edge, or type below.")
+
+    typed = st.text_input("Or type instead", placeholder="Ask Meridium…", key="voice_typed")
+
+    go = st.button("Send to Meridium", type="primary", use_container_width=True, key="voice_send")
+
+    user_text = ""
+    if go or audio is not None:
+        if audio is not None and (go or True):
+            # When new audio arrives, process it
+            pass
+
+    # Process audio when present
+    if audio is not None:
+        with st.spinner("Hearing you…"):
+            try:
+                raw = audio.getvalue() if hasattr(audio, "getvalue") else audio.read()
+                name = getattr(audio, "name", "audio.wav") or "audio.wav"
+                user_text = transcribe_audio(raw, name)
+            except Exception as e:
+                st.error(f"Couldn't transcribe: {e}")
+                user_text = ""
+        if user_text:
+            st.success(f"You said: {user_text}")
+
+    if go and typed.strip():
+        user_text = typed.strip()
+
+    if user_text:
+        # Music commands work here too
+        handled, music_reply = try_music_command(user_text)
+        if handled:
+            reply = music_reply
+        else:
+            user_name = st.session_state.get("username") or "user"
+            owner_note = ""
+            if is_owner(user_name):
+                owner_note = (
+                    f"\n\nIMPORTANT: {user_name} is the owner of Meridium. "
+                    "Warm, loyal, concise spoken style — short sentences good for voice."
+                )
+            else:
+                owner_note = f"\n\nUser's name is {user_name}. Keep answers concise for voice."
+            messages = [
+                {"role": "system", "content": SYSTEM_PROMPT + owner_note + "\n\nKeep answers under 80 words when possible — this is voice mode."},
+                {"role": "user", "content": user_text},
+            ]
+            with st.spinner("Thinking…"):
+                reply = run_chat(
+                    messages,
+                    st.session_state.provider,
+                    st.session_state.model_name,
+                    st.session_state.api_key_val,
+                )
+
+        st.markdown("### Meridium")
+        st.markdown(reply)
+        st.session_state.voice_log.append({"user": user_text, "assistant": reply})
+
+        # Also log into current chat
+        if st.session_state.current_chat_id in st.session_state.chats:
+            ch = st.session_state.chats[st.session_state.current_chat_id]
+            ch.setdefault("messages", []).append({"role": "user", "content": user_text})
+            ch["messages"].append({"role": "assistant", "content": reply})
+            save_user_data()
+
+        if auto_speak and reply:
+            # Strip markdown-ish bits for speech
+            spoken = re.sub(r"[\#\*`>_]+", " ", reply)
+            spoken = re.sub(r"\s+", " ", spoken).strip()
+            st.components.v1.html(speak_html(spoken), height=0)
+
+    if st.session_state.voice_log:
+        st.markdown("---")
+        st.caption("Recent voice turns")
+        for turn in reversed(st.session_state.voice_log[-5:]):
+            st.markdown(f"**You:** {turn['user']}")
+            st.markdown(f"**Meridium:** {turn['assistant']}")
+
+    if st.button("💬 Open text chat", use_container_width=True, key="voice_to_chat"):
         st.session_state.view = "chat"
         st.rerun()
     st.stop()
