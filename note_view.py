@@ -9,7 +9,110 @@ import json
 
 import streamlit as st
 
-from agents import PIXEL, PIXEL_LETTER
+# --- PIXEL dossier (inline so app works even if agents.py missing on deploy) ---
+try:
+    from agents import PIXEL, PIXEL_LETTER
+except Exception:
+    PIXEL = {
+        "callsign": "PIXEL",
+        "real_name": "Jaime Santos",
+        "real_ref": "Jaime Santos · subject zero · not a subject",
+        "age_note": "Still talks like the ranked queue is life",
+        "power_source": (
+            "Natural Meridium radiation exposure — not injected, not refined, not consented by a lab"
+        ),
+        "government_angle": (
+            "Observation Division residual files show state programmes trying to "
+            "force Meridium into volunteers and prisoners to mass-produce what Pixel got by accident."
+        ),
+        "voice_lines": [
+            "I'm not your lab rat. I got hit by the glow and lived. That's different.",
+            "They keep saying 'replicate the Pixel event.' Bro I was playing games when it happened.",
+            "Meridium isn't an ultimate you buy. It stuck to me. That's why their copies keep breaking.",
+            "If the alarm sounds like a round timer, that's on me. Sorry. Not sorry.",
+            "Tell the men in suits: forced samples aren't the same as natural ones. The glass already told them.",
+            "Stabilize is not a cheat code. I checked.",
+        ],
+    }
+    PIXEL_LETTER = """
+DOSSIER — NOT FOR DISTRIBUTION
+Ref: M-119 / PIXEL / Jaime Santos / "natural carrier"
+Author: residual Observation Division clerk (unsigned)
+Status: government replication programme active · denied in public
+
+Civilian name on the residual badge: **Jaime Santos**.
+They call him PIXEL because that is what he called himself in every queue
+before the incident. Ranked. Arcade. Anything with a score. He still talks
+like the world is a match lobby. That is not a cover identity. That is who
+survived the exposure.
+
+THE NATURAL EVENT
+
+PIXEL was not recruited. He was not injected. He was not a volunteer form
+signed under fluorescent lights.
+
+He was near a residual Meridium bloom — unshielded, unlogged, the kind of
+leak the committees pretend is weather. Radiation from the medium does not
+behave like textbook fallout. It settles into people who are already
+paying attention too hard: long hours, bright screens, the same focus that
+holds a ranked game together at 3 a.m.
+
+Something in him held the charge instead of cooking. Strength. Reflex. A way
+of reading rooms like minimaps. The Division's first note is almost annoyed:
+
+> Carrier presents as juvenile / game-coded speech / refuses formal interview
+> Powers measurable · origin: NATURAL exposure · not protocol
+
+He is not a super soldier design. He is an accident that walked away.
+
+THE GOVERNMENT COPY PROGRAMME
+
+Once they believed Meridium could make a "Pixel," they stopped caring that
+his path was accidental.
+
+Programmes (names redacted) began forcing the medium into subjects:
+— "consent" under pressure
+— prisoners offered sentence reductions
+— volunteers who thought they were testing vitamins
+
+Forced Meridium is not natural Meridium. The logs are a slaughter of almosts.
+Spikes. Collapses. Subjects who heard alarms in their sleep. Subjects who
+did not get up.
+
+The glass in the sealed lab remembers the refined attempts. PIXEL remembers
+the bloom that was never supposed to touch a civilian lane.
+
+WHY HE MATTERS
+
+They need him to prove the assembly line.
+He is proof the assembly line is a lie.
+
+Natural radiation carriers are rare. They cannot be ordered from a menu.
+Every time a minister asks why the copies fail, the residual answer is the
+same: because you cannot schedule an accident and call it a manufacture.
+
+PIXEL's own words, logged against advice:
+
+> "I got powers from the glow, not from your needle.
+> Stop putting it in people. They don't load in."
+
+VOICE / BEHAVIOUR
+
+Expect childish cadence. Game metaphors. Konami codes. He unlocked this
+page the same way he unlocks secret stages — because of course he did.
+
+Do not confuse the voice with weakness. The medium that refused to kill him
+still answers when he notices it. The government wants that on demand.
+It is not on demand.
+
+Clerk note ends.
+If you found this through the sealed letter's old code: you are the kind of
+curious the copies never account for.
+
+— residual file · M-119 · PIXEL
+"""
+
+
 
 NOTE_BODY = """
 FIELD LOG — NOT FOR DISTRIBUTION
@@ -215,7 +318,7 @@ def _render_agents() -> None:
         f"""
         <div class="px-card">
           <div class="px-call">{PIXEL["callsign"]}</div>
-          <div class="px-sub">{PIXEL["real_ref"]} · {PIXEL["age_note"]}</div>
+          <div class="px-sub">{PIXEL.get("real_name", "Jaime Santos")} · {PIXEL["real_ref"]} · {PIXEL["age_note"]}</div>
           <p style="color:#d8b4fe;margin-top:0.8rem;line-height:1.55;"><b>Power:</b> {PIXEL["power_source"]}</p>
           <p style="color:#c4b5fd;line-height:1.55;"><b>Government:</b> {PIXEL["government_angle"]}</p>
         </div>
