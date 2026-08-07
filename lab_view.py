@@ -146,6 +146,7 @@ def render_lab() -> None:
             z-index: 999991 !important;
             display: flex !important; align-items: center !important;
             justify-content: center !important;
+            flex-direction: column !important;
             background: transparent !important;
             opacity: 0;
             animation: labBloodIn 1.2s ease forwards;
@@ -179,6 +180,26 @@ def render_lab() -> None:
             animation-delay: 3.2s;
           }
           @keyframes labBloodIn { from { opacity: 0; } to { opacity: 1; } }
+          #lab-press-hint {
+            margin-top: 2.75rem;
+            color: #4a2020;
+            font-family: ui-monospace, monospace;
+            font-size: 0.7rem;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            opacity: 0;
+            animation: labBloodIn 1s ease forwards;
+            animation-delay: 4s;
+            pointer-events: none;
+          }
+          div[data-testid="stForm"] {
+            position: fixed !important;
+            bottom: 4px !important;
+            left: 4px !important;
+            opacity: 0.04 !important;
+            z-index: 999999 !important;
+            width: 80px !important;
+          }
           @keyframes labDrip {
             0% { opacity: 0; transform: scaleY(0.2); transform-origin: top; }
             100% { opacity: 0.95; transform: scaleY(1); transform-origin: top; }
@@ -218,7 +239,19 @@ def render_lab() -> None:
           }
         </style>
         <div id="lab-full-black"></div>
-        <div id="lab-blood-msg"><span>you're not supposed to know</span></div>
+        <div id="lab-blood-msg"><span class="blood">you're not supposed to know</span>
+          <div id="lab-press-hint">press enter</div></div>
+        <script>
+        (function(){
+          if (window.__mer_lab_enter) return;
+          window.__mer_lab_enter = true;
+          document.addEventListener('keydown', function(e){
+            if (e.key !== 'Enter') return;
+            var forms = document.querySelectorAll('div[data-testid="stForm"] button');
+            if (forms.length) { forms[0].click(); e.preventDefault(); }
+          });
+        })();
+        </script>
             """,
             unsafe_allow_html=True,
         )
@@ -312,14 +345,55 @@ def render_lab() -> None:
             height=1,
         )
 
-        # Small button — columns keep it narrow
-        sp1, sp2, sp3 = st.columns([1.2, 1, 1.2])
-        with sp2:
-            if st.button("enter the lab…", key="lab_intro_enter"):
-                st.session_state.lab_intro_done = True
-                st.rerun()
+        # Enter key submits this form (button visually hidden via CSS)
+        with st.form("lab_enter_form"):
+            go = st.form_submit_button("enter")
+        if go:
+            st.session_state.lab_intro_done = True
+            st.session_state.lab_flicker = True
+            st.rerun()
         st.stop()
 
+
+
+    # Light-coming-on flicker when just entered
+    if st.session_state.get("lab_flicker"):
+        st.markdown("""
+        <style>
+          .stApp, [data-testid="stAppViewContainer"], section.main, .block-container {
+            background: #000 !important;
+          }
+          #lab-light-on {
+            position: fixed; inset: 0; z-index: 999999;
+            pointer-events: none;
+            animation: lightOn 1.8s ease-out forwards;
+          }
+          @keyframes lightOn {
+            0%   { background: #000; }
+            8%   { background: #2a2a20; }
+            14%  { background: #000; }
+            22%  { background: #3a3a28; }
+            28%  { background: #0a0a08; }
+            38%  { background: #4a4a30; }
+            45%  { background: #111; }
+            55%  { background: #5a5a38; }
+            62%  { background: #1a1a12; }
+            75%  { background: rgba(40,40,28,0.9); }
+            100% { background: transparent; }
+          }
+          .lab-fade-in {
+            animation: labFadeIn 1.2s ease forwards;
+            animation-delay: 1.4s;
+            opacity: 0;
+          }
+          @keyframes labFadeIn {
+            from { opacity: 0; filter: brightness(0.2); }
+            to { opacity: 1; filter: brightness(1); }
+          }
+        </style>
+        <div id="lab-light-on"></div>
+        """, unsafe_allow_html=True)
+        st.session_state.lab_flicker = False
 
     st.markdown(
         """
@@ -397,7 +471,7 @@ def render_lab() -> None:
         font-family: ui-monospace, monospace;
       }
     </style>
-    <div class="lab-hero">
+    <div class="lab-hero lab-fade-in">
       <div class="lab-beacon"></div>
       <div class="lab-alarm" title="alarm"></div>
       <div class="lab-scan"></div>
@@ -531,4 +605,3 @@ def render_lab() -> None:
 
     st.caption("M-119 shell · exit when ready")
     st.stop()
-
