@@ -429,6 +429,37 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
         .stButton > button {{ min-height: 44px !important; }}
         .bloom-popup {{ width: 94vw; border-radius: 20px; }}
     }}
+    
+    /* Kill white chrome / distractors on mobile */
+    header, [data-testid="stHeader"], [data-testid="stToolbar"],
+    [data-testid="stDecoration"], [data-testid="stStatusWidget"],
+    #MainMenu, footer, .stDeployButton, [data-testid="stAppDeployButton"] {
+      display: none !important; visibility: hidden !important;
+      height: 0 !important; max-height: 0 !important;
+    }
+    iframe {
+      background: transparent !important;
+      border: none !important;
+    }
+    [data-testid="stChatInput"] {
+      background: transparent !important;
+    }
+    [data-testid="stChatInput"] textarea,
+    [data-testid="stChatInput"] > div,
+    [data-testid="stChatInput"] > div > div {
+      background: rgba(24,24,32,0.95) !important;
+      color: #e8e6f0 !important;
+      border-color: rgba(255,255,255,0.1) !important;
+    }
+    /* bottom block that often goes white */
+    .stBottom, [data-testid="stBottomBlockContainer"],
+    section[data-testid="stBottom"] {
+      background: transparent !important;
+    }
+    div[data-testid="stVerticalBlock"] > div:has(iframe) {
+      background: transparent !important;
+    }
+
     </style>
     """, unsafe_allow_html=True)
 
@@ -672,22 +703,60 @@ def transcribe_audio(audio_bytes: bytes, filename: str = "audio.wav") -> str:
     except Exception as e:
         raise RuntimeError(str(e))
 
-def speak_html(text: str) -> str:
-    """Browser text-to-speech (no API key)."""
-    safe = json.dumps(text[:800])
+def speak_html(text: str, autoplay: bool = True) -> str:
+    """Browser text-to-speech UI. Autoplay may be blocked on mobile; button always works."""
+    safe = json.dumps((text or "")[:900])
+    auto = "true" if autoplay else "false"
     return f"""
+    <div style="margin:0;padding:8px 0;font-family:system-ui,sans-serif;background:transparent;">
+      <button id="mer_spk" style="
+        background:linear-gradient(135deg,#c4a7e7,#9d7cd8);color:#fff;border:none;
+        border-radius:12px;padding:12px 18px;font-weight:600;font-size:15px;
+        width:100%;cursor:pointer;">
+        🔊 Speak reply
+      </button>
+      <div id="mer_spk_st" style="margin-top:6px;font-size:12px;color:#8b8798;background:transparent;"></div>
+    </div>
     <script>
     (function() {{
       const t = {safe};
-      if (!window.speechSynthesis) return;
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(t);
-      u.rate = 1.0; u.pitch = 1.0;
-      window.speechSynthesis.speak(u);
+      const auto = {auto};
+      const st = document.getElementById('mer_spk_st');
+      function speak() {{
+        if (!window.speechSynthesis) {{
+          if (st) st.textContent = 'Speech not supported in this browser. Try Safari or Chrome.';
+          return;
+        }}
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(t);
+        u.rate = 1.02;
+        u.pitch = 1.0;
+        u.volume = 1.0;
+        // Prefer a clear English voice when available
+        const voices = window.speechSynthesis.getVoices();
+        const en = voices.find(v => /en-GB/i.test(v.lang)) ||
+                   voices.find(v => /en-US/i.test(v.lang)) ||
+                   voices.find(v => /^en/i.test(v.lang));
+        if (en) u.voice = en;
+        u.onstart = () => {{ if (st) st.textContent = 'Speaking…'; }};
+        u.onend = () => {{ if (st) st.textContent = 'Done'; }};
+        u.onerror = () => {{ if (st) st.textContent = 'Could not speak. Tap the button again.'; }};
+        window.speechSynthesis.speak(u);
+      }}
+      const btn = document.getElementById('mer_spk');
+      if (btn) btn.onclick = speak;
+      // Load voices (Chrome needs this)
+      if (window.speechSynthesis) {{
+        window.speechSynthesis.getVoices();
+        window.speechSynthesis.onvoiceschanged = function() {{ window.speechSynthesis.getVoices(); }};
+      }}
+      if (auto) {{
+        // Slight delay so voices load; may still be blocked without a tap on iOS
+        setTimeout(speak, 400);
+      }}
     }})();
     </script>
     """
-
 
 def make_client(provider: str, api_key: str = None):
     if provider == "groq":
@@ -1515,7 +1584,7 @@ if st.session_state.view == "listen":
         if auto_speak and reply:
             spoken = re.sub(r"[\#\`\*_>]+", " ", reply)
             spoken = re.sub(r"\s+", " ", spoken).strip()
-            st.components.v1.html(speak_html(spoken), height=0)
+            st.components.v1.html(speak_html(spoken, autoplay=True), height=70)
 
     if st.session_state.voice_log:
         st.markdown("---")
@@ -1757,7 +1826,15 @@ if prompt := st.chat_input("Ask Meridium anything…"):
         reply = reply_mod
     current["messages"].append({"role": "assistant", "content": reply})
     st.session_state.chats[st.session_state.current_chat_id] = current
+    st.session_state["_last_speak"] = reply
     save_user_data()
     st.rerun()
+
+# Speak last reply (chat) — collapsed so it doesn't leave a white strip
+if st.session_state.view == "chat" and st.session_state.get("_last_speak"):
+    with st.expander("🔊 Speak last reply", expanded=False):
+        spoken = re.sub(r"[\#\`\*_>]+", " ", str(st.session_state["_last_speak"]))
+        spoken = re.sub(r"\s+", " ", spoken).strip()
+        st.components.v1.html(speak_html(spoken, autoplay=False), height=70)
 
 st.markdown("</div>", unsafe_allow_html=True)
