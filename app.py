@@ -1738,23 +1738,28 @@ if st.session_state.view == "home":
     qotd, qotd_author = quote_of_the_day()
     c1, c2 = st.columns(2)
     with c1:
-        st.markdown(f"""
+        st.markdown(
+            f"""
         <div class="panel">
           <div class="panel-label">Quote of the day</div>
-          <div style="font-size:1.05rem;line-height:1.45;font-weight:500;margin:8px 0 10px;color:inherit;">
-            “{qotd}”
-          </div>
-          <div class="muted">— {qotd_author}</div>
-          <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-            <span class="chip">{date_str}</span>
-            <span class="chip">{time_str}</span>
-          </div>
         </div>
-        """, unsafe_allow_html=True)
-        # Quiet door into the ARG — looks like a normal control
-        if st.button("Read the full note", use_container_width=True, key="qotd_note"):
+            """,
+            unsafe_allow_html=True,
+        )
+        # The quote itself is the door — still rotates daily via quote_of_the_day()
+        quote_label = f"“{qotd}”\n— {qotd_author}"
+        if st.button(quote_label, use_container_width=True, key="qotd_note"):
             st.session_state.view = "note"
             st.rerun()
+        st.markdown(
+            f"""
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px;">
+          <span class="chip">{date_str}</span>
+          <span class="chip">{time_str}</span>
+        </div>
+            """,
+            unsafe_allow_html=True,
+        )
         if st.session_state.show_spotify:
             render_spotify_panel("home")
     with c2:
