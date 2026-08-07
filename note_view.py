@@ -151,16 +151,47 @@ def _stop_pixel_audio() -> None:
         <script>
         (function(){
           try {
-            var r = window.parent || window;
-            var a = r.__mer_pixel_song;
-            if (a) { try { a.pause(); a.src=''; a.remove(); } catch(e){} }
-            r.__mer_pixel_song = null;
+            var roots = [window];
+            try { if (window.parent) roots.push(window.parent); } catch(e){}
+            function kill(a){
+              if (!a) return;
+              try { a.pause(); } catch(e){}
+              try { a.currentTime = 0; } catch(e){}
+              try { a.src = ''; } catch(e){}
+              try { a.load && a.load(); } catch(e){}
+              try { a.remove(); } catch(e){}
+            }
+            for (var r = 0; r < roots.length; r++) {
+              var root = roots[r];
+              try {
+                kill(root.__mer_pixel_song);
+                root.__mer_pixel_song = null;
+                kill(root.__mer_note_song);
+                root.__mer_note_song = null;
+                root.__mer_note_audio_on = false;
+                var nodes = root.document.querySelectorAll(
+                  'audio[data-meridium-pixel],audio[data-meridium-note],audio'
+                );
+                // only kill ones we tagged if possible
+                for (var i = 0; i < nodes.length; i++) {
+                  var a = nodes[i];
+                  if (a.getAttribute('data-meridium-pixel') === '1' ||
+                      a.getAttribute('data-meridium-note') === '1' ||
+                      (a.src && a.src.indexOf('artmanzh-sea-sunset') !== -1) ||
+                      (a.src && a.src.indexOf('Ill%20Never%20Smile') !== -1) ||
+                      (a.src && a.src.indexOf('ill-never-smile') !== -1)) {
+                    kill(a);
+                  }
+                }
+              } catch(e){}
+            }
           } catch(e){}
         })();
         </script>
         """,
         height=1,
     )
+
 
 
 def _start_note_audio() -> None:
@@ -219,6 +250,7 @@ def _start_pixel_audio() -> None:
             kill(root.__mer_pixel_song);
             var a = root.document.createElement('audio');
             a.src = URL; a.loop = true; a.volume = 0.5;
+            a.setAttribute('data-meridium-pixel', '1');
             a.style.display = 'none';
             root.document.body.appendChild(a);
             root.__mer_pixel_song = a;
@@ -428,6 +460,8 @@ def render_note() -> None:
     if st.session_state.note_agents:
         _render_agents()
 
+    # Left PIXEL page — ensure theme music is dead
+    _stop_pixel_audio()
     _start_note_audio()
     _konami_listener()
 
