@@ -84,10 +84,73 @@ THEMES = {
     },
 }
 
+# ARG-only themes — unlocked by finding secrets (not shown until earned)
+SECRET_THEMES = {
+    "M-119 Amber": {
+        "bg": "#0c0804", "panel": "rgba(36, 24, 12, 0.82)", "panel_solid": "#24180c",
+        "border": "rgba(245,158,11,0.22)", "text": "#fef3c7", "muted": "#a89060",
+        "accent": "#f59e0b", "accent2": "#d97706", "accent_soft": "rgba(245,158,11,0.16)",
+        "unlock": "note",  # open the scientist note
+    },
+    "Containment Red": {
+        "bg": "#0a0404", "panel": "rgba(32, 10, 10, 0.85)", "panel_solid": "#1c0a0a",
+        "border": "rgba(220,38,38,0.28)", "text": "#fee2e2", "muted": "#a07070",
+        "accent": "#ef4444", "accent2": "#b91c1c", "accent_soft": "rgba(239,68,68,0.18)",
+        "unlock": "lab",  # enter the lab
+    },
+    "Stabilized Meridium": {
+        "bg": "#06040c", "panel": "rgba(20, 12, 36, 0.85)", "panel_solid": "#140c24",
+        "border": "rgba(167,139,250,0.30)", "text": "#ede9fe", "muted": "#9a8fc0",
+        "accent": "#c4b5fd", "accent2": "#8b5cf6", "accent_soft": "rgba(196,181,253,0.18)",
+        "unlock": "stabilize",  # say stabilize Meridium
+    },
+    "Voss Static": {
+        "bg": "#050505", "panel": "rgba(18, 18, 18, 0.9)", "panel_solid": "#121212",
+        "border": "rgba(255,255,255,0.14)", "text": "#e5e5e5", "muted": "#737373",
+        "accent": "#a3a3a3", "accent2": "#525252", "accent_soft": "rgba(163,163,163,0.14)",
+        "unlock": "fragments",  # all 6 lab hotspots
+    },
+}
+
+
+def available_themes() -> list:
+    """Public themes + any ARG themes the user has unlocked."""
+    unlocked = set(st.session_state.get("unlocked_themes") or [])
+    names = list(THEMES.keys())
+    for name in SECRET_THEMES:
+        if name in unlocked:
+            names.append(name)
+    return names
+
+
+def theme_shell(theme_name: str) -> dict:
+    if theme_name in THEMES:
+        return THEMES[theme_name]
+    if theme_name in SECRET_THEMES:
+        # strip meta key for CSS
+        d = {k: v for k, v in SECRET_THEMES[theme_name].items() if k != "unlock"}
+        return d
+    return THEMES["Caelestia"]
+
+
+def unlock_theme(theme_name: str, reason: str = "") -> bool:
+    """Unlock a secret theme once. Returns True if newly unlocked."""
+    if theme_name not in SECRET_THEMES:
+        return False
+    unlocked = list(st.session_state.get("unlocked_themes") or [])
+    if theme_name in unlocked:
+        return False
+    unlocked.append(theme_name)
+    st.session_state.unlocked_themes = unlocked
+    st.session_state["_theme_unlock_msg"] = f"Theme unlocked: **{theme_name}**" + (f" — {reason}" if reason else "")
+    save_user_data()
+    return True
+
 
 def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool = False):
+
     font = FONTS.get(font_name, FONTS["Inter"])
-    SHELL = THEMES.get(theme_name, THEMES["Caelestia"])
+    SHELL = theme_shell(theme_name)
     moj = "1"
     st.markdown(f"""
     <style>
@@ -543,6 +606,7 @@ def save_user_data():
         "username": name,
         "font": st.session_state.get("font", "Inter"),
         "theme": st.session_state.get("theme", "Caelestia"),
+            "unlocked_themes": list(st.session_state.get("unlocked_themes") or []),
         "provider": st.session_state.get("provider", "groq"),
         "model_name": st.session_state.get("model_name", "Smart · Llama 3.3 70B"),
         "show_widgets": bool(st.session_state.get("show_widgets", True)),
@@ -578,6 +642,7 @@ def load_user_data(username: str) -> bool:
         data = json.loads(fp.read_text(encoding="utf-8"))
         st.session_state.font = data.get("font", "Inter")
         st.session_state.theme = data.get("theme", "Caelestia")
+        st.session_state.unlocked_themes = list(data.get("unlocked_themes") or [])
         st.session_state.provider = data.get("provider", "groq")
         st.session_state.model_name = data.get("model_name", "Smart · Llama 3.3 70B")
         st.session_state.show_widgets = data.get("show_widgets", True)
@@ -641,6 +706,7 @@ defaults = {
     "api_key_val": "",
     "arg_unlocked": False,
     "arg_stabilized": False,
+    "unlocked_themes": [],
     "meridium_playlist": [],
     "music_status": "",
 }
@@ -1184,6 +1250,9 @@ def quote_of_the_day():
 # APPLY
 # ============================================================
 inject_css(st.session_state.font, st.session_state.get("theme", "Caelestia"), st.session_state.popup)
+if st.session_state.get("_theme_unlock_msg"):
+    st.success(st.session_state._theme_unlock_msg)
+    st.session_state._theme_unlock_msg = ""
 
 
 # Stop ARG lab music whenever we are not inside the lab
@@ -1305,11 +1374,16 @@ if st.session_state.popup:
         save_user_data()
         st.rerun()
 
-    themes = list(THEMES.keys())
+    themes = available_themes()
     if "theme" not in st.session_state:
+        st.session_state.theme = "Caelestia"
+    if st.session_state.theme not in themes:
         st.session_state.theme = "Caelestia"
     ti = themes.index(st.session_state.theme) if st.session_state.theme in themes else 0
     th = st.selectbox("Colour palette", themes, index=ti, key="pop_theme")
+    locked_left = [n for n in SECRET_THEMES if n not in (st.session_state.get("unlocked_themes") or [])]
+    if locked_left:
+        st.caption(f"🔒 {len(locked_left)} secret theme(s) still locked — explore Meridium")
     if th != st.session_state.theme:
         st.session_state.theme = th
         save_user_data()
@@ -1407,7 +1481,7 @@ if st.session_state.popup:
                 st.session_state.current_chat_id = next(iter(st.session_state.chats))
             if isinstance(data.get("meridium_playlist"), list):
                 st.session_state.meridium_playlist = data["meridium_playlist"]
-            if data.get("theme") in THEMES:
+            if data.get("theme") in THEMES or data.get("theme") in SECRET_THEMES:
                 st.session_state.theme = data["theme"]
             if data.get("font") in FONTS:
                 st.session_state.font = data["font"]
@@ -1435,6 +1509,11 @@ if st.session_state.popup:
 
 # LAB first — full black, no waybar/nav chrome
 if st.session_state.view == "lab":
+    unlock_theme("Containment Red", "you entered the observation log")
+    # All 6 fragments?
+    found = st.session_state.get("lab_found") or set()
+    if isinstance(found, (list, set)) and len(set(found)) >= 6:
+        unlock_theme("Voss Static", "all fragments recovered")
     render_lab()
 if st.session_state.view == "note":
     render_note()
@@ -1778,6 +1857,7 @@ if st.session_state.view == "home":
             + date_str + "  ·  " + time_str
         )
         if st.button(quote_label, use_container_width=True, key="qotd_note"):
+            unlock_theme("M-119 Amber", "you found the sealed note")
             st.session_state.view = "note"
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
@@ -1872,6 +1952,7 @@ if prompt := st.chat_input("Ask Meridium anything…"):
             st.rerun()
         if stage == "stabilize":
             st.session_state.arg_stabilized = True
+            unlock_theme("Stabilized Meridium", "the shell accepted the command")
         with st.chat_message("assistant"):
             st.markdown(reply)
         current["messages"].append({"role": "assistant", "content": reply})
