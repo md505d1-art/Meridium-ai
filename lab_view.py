@@ -109,75 +109,46 @@ def render_lab() -> None:
     if "lab_intro_done" not in st.session_state:
         st.session_state.lab_intro_done = False
 
-    # —— INTRO: full-screen black · 3s siren/flash · blood text ——
+    # —— INTRO: full-screen black · siren · blood text · enter button ——
     if not st.session_state.lab_intro_done:
         st.markdown(
             """
+        <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap" rel="stylesheet">
         <style>
-          /* Force entire Streamlit shell black and hide chrome */
           html, body, .stApp,
           [data-testid="stAppViewContainer"],
           [data-testid="stHeader"],
-          [data-testid="stToolbar"],
-          [data-testid="stDecoration"],
-          [data-testid="stSidebar"],
-          section.main,
-          .block-container {
+          section.main, .block-container {
             background: #000 !important;
             background-color: #000 !important;
           }
-          [data-testid="stHeader"],
-          [data-testid="stToolbar"],
-          [data-testid="stDecoration"],
-          [data-testid="stStatusWidget"],
-          #MainMenu, footer, .stDeployButton,
-          [data-testid="stAppDeployButton"] {
-            display: none !important;
-            visibility: hidden !important;
-            height: 0 !important;
+          [data-testid="stHeader"], [data-testid="stToolbar"],
+          [data-testid="stDecoration"], #MainMenu, footer, .stDeployButton {
+            display: none !important; height: 0 !important;
           }
-          .block-container {
-            padding: 0 !important;
-            max-width: 100% !important;
-          }
-          /* Full-viewport overlay */
+          .block-container { padding-top: 0 !important; max-width: 100% !important; }
+
           #lab-full-black {
-            position: fixed !important;
-            inset: 0 !important;
-            z-index: 999998 !important;
-            width: 100vw !important;
-            height: 100vh !important;
+            position: fixed !important; inset: 0 !important;
+            z-index: 999990 !important;
             background: #000;
             animation: labRedFlash 3s ease-in-out forwards;
           }
           @keyframes labRedFlash {
-            0%   { background: #000; }
-            5%   { background: #ff0000; }
-            10%  { background: #000; }
-            15%  { background: #ff1a1a; }
-            20%  { background: #1a0000; }
-            28%  { background: #ff0000; }
-            35%  { background: #000; }
-            42%  { background: #cc0000; }
-            50%  { background: #330000; }
-            58%  { background: #ff0000; }
-            65%  { background: #000; }
-            72%  { background: #ff2222; }
-            80%  { background: #1a0000; }
-            88%  { background: #990000; }
-            95%  { background: #200000; }
+            0%,10%,35%,65% { background: #000; }
+            5%,15%,28%,42%,58%,72% { background: #ff0000; }
+            20%,50%,80% { background: #1a0000; }
+            88% { background: #990000; }
             100% { background: #000; }
           }
           #lab-blood-msg {
-            position: fixed !important;
-            inset: 0 !important;
-            z-index: 999999 !important;
-            display: flex !important;
-            align-items: center !important;
+            position: fixed !important; inset: 0 !important;
+            z-index: 999991 !important;
+            display: flex !important; align-items: center !important;
             justify-content: center !important;
-            background: #000 !important;
+            background: transparent !important;
             opacity: 0;
-            animation: labBloodIn 1.4s ease forwards;
+            animation: labBloodIn 1.2s ease forwards;
             animation-delay: 3s;
             pointer-events: none;
           }
@@ -185,7 +156,6 @@ def render_lab() -> None:
             position: relative;
             color: #6e0000;
             font-size: clamp(1.85rem, 6.5vw, 3.1rem);
-            font-weight: 400;
             font-family: "Indie Flower", cursive;
             letter-spacing: 0.12em;
             text-align: center;
@@ -195,168 +165,161 @@ def render_lab() -> None:
             text-shadow:
               0 1px 0 #4a0000, 0 2px 0 #3a0000, 1px 3px 0 #5a0000,
               -1px 4px 0 #2a0000, 2px 5px 0 #1a0000, 0 6px 2px #300000,
-              3px 8px 0 #1a0505, -2px 7px 0 #400000,
-              0 0 8px #8b0000, 0 0 20px rgba(100,0,0,0.85),
-              0 12px 18px rgba(40,0,0,0.6);
+              0 0 12px #8b0000, 0 0 28px rgba(100,0,0,0.9);
             -webkit-text-stroke: 0.5px #2a0000;
-            filter: contrast(1.35) saturate(1.4);
           }
           #lab-blood-msg span::after {
             content: "";
-            position: absolute;
-            left: 12%; right: 18%; top: 95%; height: 42px;
+            position: absolute; left: 12%; right: 18%; top: 95%; height: 40px;
             background:
-              radial-gradient(ellipse 4px 18px at 10% 0%, #5a0000 0%, #5a0000 40%, transparent 70%),
-              radial-gradient(ellipse 3px 28px at 28% 0%, #7a0000 0%, #4a0000 45%, transparent 75%),
-              radial-gradient(ellipse 5px 14px at 47% 0%, #6a0000 0%, transparent 70%),
-              radial-gradient(ellipse 3px 32px at 63% 0%, #8b0000 0%, #3a0000 50%, transparent 78%),
-              radial-gradient(ellipse 4px 20px at 82% 0%, #5a0000 0%, transparent 72%);
-            opacity: 0.95;
-            animation: labDrip 2.5s ease-out forwards;
-            animation-delay: 3.3s;
+              radial-gradient(ellipse 3px 26px at 25% 0%, #7a0000 0%, transparent 75%),
+              radial-gradient(ellipse 4px 18px at 55% 0%, #5a0000 0%, transparent 70%),
+              radial-gradient(ellipse 3px 30px at 75% 0%, #8b0000 0%, transparent 75%);
+            animation: labDrip 2s ease-out forwards;
+            animation-delay: 3.2s;
           }
-          @keyframes labBloodIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
+          @keyframes labBloodIn { from { opacity: 0; } to { opacity: 1; } }
           @keyframes labDrip {
             0% { opacity: 0; transform: scaleY(0.2); transform-origin: top; }
             100% { opacity: 0.95; transform: scaleY(1); transform-origin: top; }
           }
-          #lab-intro-hint {
-            position: fixed !important;
-            bottom: 140px !important;
-            left: 0; right: 0;
-            z-index: 1000000 !important;
-            text-align: center;
-            color: #5a3030;
-            font-size: 0.75rem;
-            font-family: ui-monospace, monospace;
-            opacity: 0;
-            animation: labBloodIn 0.8s ease forwards;
-            animation-delay: 4.2s;
-          }
-          /* Ominous enter button — sits under the blood text */
-          div[data-testid="stButton"] > button[kind="primary"],
-          div[data-testid="stButton"] > button {
-            position: relative;
-            background: #1a0505 !important;
-            color: #9a2020 !important;
-            border: 1px solid #5a1010 !important;
-            border-radius: 4px !important;
-            font-family: "Indie Flower", Georgia, cursive !important;
-            font-size: 1.35rem !important;
-            letter-spacing: 0.18em !important;
-            text-transform: lowercase !important;
-            padding: 0.85rem 1.5rem !important;
-            box-shadow: 0 0 24px rgba(80,0,0,0.45), inset 0 0 12px rgba(40,0,0,0.5) !important;
-            transition: all 0.25s ease !important;
-          }
-          div[data-testid="stButton"] > button:hover {
-            background: #2a0808 !important;
-            color: #ff3030 !important;
-            border-color: #8b0000 !important;
-            box-shadow: 0 0 36px rgba(120,0,0,0.65) !important;
-          }
-          /* Push button into lower centre of the black screen */
-          .lab-enter-wrap {
+
+          /* Small ominous button under the text */
+          .stApp [data-testid="stButton"] {
             position: fixed !important;
             left: 50% !important;
-            bottom: 18% !important;
+            top: 62% !important;
             transform: translateX(-50%) !important;
-            z-index: 1000001 !important;
-            width: min(320px, 86vw) !important;
+            z-index: 999999 !important;
+            width: auto !important;
+            min-width: 160px !important;
+            max-width: 220px !important;
             opacity: 0;
-            animation: labBloodIn 1s ease forwards;
-            animation-delay: 4.5s;
+            animation: labBloodIn 0.9s ease forwards;
+            animation-delay: 3.8s;
+          }
+          .stApp [data-testid="stButton"] > button {
+            background: #120303 !important;
+            color: #a01818 !important;
+            border: 1px solid #4a0a0a !important;
+            border-radius: 3px !important;
+            font-family: "Indie Flower", cursive !important;
+            font-size: 1.05rem !important;
+            letter-spacing: 0.14em !important;
+            padding: 0.45rem 1.1rem !important;
+            min-height: 0 !important;
+            height: auto !important;
+            box-shadow: 0 0 16px rgba(80,0,0,0.5) !important;
+          }
+          .stApp [data-testid="stButton"] > button:hover {
+            color: #ff2a2a !important;
+            border-color: #8b0000 !important;
+            background: #1a0505 !important;
           }
         </style>
-        <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap" rel="stylesheet">
         <div id="lab-full-black"></div>
         <div id="lab-blood-msg"><span>you're not supposed to know</span></div>
-        <div id="lab-intro-hint">alarm fading · something older starts playing</div>
             """,
             unsafe_allow_html=True,
         )
-        # Audio only in component (siren + heartaches)
+
+        # Audio iframe MUST have height > 0 or browsers kill the JS
         st.components.v1.html(
             """
-        <script>
-        function startScarySiren(durationSec) {
-          try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const master = ctx.createGain();
-            master.gain.value = 0.09;
-            master.connect(ctx.destination);
-            const o1 = ctx.createOscillator();
-            const o2 = ctx.createOscillator();
-            const g1 = ctx.createGain();
-            const g2 = ctx.createGain();
-            o1.type = "sawtooth";
-            o2.type = "square";
-            g1.gain.value = 0.55;
-            g2.gain.value = 0.35;
-            o1.connect(g1); g1.connect(master);
-            o2.connect(g2); g2.connect(master);
-            const now = ctx.currentTime;
-            const dur = durationSec || 3;
-            function wail(osc, base, amp, t0) {
-              let t = t0;
-              const cycles = Math.max(2, Math.floor(dur / 0.85));
-              for (let i = 0; i < cycles; i++) {
-                osc.frequency.setValueAtTime(base, t);
-                osc.frequency.linearRampToValueAtTime(base + amp, t + 0.4);
-                osc.frequency.linearRampToValueAtTime(base, t + 0.8);
-                t += 0.85;
-              }
-            }
-            wail(o1, 620, 480, now);
-            wail(o2, 780, 520, now);
-            const lfo = ctx.createOscillator();
-            const lfoG = ctx.createGain();
-            lfo.frequency.value = 6;
-            lfoG.gain.value = 0.025;
-            lfo.connect(lfoG);
-            lfoG.connect(master.gain);
-            lfo.start(now);
-            o1.start(now); o2.start(now);
-            master.gain.setValueAtTime(0.09, now);
-            master.gain.linearRampToValueAtTime(0.0001, now + dur);
-            setTimeout(function() {
-              try { o1.stop(); o2.stop(); lfo.stop(); ctx.close(); } catch (e) {}
-            }, dur * 1000 + 150);
-          } catch (e) {}
+<!DOCTYPE html>
+<html><body style="margin:0;background:#000;">
+<script>
+(function(){
+  function scarySiren(sec){
+    try{
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      var ctx = new Ctx();
+      if (ctx.state === 'suspended') ctx.resume();
+      var master = ctx.createGain();
+      master.gain.value = 0.12;
+      master.connect(ctx.destination);
+
+      // Three harsh layers
+      var specs = [
+        {type:'sawtooth', base:550, amp:520, vol:0.5},
+        {type:'square',   base:780, amp:420, vol:0.35},
+        {type:'sawtooth', base:980, amp:300, vol:0.22}
+      ];
+      var oscs = [];
+      var now = ctx.currentTime;
+      specs.forEach(function(s){
+        var o = ctx.createOscillator();
+        var g = ctx.createGain();
+        o.type = s.type;
+        g.gain.value = s.vol;
+        o.connect(g); g.connect(master);
+        var t = now;
+        for (var i=0;i<8;i++){
+          o.frequency.setValueAtTime(s.base, t);
+          o.frequency.linearRampToValueAtTime(s.base+s.amp, t+0.38);
+          o.frequency.linearRampToValueAtTime(s.base, t+0.76);
+          t += 0.8;
         }
-        startScarySiren(3.2);
-        setTimeout(function() {
-          try {
-            var a = document.getElementById('heartaches');
-            if (!a) {
-              a = document.createElement('audio');
-              a.id = 'heartaches';
-              a.src = 'https://archive.org/download/al-bowlly-sid-phillips-his-melodians-heartaches/Al%20Bowlly%2C%20Sid%20Phillips%20%26%20His%20Melodians%20-%20Heartaches.mp3';
-              a.loop = true;
-              a.volume = 0.55;
-              document.body.appendChild(a);
-            }
-            var p = a.play();
-            if (p && p.catch) p.catch(function(){});
-          } catch(e) {}
-        }, 3300);
-        </script>
-        <audio id="heartaches" preload="auto"
-          src="https://archive.org/download/al-bowlly-sid-phillips-his-melodians-heartaches/Al%20Bowlly%2C%20Sid%20Phillips%20%26%20His%20Melodians%20-%20Heartaches.mp3"
-          style="display:none"></audio>
+        o.start(now);
+        oscs.push(o);
+      });
+      // noise burst layer
+      try {
+        var nLen = ctx.sampleRate * sec;
+        var buf = ctx.createBuffer(1, nLen, ctx.sampleRate);
+        var data = buf.getChannelData(0);
+        for (var i=0;i<nLen;i++) data[i] = (Math.random()*2-1) * 0.15;
+        var noise = ctx.createBufferSource();
+        var ng = ctx.createGain();
+        var filt = ctx.createBiquadFilter();
+        filt.type = 'bandpass'; filt.frequency.value = 1200;
+        noise.buffer = buf;
+        noise.connect(filt); filt.connect(ng); ng.connect(master);
+        ng.gain.value = 0.08;
+        noise.start(now);
+      } catch(e){}
+
+      master.gain.setValueAtTime(0.12, now);
+      master.gain.linearRampToValueAtTime(0.0001, now + sec);
+      setTimeout(function(){
+        oscs.forEach(function(o){ try{o.stop();}catch(e){} });
+        try{ctx.close();}catch(e){}
+      }, sec*1000+200);
+    }catch(e){ console.log('siren', e); }
+  }
+
+  // Try immediately + on first user gesture (autoplay policies)
+  scarySiren(3.4);
+  function unlock(){ try{ scarySiren(3.4); }catch(e){}
+    document.removeEventListener('click', unlock);
+    document.removeEventListener('touchstart', unlock);
+  }
+  document.addEventListener('click', unlock, {once:true});
+  document.addEventListener('touchstart', unlock, {once:true});
+
+  setTimeout(function(){
+    try{
+      var a = new Audio('https://archive.org/download/al-bowlly-sid-phillips-his-melodians-heartaches/Al%20Bowlly%2C%20Sid%20Phillips%20%26%20His%20Melodians%20-%20Heartaches.mp3');
+      a.loop = true; a.volume = 0.5;
+      a.play().catch(function(){});
+      window.__mer_heartaches = a;
+    }catch(e){}
+  }, 3500);
+})();
+</script>
+</body></html>
             """,
-            height=0,
+            height=1,
         )
-        st.markdown("<div style='height:55vh'></div>", unsafe_allow_html=True)
-        st.markdown('<div class="lab-enter-wrap">', unsafe_allow_html=True)
-        if st.button("enter the lab…", use_container_width=True, key="lab_intro_enter"):
-            st.session_state.lab_intro_done = True
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+
+        # Small button — columns keep it narrow
+        sp1, sp2, sp3 = st.columns([1.2, 1, 1.2])
+        with sp2:
+            if st.button("enter the lab…", key="lab_intro_enter"):
+                st.session_state.lab_intro_done = True
+                st.rerun()
         st.stop()
+
 
     st.markdown(
         """
@@ -568,3 +531,4 @@ def render_lab() -> None:
 
     st.caption("M-119 shell · exit when ready")
     st.stop()
+
