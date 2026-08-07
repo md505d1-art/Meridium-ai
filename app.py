@@ -1183,6 +1183,46 @@ def quote_of_the_day():
 # APPLY
 # ============================================================
 inject_css(st.session_state.font, st.session_state.get("theme", "Caelestia"), st.session_state.popup)
+
+
+# Stop ARG lab music whenever we are not inside the lab
+if st.session_state.get("view") != "lab":
+    st.components.v1.html(
+        """
+        <script>
+        (function(){
+          try {
+            var r = window.parent || window;
+            // Only stop if lab audio was active (avoid fighting other page audio)
+            if (!r.__mer_audio_on && !r.__mer_heartaches && !r.__mer_siren) return;
+            r.__mer_audio_on = false;
+            if (r.__mer_song_timer) { clearTimeout(r.__mer_song_timer); r.__mer_song_timer = null; }
+            function kill(a){
+              if (!a) return;
+              try { a.pause(); } catch(e){}
+              try { a.currentTime = 0; } catch(e){}
+              try { a.src = ''; } catch(e){}
+              try { a.remove(); } catch(e){}
+            }
+            kill(r.__mer_heartaches); r.__mer_heartaches = null;
+            kill(r.__mer_siren); r.__mer_siren = null;
+            var nodes = r.document.querySelectorAll('audio');
+            for (var i = 0; i < nodes.length; i++) {
+              try {
+                var s = (nodes[i].currentSrc || nodes[i].src || '');
+                if (nodes[i].getAttribute('data-meridium') === '1' ||
+                    /Heartaches|bowlly|2869|mixkit/i.test(s)) {
+                  kill(nodes[i]);
+                }
+              } catch(e){}
+            }
+          } catch(e){}
+        })();
+        </script>
+        """,
+        height=1,
+    )
+    st.session_state.lab_kill_audio = False
 now = datetime.now(ZoneInfo("Europe/London"))
 time_str = now.strftime("%H:%M")
 date_str = now.strftime("%a · %b %d")
