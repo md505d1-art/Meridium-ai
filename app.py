@@ -17,13 +17,44 @@ from spotipy.oauth2 import SpotifyOAuth
 from arg_story import arg_match, arg_reply, is_owner, is_lab_entry
 from lab_view import render_lab
 from note_view import render_note
-from theme_unlocks import unlock_and_persist
-from eggs import (
-    owner_rare_line, quiet_hour_caption, register_qotd_open,
-    check_secret_chat_title, mirror_reply, lab_leftover_caption, mark_lab_visit,
-    stabilize_countdown, fake_element_119_line, on_delete_chat, palimpsest_line,
-    playlist_secret_hit, font_theme_combo_caption, wrong_model_reply,
-)
+# theme_unlocks imported after SECRET_THEMES (see below)
+
+try:
+    from eggs import (
+        owner_rare_line, quiet_hour_caption, register_qotd_open,
+        check_secret_chat_title, mirror_reply, lab_leftover_caption, mark_lab_visit,
+        stabilize_countdown, fake_element_119_line, on_delete_chat, palimpsest_line,
+        playlist_secret_hit, font_theme_combo_caption, wrong_model_reply,
+    )
+except Exception:
+    def owner_rare_line(username=""):
+        return None
+    def quiet_hour_caption():
+        return None
+    def register_qotd_open():
+        return None
+    def check_secret_chat_title(title=""):
+        return None
+    def mirror_reply(prompt=""):
+        return None
+    def lab_leftover_caption():
+        return None
+    def mark_lab_visit():
+        st.session_state._lab_session_visit = True
+    def stabilize_countdown():
+        return None
+    def fake_element_119_line(prompt=""):
+        return None
+    def on_delete_chat(chat=None):
+        pass
+    def palimpsest_line():
+        return None
+    def playlist_secret_hit(name=""):
+        return None
+    def font_theme_combo_caption(font="", theme=""):
+        return None
+    def wrong_model_reply(prompt=""):
+        return None
 
 _ICON = Path(__file__).resolve().parent / "icon.png"
 st.set_page_config(
@@ -155,6 +186,28 @@ SECRET_THEMES = {
     },
 }
 
+
+
+
+try:
+    from theme_unlocks import unlock_and_persist
+except Exception:
+    def unlock_and_persist(theme_name: str, reason: str = "", apply: bool = True) -> bool:
+        unlocked = list(st.session_state.get("unlocked_themes") or [])
+        newly = theme_name not in unlocked
+        if newly:
+            unlocked.append(theme_name)
+            st.session_state.unlocked_themes = unlocked
+            st.session_state["_theme_unlock_msg"] = (
+                f"Theme unlocked: **{theme_name}**" + (f" — {reason}" if reason else "")
+            )
+        if apply:
+            st.session_state.theme = theme_name
+        try:
+            save_user_data()
+        except Exception:
+            pass
+        return newly
 
 
 def lab_is_unlocked() -> bool:
