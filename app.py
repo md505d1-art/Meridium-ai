@@ -649,6 +649,51 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
       border: none !important;
       box-shadow: none !important;
     }}
+
+    /* ===== CHAT INPUT — single clean bar, no white / double borders ===== */
+    [data-testid="stBottomBlockContainer"],
+    [data-testid="stBottomBlockContainer"] * {{
+        background-color: {SHELL["bg"]} !important;
+        border-color: transparent !important;
+        box-shadow: none !important;
+    }}
+    [data-testid="stChatInput"] {{
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 8px 4px 12px !important;
+    }}
+    [data-testid="stChatInput"] > div {{
+        background: {SHELL["panel_solid"]} !important;
+        border: 1px solid {SHELL["border"]} !important;
+        border-radius: 18px !important;
+        box-shadow: none !important;
+    }}
+    [data-testid="stChatInput"] > div > div {{
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }}
+    [data-testid="stChatInput"] textarea {{
+        background: transparent !important;
+        color: {SHELL["text"]} !important;
+        border: none !important;
+        box-shadow: none !important;
+        outline: none !important;
+        caret-color: {SHELL["accent"]} !important;
+    }}
+    [data-testid="stChatInput"] textarea:focus {{
+        outline: none !important;
+        box-shadow: none !important;
+        border: none !important;
+    }}
+    [data-testid="stChatInput"] button {{
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        color: {SHELL["accent"]} !important;
+    }}
+
     div[data-testid="stVerticalBlock"] > div:has(iframe) {{
       background: transparent !important;
     }}
