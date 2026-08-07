@@ -280,33 +280,65 @@ def render_lab() -> None:
   var SONG_URL = 'https://archive.org/download/al-bowlly-sid-phillips-his-melodians-heartaches/Al%20Bowlly%2C%20Sid%20Phillips%20%26%20His%20Melodians%20-%20Heartaches.mp3';
 
   function ensureAudio(){
-    if (root.__mer_audio_on) return;
+    if (root.__mer_audio_on && root.__mer_siren && !root.__mer_siren.paused) return;
+    if (root.__mer_audio_on && root.__mer_heartaches && !root.__mer_heartaches.paused) return;
+
     root.__mer_audio_on = true;
+
     try {
       if (root.__mer_siren) { try { root.__mer_siren.pause(); } catch(e){} }
       if (root.__mer_heartaches) { try { root.__mer_heartaches.pause(); } catch(e){} }
     } catch(e){}
+
+    // Siren — autoplay hard
     try {
       var siren = new Audio(SIREN_URL);
-      siren.loop = true; siren.volume = 0.75;
+      siren.preload = 'auto';
+      siren.loop = true;
+      siren.volume = 0.8;
+      siren.muted = false;
       root.__mer_siren = siren;
-      siren.play().catch(function(){ root.__mer_audio_on = false; });
-    } catch(e){ root.__mer_audio_on = false; return; }
+      var sp = siren.play();
+      if (sp && sp.catch) {
+        sp.catch(function(){
+          // retry unmuted after a tick
+          setTimeout(function(){
+            siren.play().catch(function(){});
+          }, 200);
+        });
+      }
+    } catch(e){}
 
     if (root.__mer_song_timer) clearTimeout(root.__mer_song_timer);
     root.__mer_song_timer = setTimeout(function(){
       try {
-        if (root.__mer_siren) { root.__mer_siren.pause(); root.__mer_siren.currentTime = 0; }
+        if (root.__mer_siren) {
+          root.__mer_siren.pause();
+          root.__mer_siren.currentTime = 0;
+        }
       } catch(e){}
-      if (root.__mer_heartaches && !root.__mer_heartaches.paused) return;
       try {
+        if (root.__mer_heartaches && !root.__mer_heartaches.paused) return;
         var song = new Audio(SONG_URL);
-        song.loop = true; song.volume = 0.5;
+        song.preload = 'auto';
+        song.loop = true;
+        song.volume = 0.55;
         root.__mer_heartaches = song;
-        song.play().catch(function(){});
+        var hp = song.play();
+        if (hp && hp.catch) {
+          hp.catch(function(){
+            setTimeout(function(){ song.play().catch(function(){}); }, 200);
+          });
+        }
       } catch(e){}
     }, 3500);
   }
+
+  // AUTO PLAY immediately + a few retries (desktop)
+  ensureAudio();
+  setTimeout(ensureAudio, 400);
+  setTimeout(ensureAudio, 1200);
+  setTimeout(ensureAudio, 2500);
 
   function submitEnter(){
     ensureAudio();
@@ -316,16 +348,13 @@ def render_lab() -> None:
     } catch(e){}
   }
 
-  function onGesture(){ ensureAudio(); }
-  ['touchstart','click','pointerdown'].forEach(function(ev){
-    document.addEventListener(ev, onGesture, {passive:true});
-    try { root.document.addEventListener(ev, onGesture, {passive:true}); } catch(e){}
-  });
-
-  document.getElementById('enterBtn').addEventListener('click', function(e){
-    e.stopPropagation();
-    submitEnter();
-  });
+  var enterBtn = document.getElementById('enterBtn');
+  if (enterBtn) {
+    enterBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      submitEnter();
+    });
+  }
   document.addEventListener('keydown', function(e){
     if (e.key === 'Enter') submitEnter();
   });
@@ -335,6 +364,7 @@ def render_lab() -> None:
     });
   } catch(e){}
 })();
+</script>
 </script>
 </body></html>
             """,
