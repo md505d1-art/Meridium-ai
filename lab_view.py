@@ -316,7 +316,7 @@ def render_lab() -> None:
         <div id="lab-vhs-scan"></div>
         <div id="lab-vhs-track"></div>
         <div id="lab-blood-msg"><span class="blood">you're not supposed to know</span>
-          <div id="lab-press-hint">press enter · or tap the screen</div></div>
+          <div id="lab-press-hint">tap once · sound stays on</div></div>
         <script>
         (function(){
           if (window.__mer_lab_enter) return;
@@ -333,7 +333,7 @@ def render_lab() -> None:
         )
 
         # Audio iframe MUST have height > 0 or browsers kill the JS
-        # BEST SETUP: autoplay on desktop; first touch on mobile unlocks once
+        # ONE TAP starts audio; stays on parent window until you leave the lab
         st.components.v1.html(
             """
 <!DOCTYPE html>
@@ -344,7 +344,7 @@ def render_lab() -> None:
   html, body { margin: 0; background: transparent; }
   .wrap {
     display: flex; flex-direction: column; align-items: center;
-    padding: 12px 8px; gap: 8px;
+    padding: 12px 8px; gap: 10px;
   }
   #enterBtn {
     width: min(220px, 80vw);
@@ -359,92 +359,114 @@ def render_lab() -> None:
     cursor: pointer;
     opacity: 0;
     animation: showEnter 0.7s ease forwards;
-    animation-delay: 4.5s;
+    animation-delay: 3.8s;
     -webkit-tap-highlight-color: transparent;
   }
   @keyframes showEnter { to { opacity: 1; } }
   #enterBtn:active { color: #ff3030; background: #1a0505; }
+  #hint {
+    color: #5a3030;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    text-align: center;
+    opacity: 0;
+    animation: showEnter 0.7s ease forwards;
+    animation-delay: 3.5s;
+  }
 </style>
 </head>
 <body>
   <div class="wrap">
+    <div id="hint">tap once anywhere · sound stays on</div>
     <button id="enterBtn" type="button">enter the lab…</button>
   </div>
 <script>
 (function(){
-  var played = false;
-  var siren = null;
-  var song = null;
-
+  var root = window.parent || window;
   var SIREN_URL = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
   var SONG_URL = 'https://archive.org/download/al-bowlly-sid-phillips-his-melodians-heartaches/Al%20Bowlly%2C%20Sid%20Phillips%20%26%20His%20Melodians%20-%20Heartaches.mp3';
 
-  function playSequence(){
-    if (played) return;
-    played = true;
+  function ensureAudio(){
+    // Already running — do nothing (survives Streamlit reruns)
+    if (root.__mer_audio_on) return;
+
+    root.__mer_audio_on = true;
+
+    // Stop any leftover copies first
     try {
-      siren = new Audio(SIREN_URL);
+      if (root.__mer_siren) { root.__mer_siren.pause(); }
+      if (root.__mer_heartaches) { root.__mer_heartaches.pause(); }
+    } catch(e){}
+
+    try {
+      var siren = new Audio(SIREN_URL);
       siren.loop = true;
       siren.volume = 0.75;
-      var p = siren.play();
-      if (p && p.catch) p.catch(function(){ played = false; });
-    } catch(e){ played = false; return; }
+      root.__mer_siren = siren;
+      siren.play().catch(function(){
+        root.__mer_audio_on = false;
+      });
+    } catch(e){
+      root.__mer_audio_on = false;
+      return;
+    }
 
-    setTimeout(function(){
+    if (root.__mer_song_timer) clearTimeout(root.__mer_song_timer);
+    root.__mer_song_timer = setTimeout(function(){
       try {
-        if (siren) { siren.pause(); siren.currentTime = 0; }
+        if (root.__mer_siren) {
+          root.__mer_siren.pause();
+          root.__mer_siren.currentTime = 0;
+        }
       } catch(e){}
+      // If song already playing from a previous load, keep it
+      if (root.__mer_heartaches && !root.__mer_heartaches.paused) return;
       try {
-        song = new Audio(SONG_URL);
+        var song = new Audio(SONG_URL);
         song.loop = true;
         song.volume = 0.5;
+        root.__mer_heartaches = song;
         song.play().catch(function(){});
-        window.__mer_heartaches = song;
       } catch(e){}
     }, 3500);
   }
 
-  // Desktop: try autoplay immediately
-  playSequence();
-
-  // Mobile: first touch/click on page unlocks audio (browser requirement)
-  // Not a labeled "play sound" control — any touch on the black intro
-  function unlockOnce(){
-    if (played) return;
-    playSequence();
+  // NO autoplay — one intentional interaction starts it and it stays on
+  function onFirstGesture(){
+    ensureAudio();
   }
   ['touchstart','click','pointerdown'].forEach(function(ev){
-    document.addEventListener(ev, unlockOnce, {once:true, passive:true});
-    try {
-      window.parent.document.addEventListener(ev, unlockOnce, {once:true, passive:true});
-    } catch(e){}
+    document.addEventListener(ev, onFirstGesture, {passive:true});
+    try { root.document.addEventListener(ev, onFirstGesture, {passive:true}); } catch(e){}
   });
 
   function submitEnter(){
+    ensureAudio(); // if they enter without tapping elsewhere first
     try {
-      var btn = window.parent.document.querySelector('div[data-testid="stForm"] button');
+      var btn = root.document.querySelector('div[data-testid="stForm"] button');
       if (btn) btn.click();
     } catch(e){}
   }
 
   document.getElementById('enterBtn').addEventListener('click', function(e){
     e.stopPropagation();
-    if (!played) playSequence();
     submitEnter();
   });
 
-  function onKey(e){
-    if (e.key !== 'Enter') return;
-    if (!played) playSequence();
-    submitEnter();
-  }
-  document.addEventListener('keydown', onKey);
-  try { window.parent.document.addEventListener('keydown', onKey); } catch(e){}
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Enter') submitEnter();
+  });
+  try {
+    root.document.addEventListener('keydown', function(e){
+      if (e.key === 'Enter') submitEnter();
+    });
+  } catch(e){}
 })();
 </script>
 </body></html>
             """,
-            height=88,
+            height=100,
         )
 
         with st.form("lab_enter_form"):
@@ -454,6 +476,7 @@ def render_lab() -> None:
             st.session_state.lab_flicker = True
             st.rerun()
         st.stop()
+
 
 
 
@@ -712,11 +735,23 @@ def render_lab() -> None:
         if st.button("↩ Leave the lab", use_container_width=True, key="lab_leave"):
             st.session_state.view = "chat"
             st.session_state.lab_intro_done = False
+            st.components.v1.html(
+                "<script>try{var r=window.parent;r.__mer_audio_started=false;r.__mer_audio_on=false;"
+                "if(r.__mer_heartaches){r.__mer_heartaches.pause();} "
+                "if(r.__mer_siren){r.__mer_siren.pause();}}</script>",
+                height=0,
+            )
             st.rerun()
     with c2:
         if st.button("💬 Chat", use_container_width=True, key="lab_chat"):
             st.session_state.view = "chat"
             st.session_state.lab_intro_done = False
+            st.components.v1.html(
+                "<script>try{var r=window.parent;r.__mer_audio_started=false;r.__mer_audio_on=false;"
+                "if(r.__mer_heartaches){r.__mer_heartaches.pause();} "
+                "if(r.__mer_siren){r.__mer_siren.pause();}}</script>",
+                height=0,
+            )
             st.rerun()
     with c3:
         if st.button("↻ Reset search", use_container_width=True, key="lab_reset"):
