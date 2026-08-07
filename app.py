@@ -240,6 +240,119 @@ def find_glitch(gid: str, label: str = "") -> bool:
 
 
 
+
+VOSS_FILE_SONG_URL = (
+    "https://archive.org/download/"
+    "78_this-love-of-mine_5-demarco-sisters-sy-oliver-sol-parker-henry-sanicola-frank-sinat_gbia0127491a/"
+    "THIS%20LOVE%20OF%20MINE%20-%205%20DeMarco%20Sisters%20-%20Sy%20Oliver.mp3"
+)
+
+
+def stop_all_meridium_audio() -> None:
+    """Hard-stop note / pixel / lab / voss / any tagged audio."""
+    st.components.v1.html(
+        """
+        <script>
+        (function(){
+          try {
+            var roots = [window];
+            try { if (window.parent) roots.push(window.parent); } catch(e){}
+            function kill(a){
+              if (!a) return;
+              try { a.pause(); } catch(e){}
+              try { a.currentTime = 0; } catch(e){}
+              try { a.src = ''; } catch(e){}
+              try { a.remove(); } catch(e){}
+            }
+            for (var r = 0; r < roots.length; r++) {
+              var root = roots[r];
+              try {
+                kill(root.__mer_note_song); root.__mer_note_song = null;
+                kill(root.__mer_pixel_song); root.__mer_pixel_song = null;
+                kill(root.__mer_lab_song); root.__mer_lab_song = null;
+                kill(root.__mer_voss_song); root.__mer_voss_song = null;
+                root.__mer_note_audio_on = false;
+                var nodes = root.document.querySelectorAll('audio');
+                for (var i = 0; i < nodes.length; i++) {
+                  var a = nodes[i];
+                  var tag = a.getAttribute('data-meridium-pixel')
+                    || a.getAttribute('data-meridium-note')
+                    || a.getAttribute('data-meridium-lab')
+                    || a.getAttribute('data-meridium-voss')
+                    || a.getAttribute('data-meridium-glitch');
+                  if (tag || (a.src && (
+                    a.src.indexOf('artmanzh') !== -1 ||
+                    a.src.indexOf('Bowlly') !== -1 ||
+                    a.src.indexOf('ill-never-smile') !== -1 ||
+                    a.src.indexOf('Ill%20Never%20Smile') !== -1 ||
+                    a.src.indexOf('THIS%20LOVE%20OF%20MINE') !== -1 ||
+                    a.src.indexOf('mixkit') !== -1
+                  ))) {
+                    kill(a);
+                  }
+                }
+              } catch(e){}
+            }
+          } catch(e){}
+        })();
+        </script>
+        """,
+        height=1,
+    )
+
+
+def start_voss_file_audio() -> None:
+    """Play This Love of Mine after silencing everything else."""
+    import json as _json
+    url = VOSS_FILE_SONG_URL
+    try:
+        custom = (st.secrets.get("VOSS_FILE_SONG_URL") or "").strip()
+        if custom:
+            url = custom
+    except Exception:
+        pass
+    url_js = _json.dumps(url)
+    st.components.v1.html(
+        """
+        <script>
+        (function(){
+          var root = window.parent || window;
+          var URL = """ + url_js + """;
+          function kill(a){
+            if (!a) return;
+            try { a.pause(); a.src=''; a.remove(); } catch(e){}
+          }
+          try {
+            kill(root.__mer_note_song); root.__mer_note_song = null;
+            kill(root.__mer_pixel_song); root.__mer_pixel_song = null;
+            kill(root.__mer_lab_song); root.__mer_lab_song = null;
+            kill(root.__mer_voss_song); root.__mer_voss_song = null;
+            root.__mer_note_audio_on = false;
+            var nodes = root.document.querySelectorAll('audio');
+            for (var i = 0; i < nodes.length; i++) {
+              try { nodes[i].pause(); nodes[i].src=''; nodes[i].remove(); } catch(e){}
+            }
+            var a = root.document.createElement('audio');
+            a.src = URL;
+            a.loop = true;
+            a.volume = 0.5;
+            a.setAttribute('data-meridium-voss', '1');
+            a.style.display = 'none';
+            root.document.body.appendChild(a);
+            root.__mer_voss_song = a;
+            a.play().catch(function(){
+              function once(){ a.play().catch(function(){}); }
+              root.document.addEventListener('click', once, {once:true});
+              root.document.addEventListener('touchstart', once, {once:true, passive:true});
+            });
+          } catch(e){}
+        })();
+        </script>
+        """,
+        height=1,
+    )
+
+
 def play_glitch_sfx() -> None:
     """Short glitch / static SFX (royalty-free)."""
     url = "https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"
@@ -1876,6 +1989,8 @@ if st.session_state.get("view") == "voss_file":
     stage = int(st.session_state.get("voss_cutscene_stage") or 0)
 
     if stage == 0:
+        stop_all_meridium_audio()
+        start_voss_file_audio()
         st.markdown(
             """
             <style>
@@ -2022,6 +2137,7 @@ if st.session_state.get("view") == "voss_file":
     b1, b2 = st.columns(2)
     with b1:
         if st.button("Close file", use_container_width=True, key="voss_close"):
+            stop_all_meridium_audio()
             st.session_state.voss_cutscene_stage = 0
             st.session_state.view = "home"
             st.rerun()
