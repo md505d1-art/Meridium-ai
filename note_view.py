@@ -438,6 +438,52 @@ def _render_agents() -> None:
         height=0,
     )
 
+
+    # PIXEL letter anomaly glitch
+    st.markdown("")
+    st.caption("Voss residual: the dossier is skipping frames — press the error.")
+    if st.button("░PIXEL_ERR::0x77", key="glitch_pixel", help="anomaly"):
+        found = list(st.session_state.get("glitches_found") or [])
+        if "pixel" not in found:
+            found.append("pixel")
+            st.session_state.glitches_found = found
+            st.session_state["_glitch_flash"] = "Voss log: PIXEL marker secured. The boy was never a sample."
+            try:
+                from theme_unlocks import unlock_and_persist
+                # optional reward if all 3
+                if set(found) >= {"home", "lab", "pixel"}:
+                    unlock_and_persist("Pixel Bloom", "all three anomalies logged", apply=True)
+            except Exception:
+                if set(found) >= {"home", "lab", "pixel"}:
+                    u = list(st.session_state.get("unlocked_themes") or [])
+                    if "Pixel Bloom" not in u:
+                        u.append("Pixel Bloom")
+                        st.session_state.unlocked_themes = u
+            try:
+                import json, hashlib
+                from pathlib import Path as _P
+                from datetime import datetime
+                name = (st.session_state.get("username") or "").strip()
+                if name:
+                    key = hashlib.sha256(name.lower().encode()).hexdigest()[:24]
+                    for fp in (_P(__file__).parent / "data" / f"{key}.json",
+                               _P("/tmp") / f"meridium_{hashlib.sha256(name.lower().encode()).hexdigest()[:16]}.json"):
+                        try:
+                            data = {}
+                            if fp.exists():
+                                data = json.loads(fp.read_text(encoding="utf-8"))
+                            data["glitches_found"] = found
+                            data["saved_at"] = datetime.now().isoformat()
+                            fp.parent.mkdir(parents=True, exist_ok=True)
+                            fp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+        st.rerun()
+    if st.session_state.get("_glitch_flash"):
+        st.success(st.session_state.pop("_glitch_flash"))
+
     c1, c2 = st.columns(2)
     with c1:
         if st.button("Close", use_container_width=True, key="px_close"):
