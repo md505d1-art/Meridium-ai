@@ -117,6 +117,7 @@ def render_lab() -> None:
 <html>
 <head>
 <meta charset="utf-8"/>
+<link href="https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap" rel="stylesheet">
 <style>
   html, body {
     margin: 0; padding: 0; width: 100%; height: 100%;
@@ -157,10 +158,10 @@ def render_lab() -> None:
   #blood span {
     position: relative;
     color: #6e0000;
-    font-size: clamp(1.5rem, 5.5vw, 2.6rem);
-    font-weight: 800;
-    font-family: Georgia, "Palatino Linotype", "Times New Roman", serif;
-    font-style: italic;
+    font-size: clamp(1.85rem, 6.5vw, 3.1rem);
+    font-weight: 400;
+    font-family: "Indie Flower", cursive;
+    font-style: normal;
     letter-spacing: 0.12em;
     text-align: center;
     max-width: 92%;
