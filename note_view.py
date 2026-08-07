@@ -284,29 +284,59 @@ def _render_agents() -> None:
     _stop_note_audio()
     _start_pixel_audio()
 
+    lines_html = "".join(
+        '<div class="px-reveal px-line" data-px>“' + line + "”</div>"
+        for line in PIXEL["voice_lines"]
+    )
+    letter_html = PIXEL_LETTER.strip().replace("\n", "<br/>")
+
     st.markdown(
         """
     <style>
       .stApp, [data-testid="stAppViewContainer"], section.main { background:#0a0610 !important; }
       [data-testid="stHeader"], #MainMenu, footer { display:none !important; }
+      @keyframes pxFade {
+        from { opacity: 0; transform: translateY(16px); filter: blur(4px); }
+        to { opacity: 1; transform: translateY(0); filter: blur(0); }
+      }
+      .px-hero {
+        animation: pxFade 1.5s ease-out both;
+        text-align: center; padding: 1.6rem 0.5rem 0.8rem;
+      }
+      .px-hero h2 {
+        color: #e9d5ff; letter-spacing: 0.28em; font-size: 1.55rem; margin: 0 0 0.45rem;
+      }
+      .px-hero p { color: #a78bfa; font-size: 0.85rem; margin: 0; }
       .px-card {
         border: 1px solid rgba(167,139,250,0.35);
         background: linear-gradient(165deg, #161022, #0c0814);
-        border-radius: 12px; padding: 1.2rem 1.3rem; margin-bottom: 1rem;
+        border-radius: 12px; padding: 1.2rem 1.3rem; margin: 0.5rem 0 1.2rem;
+        animation: pxFade 1.7s ease-out 0.4s both;
       }
       .px-call { font-size: 1.75rem; letter-spacing: 0.18em; color: #e9d5ff; font-weight: 800; }
       .px-sub { color: #a78bfa; font-family: ui-monospace, monospace; font-size: 0.78rem; }
+      .px-reveal {
+        opacity: 0; transform: translateY(22px);
+        transition: opacity 0.75s ease, transform 0.75s ease;
+      }
+      .px-reveal.in { opacity: 1; transform: translateY(0); }
       .px-line {
-        border-left: 3px solid #c4b5fd; margin: 0.4rem 0; padding: 0.4rem 0.75rem;
+        border-left: 3px solid #c4b5fd; margin: 0.45rem 0; padding: 0.45rem 0.75rem;
         color: #ddd6fe; font-style: italic; background: rgba(0,0,0,0.28);
       }
+      .px-letter { font-family: Georgia, serif; color: #d4c4f0; line-height: 1.7; font-size: 0.92rem; }
+      .px-sec {
+        color: #c4b5fd; margin: 1.1rem 0 0.45rem; letter-spacing: 0.14em;
+        font-size: 0.78rem; text-transform: uppercase;
+      }
     </style>
+    <div class="px-hero">
+      <h2>PIXEL</h2>
+      <p>Unlocked the way he unlocks everything — the old code.</p>
+    </div>
         """,
         unsafe_allow_html=True,
     )
-    st.markdown("### Secret dossier · PIXEL")
-    st.caption("Unlocked the way he unlocks everything — the old code.")
-    st.caption("Sea Sunset Lofi · ArtManzh (Pixabay)")
 
     st.markdown(
         f"""
@@ -319,16 +349,46 @@ def _render_agents() -> None:
         """,
         unsafe_allow_html=True,
     )
-    st.markdown("**Voice lines**")
-    for line in PIXEL["voice_lines"]:
-        st.markdown(f'<div class="px-line">“{line}”</div>', unsafe_allow_html=True)
 
-    st.markdown("---")
-    st.markdown("**Sealed letter**")
-    body = PIXEL_LETTER.strip().replace("\n", "<br/>")
     st.markdown(
-        f'<div style="font-family:Georgia,serif;color:#d4c4f0;line-height:1.65;font-size:0.92rem;">{body}</div>',
+        f"""
+        <div class="px-reveal px-sec" data-px>Voice lines</div>
+        {lines_html}
+        <div class="px-reveal px-sec" data-px>Sealed letter</div>
+        <div class="px-reveal px-letter" data-px>{letter_html}</div>
+        """,
         unsafe_allow_html=True,
+    )
+
+    # Scroll reveal (parent + iframe)
+    st.components.v1.html(
+        """
+        <script>
+        (function(){
+          function revealAll(){
+            var docs = [document];
+            try { if (window.parent && window.parent.document) docs.push(window.parent.document); } catch(e){}
+            for (var d = 0; d < docs.length; d++) {
+              var nodes = docs[d].querySelectorAll("[data-px]");
+              var h = (docs[d].defaultView && docs[d].defaultView.innerHeight) || 900;
+              for (var i = 0; i < nodes.length; i++) {
+                var r = nodes[i].getBoundingClientRect();
+                if (r.top < h - 50) nodes[i].classList.add("in");
+              }
+            }
+          }
+          revealAll();
+          setTimeout(revealAll, 150);
+          setTimeout(revealAll, 500);
+          setTimeout(revealAll, 1200);
+          document.addEventListener("scroll", revealAll, true);
+          window.addEventListener("scroll", revealAll, true);
+          try { window.parent.addEventListener("scroll", revealAll, true); } catch(e){}
+          try { window.parent.document.addEventListener("scroll", revealAll, true); } catch(e){}
+        })();
+        </script>
+        """,
+        height=0,
     )
 
     c1, c2 = st.columns(2)
