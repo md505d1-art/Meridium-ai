@@ -253,15 +253,18 @@ def _render_konami_scene() -> None:
     st.markdown("### Soft interference")
     st.caption("The sealed note folded into something kinder.")
     try:
-        st.image(_grom_note_bytes(), use_container_width=True)
+        # Smaller centered note (not full page width)
+        left, mid, right = st.columns([1, 1.2, 1])
+        with mid:
+            st.image(_grom_note_bytes(), use_container_width=True)
     except Exception:
         st.markdown(
             """
-        <div style="max-width:340px;margin:18px auto;background:#f5f0e8;padding:18px 18px 28px;
+        <div style="max-width:240px;margin:18px auto;background:#f5f0e8;padding:18px 18px 28px;
           border-radius:4px;box-shadow:0 8px 28px rgba(0,0,0,0.35);">
-          <div style="background:#e8d4f0;min-height:280px;display:flex;align-items:center;
+          <div style="background:#e8d4f0;min-height:200px;display:flex;align-items:center;
             justify-content:center;padding:28px 22px;">
-            <div style="font-family:Georgia,cursive;color:#4a2a6a;font-size:1.35rem;
+            <div style="font-family:Georgia,cursive;color:#4a2a6a;font-size:1.1rem;
               line-height:1.7;text-align:center;">
               LUZ,<br/>will you<br/>go to Grom<br/>with me?<br/><br/>Amity
             </div>
