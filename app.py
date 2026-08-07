@@ -1738,37 +1738,70 @@ if st.session_state.view == "home":
     qotd, qotd_author = quote_of_the_day()
     c1, c2 = st.columns(2)
     with c1:
+        # ONE box: label + clickable quote + chips
         st.markdown(
-            """
-        <div class="panel">
-          <div class="panel-label">Quote of the day</div>
-        </div>
+            f"""
         <style>
-          .qotd-door button {
+          .qotd-unit {{
+            border: 1px solid rgba(255,255,255,0.10);
+            border-radius: 16px;
+            background: rgba(255,255,255,0.04);
+            padding: 14px 14px 4px;
+            margin-bottom: 4px;
+          }}
+          .qotd-unit .panel-label {{
+            margin: 0 0 2px 0;
+          }}
+          /* Button sits inside the same unit — no second box */
+          .qotd-unit ~ div[data-testid="stButton"] button,
+          .qotd-door button {{
             background: transparent !important;
             border: none !important;
-            border-radius: 12px !important;
             box-shadow: none !important;
+            border-radius: 10px !important;
             text-align: left !important;
             white-space: pre-wrap !important;
             font-size: 1.05rem !important;
             line-height: 1.45 !important;
             font-weight: 500 !important;
             color: inherit !important;
-            padding: 8px 4px 12px !important;
+            padding: 6px 2px 10px !important;
             min-height: 0 !important;
             justify-content: flex-start !important;
-          }
-          .qotd-door button:hover {
-            background: rgba(255,255,255,0.04) !important;
-          }
-          .qotd-door button p {
+          }}
+          .qotd-door button:hover {{
+            background: rgba(255,255,255,0.05) !important;
+          }}
+          .qotd-door button p {{
             text-align: left !important;
             font-size: 1.05rem !important;
             line-height: 1.45 !important;
             white-space: pre-wrap !important;
-          }
+          }}
+          .qotd-door {{
+            margin-top: -8px !important;
+            margin-bottom: 0 !important;
+            padding: 0 12px !important;
+            border-left: 1px solid rgba(255,255,255,0.10);
+            border-right: 1px solid rgba(255,255,255,0.10);
+            background: rgba(255,255,255,0.04);
+          }}
+          .qotd-chips {{
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 0 0 12px 0;
+            padding: 0 14px 12px;
+            border-left: 1px solid rgba(255,255,255,0.10);
+            border-right: 1px solid rgba(255,255,255,0.10);
+            border-bottom: 1px solid rgba(255,255,255,0.10);
+            border-radius: 0 0 16px 16px;
+            background: rgba(255,255,255,0.04);
+          }}
         </style>
+        <div class="qotd-unit panel">
+          <div class="panel-label">Quote of the day</div>
+        </div>
             """,
             unsafe_allow_html=True,
         )
@@ -1780,7 +1813,7 @@ if st.session_state.view == "home":
         st.markdown("</div>", unsafe_allow_html=True)
         st.markdown(
             f"""
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 10px;">
+        <div class="qotd-chips">
           <span class="chip">{date_str}</span>
           <span class="chip">{time_str}</span>
         </div>
