@@ -16,6 +16,7 @@ from spotipy.oauth2 import SpotifyOAuth
 
 from arg_story import arg_match, arg_reply, is_owner, is_lab_entry
 from lab_view import render_lab
+from note_view import render_note
 
 _ICON = Path(__file__).resolve().parent / "icon.png"
 st.set_page_config(
@@ -1435,9 +1436,11 @@ if st.session_state.popup:
 # LAB first — full black, no waybar/nav chrome
 if st.session_state.view == "lab":
     render_lab()
+if st.session_state.view == "note":
+    render_note()
 
 # ===== DESIGN 1 WAYBAR + NAV (hidden in lab) =====
-if st.session_state.view != "lab":
+if st.session_state.view not in ("lab", "note"):
     st.markdown(f"""
 <div class="waybar">
   <div class="waybar-left">
@@ -1748,6 +1751,10 @@ if st.session_state.view == "home":
           </div>
         </div>
         """, unsafe_allow_html=True)
+        # Quiet door into the ARG — looks like a normal control
+        if st.button("Read the full note", use_container_width=True, key="qotd_note"):
+            st.session_state.view = "note"
+            st.rerun()
         if st.session_state.show_spotify:
             render_spotify_panel("home")
     with c2:
