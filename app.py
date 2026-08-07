@@ -185,9 +185,9 @@ SECRET_THEMES = {
         "unlock": "m0",
     },
     "Pixel Bloom": {
-        "bg": "#0a0614", "panel": "rgba(36, 20, 56, 0.88)", "panel_solid": "#1c1030",
-        "border": "rgba(168, 85, 247, 0.35)", "text": "#f3e8ff", "muted": "#c4b5fd",
-        "accent": "#a855f7", "accent2": "#22d3ee", "accent_soft": "rgba(168, 85, 247, 0.20)",
+        "bg": "#030a08", "panel": "rgba(8, 28, 24, 0.9)", "panel_solid": "#0a1c18",
+        "border": "rgba(34, 211, 238, 0.35)", "text": "#e6fffb", "muted": "#5eead4",
+        "accent": "#22d3ee", "accent2": "#4ade80", "accent_soft": "rgba(74, 222, 128, 0.18)",
         "unlock": "pixel",
     },
 }
@@ -2439,4 +2439,3 @@ if st.session_state.view == "chat" and st.session_state.get("_last_speak"):
         st.components.v1.html(speak_html(spoken, autoplay=False), height=70)
 
 st.markdown("</div>", unsafe_allow_html=True)
-
