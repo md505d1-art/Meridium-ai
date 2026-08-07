@@ -1739,21 +1739,48 @@ if st.session_state.view == "home":
     c1, c2 = st.columns(2)
     with c1:
         st.markdown(
-            f"""
+            """
         <div class="panel">
           <div class="panel-label">Quote of the day</div>
         </div>
+        <style>
+          .qotd-door button {
+            background: transparent !important;
+            border: none !important;
+            border-radius: 12px !important;
+            box-shadow: none !important;
+            text-align: left !important;
+            white-space: pre-wrap !important;
+            font-size: 1.05rem !important;
+            line-height: 1.45 !important;
+            font-weight: 500 !important;
+            color: inherit !important;
+            padding: 8px 4px 12px !important;
+            min-height: 0 !important;
+            justify-content: flex-start !important;
+          }
+          .qotd-door button:hover {
+            background: rgba(255,255,255,0.04) !important;
+          }
+          .qotd-door button p {
+            text-align: left !important;
+            font-size: 1.05rem !important;
+            line-height: 1.45 !important;
+            white-space: pre-wrap !important;
+          }
+        </style>
             """,
             unsafe_allow_html=True,
         )
-        # The quote itself is the door — still rotates daily via quote_of_the_day()
-        quote_label = f"“{qotd}”\n— {qotd_author}"
+        st.markdown('<div class="qotd-door">', unsafe_allow_html=True)
+        quote_label = "“" + qotd + "”\n— " + qotd_author
         if st.button(quote_label, use_container_width=True, key="qotd_note"):
             st.session_state.view = "note"
             st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
         st.markdown(
             f"""
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 10px;">
           <span class="chip">{date_str}</span>
           <span class="chip">{time_str}</span>
         </div>
