@@ -315,6 +315,21 @@ def _konami_listener() -> None:
 def _render_agents() -> None:
     _stop_note_audio()
     _start_pixel_audio()
+    # Secret theme unlock for finding PIXEL
+    unlocked = list(st.session_state.get("unlocked_themes") or [])
+    if "Pixel Bloom" not in unlocked:
+        unlocked.append("Pixel Bloom")
+        st.session_state.unlocked_themes = unlocked
+        st.session_state["_theme_unlock_msg"] = (
+            "Theme unlocked: **Pixel Bloom** — Jaime found the old code"
+        )
+    st.session_state.theme = "Pixel Bloom"
+    # persist if possible
+    try:
+        from theme_unlocks import unlock_and_persist
+        unlock_and_persist("Pixel Bloom", "PIXEL dossier · Konami", apply=True)
+    except Exception:
+        pass
 
     lines_html = "".join(
         '<div class="px-reveal px-line" data-px>“' + line + "”</div>"
