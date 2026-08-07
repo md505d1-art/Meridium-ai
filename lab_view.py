@@ -243,7 +243,7 @@ def render_lab() -> None:
 <body>
   <div id="flash"></div>
   <div id="blood"><span>you're not supposed to know</span></div>
-  <div id="hint">alarm fading · the room remains</div>
+  <div id="hint">alarm fading · something older starts playing</div>
   <script>
   
     function startScarySiren(durationSec) {
@@ -303,8 +303,27 @@ def render_lab() -> None:
 
   (function(){
     startScarySiren(3.2);
+    // After alarm: Heartaches — Al Bowlly (Internet Archive, PD Mark 1.0 listing)
+    setTimeout(function(){
+      try {
+        var a = document.getElementById('heartaches');
+        if (!a) {
+          a = document.createElement('audio');
+          a.id = 'heartaches';
+          a.src = 'https://archive.org/download/al-bowlly-sid-phillips-his-melodians-heartaches/Al%20Bowlly%2C%20Sid%20Phillips%20%26%20His%20Melodians%20-%20Heartaches.mp3';
+          a.loop = true;
+          a.volume = 0.55;
+          document.body.appendChild(a);
+        }
+        var p = a.play();
+        if (p && p.catch) p.catch(function(){});
+      } catch(e) {}
+    }, 3300);
   })();
   </script>
+  <audio id="heartaches" preload="auto"
+    src="https://archive.org/download/al-bowlly-sid-phillips-his-melodians-heartaches/Al%20Bowlly%2C%20Sid%20Phillips%20%26%20His%20Melodians%20-%20Heartaches.mp3"
+    style="display:none"></audio>
 </body>
 </html>
             """,
