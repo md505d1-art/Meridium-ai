@@ -1738,88 +1738,49 @@ if st.session_state.view == "home":
     qotd, qotd_author = quote_of_the_day()
     c1, c2 = st.columns(2)
     with c1:
-        # ONE box: label + clickable quote + chips
+        # Single box = one button (label + quote + author + date/time)
         st.markdown(
-            f"""
+            """
         <style>
-          .qotd-unit {{
-            border: 1px solid rgba(255,255,255,0.10);
-            border-radius: 16px;
-            background: rgba(255,255,255,0.04);
-            padding: 14px 14px 4px;
-            margin-bottom: 4px;
-          }}
-          .qotd-unit .panel-label {{
-            margin: 0 0 2px 0;
-          }}
-          /* Button sits inside the same unit — no second box */
-          .qotd-unit ~ div[data-testid="stButton"] button,
-          .qotd-door button {{
-            background: transparent !important;
-            border: none !important;
+          .qotd-one button {
+            background: rgba(255,255,255,0.045) !important;
+            border: 1px solid rgba(255,255,255,0.12) !important;
+            border-radius: 16px !important;
             box-shadow: none !important;
-            border-radius: 10px !important;
             text-align: left !important;
             white-space: pre-wrap !important;
-            font-size: 1.05rem !important;
-            line-height: 1.45 !important;
-            font-weight: 500 !important;
             color: inherit !important;
-            padding: 6px 2px 10px !important;
+            padding: 14px 16px !important;
             min-height: 0 !important;
+            height: auto !important;
             justify-content: flex-start !important;
-          }}
-          .qotd-door button:hover {{
-            background: rgba(255,255,255,0.05) !important;
-          }}
-          .qotd-door button p {{
-            text-align: left !important;
-            font-size: 1.05rem !important;
             line-height: 1.45 !important;
+          }
+          .qotd-one button:hover {
+            background: rgba(255,255,255,0.07) !important;
+            border-color: rgba(180,140,200,0.35) !important;
+          }
+          .qotd-one button p {
+            text-align: left !important;
             white-space: pre-wrap !important;
-          }}
-          .qotd-door {{
-            margin-top: -8px !important;
-            margin-bottom: 0 !important;
-            padding: 0 12px !important;
-            border-left: 1px solid rgba(255,255,255,0.10);
-            border-right: 1px solid rgba(255,255,255,0.10);
-            background: rgba(255,255,255,0.04);
-          }}
-          .qotd-chips {{
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin: 0 0 12px 0;
-            padding: 0 14px 12px;
-            border-left: 1px solid rgba(255,255,255,0.10);
-            border-right: 1px solid rgba(255,255,255,0.10);
-            border-bottom: 1px solid rgba(255,255,255,0.10);
-            border-radius: 0 0 16px 16px;
-            background: rgba(255,255,255,0.04);
-          }}
+            line-height: 1.45 !important;
+            margin: 0 !important;
+          }
         </style>
-        <div class="qotd-unit panel">
-          <div class="panel-label">Quote of the day</div>
-        </div>
+        <div class="qotd-one">
             """,
             unsafe_allow_html=True,
         )
-        st.markdown('<div class="qotd-door">', unsafe_allow_html=True)
-        quote_label = "“" + qotd + "”\n— " + qotd_author
+        quote_label = (
+            "QUOTE OF THE DAY\n\n"
+            + "“" + qotd + "”\n"
+            + "— " + qotd_author + "\n\n"
+            + date_str + "  ·  " + time_str
+        )
         if st.button(quote_label, use_container_width=True, key="qotd_note"):
             st.session_state.view = "note"
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
-        st.markdown(
-            f"""
-        <div class="qotd-chips">
-          <span class="chip">{date_str}</span>
-          <span class="chip">{time_str}</span>
-        </div>
-            """,
-            unsafe_allow_html=True,
-        )
         if st.session_state.show_spotify:
             render_spotify_panel("home")
     with c2:
