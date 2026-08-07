@@ -415,6 +415,14 @@ def render_lab() -> None:
         st.markdown(
             """
         <style>
+          /* Fade in with the blood text (~3s after red flash starts) */
+          div[data-testid="stButton"] {
+            position: relative;
+            z-index: 1000002 !important;
+            opacity: 0;
+            animation: enterBtnIn 1.4s ease forwards;
+            animation-delay: 3.2s;
+          }
           div[data-testid="stButton"] > button {
             background: #100303 !important;
             color: #c03030 !important;
@@ -425,23 +433,30 @@ def render_lab() -> None:
             letter-spacing: 0.08em !important;
             padding: 0.85rem 1rem !important;
             box-shadow: 0 0 20px rgba(80,0,0,0.45) !important;
-            position: relative;
-            z-index: 1000002 !important;
           }
-          div[data-testid="stButton"] {
-            position: relative;
-            z-index: 1000002 !important;
+          @keyframes enterBtnIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+          }
+          /* hide caption until button time */
+          .lab-enter-caption {
+            opacity: 0;
+            animation: enterBtnIn 1.2s ease forwards;
+            animation-delay: 3.8s;
+            color: #3a1818 !important;
+            font-size: 0.7rem !important;
+            text-align: center;
           }
         </style>
             """,
             unsafe_allow_html=True,
         )
-        st.markdown("<div style='height:58vh'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:52vh'></div>", unsafe_allow_html=True)
         if st.button("Enter into the lab", use_container_width=True, key="lab_enter_mobile"):
             st.session_state.lab_intro_done = True
             st.session_state.lab_flicker = True
             st.rerun()
-        st.caption("press the screen or the button · laptop: Enter key also works")
+        st.markdown('<p class="lab-enter-caption">press the screen or enter…</p>', unsafe_allow_html=True)
         # Hidden form still catches Enter key on laptop via JS
         with st.form("lab_enter_form"):
             go = st.form_submit_button("enter")
@@ -679,4 +694,3 @@ def render_lab() -> None:
 
     st.caption("M-119 shell · exit when ready")
     st.stop()
-
