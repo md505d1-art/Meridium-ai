@@ -67,7 +67,21 @@ NOTE_SONG_URL = (
 # Optional: put a file you have rights to at assets/owl_house_intro.mp3
 # or set st.secrets["OWL_INTRO_URL"] on Streamlit Cloud
 LOCAL_INTRO = Path(__file__).parent / "assets" / "owl_house_intro.mp3"
-KONAMI_IMG = Path(__file__).parent / "assets" / "grom_note.jpg"
+# Prefer real uploads; user has IMG_1336.jpeg in repo root
+_BASE = Path(__file__).parent
+KONAMI_IMG = next(
+    (
+        p
+        for p in (
+            _BASE / "assets" / "grom_note.jpg",
+            _BASE / "grom_note.jpg",
+            _BASE / "IMG_1336.jpeg",
+            _BASE / "IMG_1336.jpg",
+        )
+        if p.exists() and p.stat().st_size > 1000
+    ),
+    _BASE / "assets" / "grom_note.jpg",
+)
 
 
 def _stop_note_audio() -> None:
@@ -269,10 +283,32 @@ def _render_konami_scene() -> None:
     )
     st.markdown("### Soft interference")
     st.caption("The sealed note folded into something kinder.")
+    shown = False
     if KONAMI_IMG.exists():
-        st.image(str(KONAMI_IMG), use_container_width=True)
-    else:
-        st.info("Scene image missing — add assets/grom_note.jpg")
+        try:
+            st.image(str(KONAMI_IMG), use_container_width=True)
+            shown = True
+        except Exception:
+            shown = False
+    if not shown:
+        # HTML fallback — always works even if jpg missing/corrupt on GitHub
+        st.markdown(
+            """
+        <div style="max-width:340px;margin:18px auto;background:#f5f0e8;
+          padding:18px 18px 28px;border-radius:4px;
+          box-shadow:0 8px 28px rgba(0,0,0,0.35);">
+          <div style="background:#e8d4f0;min-height:280px;display:flex;
+            align-items:center;justify-content:center;padding:28px 22px;">
+            <div style="font-family:Georgia,'Segoe Script',cursive;color:#4a2a6a;
+              font-size:1.35rem;line-height:1.7;text-align:center;">
+              LUZ,<br/>will you<br/>go to Grom<br/>with me?<br/><br/>
+              <span style="font-size:1.15rem;">Amity</span>
+            </div>
+          </div>
+        </div>
+            """,
+            unsafe_allow_html=True,
+        )
     st.markdown(
         """
         <p style="text-align:center;color:#e9d5ff;font-family:Georgia,serif;line-height:1.7;">
