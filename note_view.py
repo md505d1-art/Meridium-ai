@@ -250,8 +250,8 @@ def _render_konami_scene() -> None:
         """,
         unsafe_allow_html=True,
     )
-    st.markdown("### Soft interference")
-    st.caption("The sealed note folded into something kinder.")
+    st.markdown("### Grom note")
+    st.caption("A question left where the sealed log used to be.")
     try:
         # Smaller centered note (not full page width)
         left, mid, right = st.columns([1, 1.2, 1])
@@ -387,8 +387,7 @@ def render_note() -> None:
         + "</div>",
         unsafe_allow_html=True,
     )
-    st.caption("Desktop: ↑↑↓↓←→←→BA then Enter")
-
+    
     c1, c2 = st.columns(2)
     with c1:
         if st.button("Close note", use_container_width=True, key="note_close"):
