@@ -55,6 +55,9 @@ Curiosity is the stabiliser. Indifference is the decay mode.
 
 — E.V.
 Observation Division · last clear entry before lockdown
+
+— — —
+if the shell softens, ask it about the little snake
 """
 
 # Tommy Dorsey — I'll Never Smile Again (Internet Archive)
