@@ -2,7 +2,7 @@
 
 **Personal Intelligence System**
 
-A modern, minimal, and futuristic personal AI designed for clarity, power, and elegance.
+A modern, minimal, and futuristic personal Intelligence designed for clarity, power, and elegance.
 
 ---
 
