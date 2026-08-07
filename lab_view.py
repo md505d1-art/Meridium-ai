@@ -674,7 +674,17 @@ def render_lab() -> None:
     body = st.session_state.get("lab_focus_body")
     if focus and body:
         st.markdown(body)
-        if len(st.session_state.lab_found) >= 6:
+        found_n = len(st.session_state.lab_found) if isinstance(st.session_state.lab_found, set) else len(set(st.session_state.lab_found or []))
+        if focus == "floor" and found_n >= 3:
+            st.markdown(
+                "<p style='color:#8a7070;font-family:Georgia,serif;font-size:0.9rem;"
+                "margin-top:0.75rem;font-style:italic;'>"
+                "…under the stain, in smaller script:<br/>"
+                "<span style='color:#c4b5fd;'>she answers to stringbean · say it kindly</span>"
+                "</p>",
+                unsafe_allow_html=True,
+            )
+        if found_n >= 6:
             st.info(
                 "All fragments recovered. Return to chat and say **stabilize Meridium** "
                 "if this was intentional."
