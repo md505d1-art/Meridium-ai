@@ -180,13 +180,25 @@ def render_lab() -> None:
             animation-delay: 3.2s;
           }
           @keyframes labBloodIn { from { opacity: 0; } to { opacity: 1; } }
+          #lab-press-sub {
+            margin-top: 0.65rem;
+            color: #3a1818;
+            font-family: ui-monospace, monospace;
+            font-size: 0.62rem;
+            letter-spacing: 0.18em;
+            text-transform: lowercase;
+            opacity: 0;
+            animation: labBloodIn 1s ease forwards;
+            animation-delay: 4.4s;
+            pointer-events: none;
+          }
           #lab-press-hint {
             margin-top: 2.75rem;
-            color: #4a2020;
-            font-family: ui-monospace, monospace;
-            font-size: 0.7rem;
-            letter-spacing: 0.3em;
-            text-transform: uppercase;
+            color: #8a2828;
+            font-family: "Indie Flower", Georgia, cursive;
+            font-size: 1.15rem;
+            letter-spacing: 0.12em;
+            text-transform: none;
             opacity: 0;
             animation: labBloodIn 1s ease forwards;
             animation-delay: 4s;
@@ -316,7 +328,8 @@ def render_lab() -> None:
         <div id="lab-vhs-scan"></div>
         <div id="lab-vhs-track"></div>
         <div id="lab-blood-msg"><span class="blood">you're not supposed to know</span>
-          <div id="lab-press-hint">tap once · sound stays on</div></div>
+          <div id="lab-press-hint">Enter into the lab</div>
+          <div id="lab-press-sub">press the screen or enter…</div></div>
         <script>
         (function(){
           if (window.__mer_lab_enter) return;
@@ -378,8 +391,8 @@ def render_lab() -> None:
 </head>
 <body>
   <div class="wrap">
-    <div id="hint">tap once anywhere · sound stays on</div>
-    <button id="enterBtn" type="button">enter the lab…</button>
+    <div id="hint">press the screen or enter…</div>
+    <button id="enterBtn" type="button">Enter into the lab</button>
   </div>
 <script>
 (function(){
