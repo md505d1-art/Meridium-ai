@@ -230,14 +230,8 @@ def _konami_listener() -> None:
 
 def _render_konami_scene() -> None:
     _start_konami_audio()
-    try:
-        from app import unlock_theme
-        unlock_theme("Lumity Glow", "Grom note · she asked")
-    except Exception:
-        unlocked = list(st.session_state.get("unlocked_themes") or [])
-        if "Lumity Glow" not in unlocked:
-            unlocked.append("Lumity Glow")
-            st.session_state.unlocked_themes = unlocked
+    from theme_unlocks import unlock_and_persist
+    unlock_and_persist("Lumity Glow", "Grom note · she asked", apply=True)
 
     st.markdown(
         """
@@ -252,6 +246,7 @@ def _render_konami_scene() -> None:
     )
     st.markdown("### Grom note")
     st.caption("A question left where the sealed log used to be.")
+    st.success("Lumity Glow unlocked — open Menu → Colour palette to use it anytime.")
     try:
         # Smaller centered note (not full page width)
         left, mid, right = st.columns([1, 1.2, 1])
