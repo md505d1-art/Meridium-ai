@@ -433,32 +433,32 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
     /* Kill white chrome / distractors on mobile */
     header, [data-testid="stHeader"], [data-testid="stToolbar"],
     [data-testid="stDecoration"], [data-testid="stStatusWidget"],
-    #MainMenu, footer, .stDeployButton, [data-testid="stAppDeployButton"] {
+    #MainMenu, footer, .stDeployButton, [data-testid="stAppDeployButton"] {{
       display: none !important; visibility: hidden !important;
       height: 0 !important; max-height: 0 !important;
-    }
-    iframe {
+    }}
+    iframe {{
       background: transparent !important;
       border: none !important;
-    }
-    [data-testid="stChatInput"] {
+    }}
+    [data-testid="stChatInput"] {{
       background: transparent !important;
-    }
+    }}
     [data-testid="stChatInput"] textarea,
     [data-testid="stChatInput"] > div,
-    [data-testid="stChatInput"] > div > div {
+    [data-testid="stChatInput"] > div > div {{
       background: rgba(24,24,32,0.95) !important;
       color: #e8e6f0 !important;
       border-color: rgba(255,255,255,0.1) !important;
-    }
+    }}
     /* bottom block that often goes white */
     .stBottom, [data-testid="stBottomBlockContainer"],
-    section[data-testid="stBottom"] {
+    section[data-testid="stBottom"] {{
       background: transparent !important;
-    }
-    div[data-testid="stVerticalBlock"] > div:has(iframe) {
+    }}
+    div[data-testid="stVerticalBlock"] > div:has(iframe) {{
       background: transparent !important;
-    }
+    }}
 
     </style>
     """, unsafe_allow_html=True)
