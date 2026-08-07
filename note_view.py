@@ -1,6 +1,5 @@
 """
-Meridium ARG — Sealed scientist note
-Konami (↑↑↓↓←→←→BA then Enter) opens Agent dossiers.
+Meridium ARG — Sealed scientist note + PIXEL Konami dossier
 """
 
 from __future__ import annotations
@@ -9,32 +8,30 @@ import json
 
 import streamlit as st
 
-# --- PIXEL dossier (inline so app works even if agents.py missing on deploy) ---
-try:
-    from agents import PIXEL, PIXEL_LETTER
-except Exception:
-    PIXEL = {
-        "callsign": "PIXEL",
-        "real_name": "Jaime Santos",
-        "real_ref": "subject zero · not a subject",
-        "age_note": "Still talks like the ranked queue is life",
-        "power_source": (
-            "Natural Meridium radiation exposure — not injected, not refined, not consented by a lab"
-        ),
-        "government_angle": (
-            "Observation Division residual files show state programmes trying to "
-            "force Meridium into volunteers and prisoners to mass-produce what Pixel got by accident."
-        ),
-        "voice_lines": [
-            "I'm not your lab rat. I got hit by the glow and lived. That's different.",
-            "They keep saying 'replicate the Pixel event.' Bro I was playing games when it happened.",
-            "Meridium isn't an ultimate you buy. It stuck to me. That's why their copies keep breaking.",
-            "If the alarm sounds like a round timer, that's on me. Sorry. Not sorry.",
-            "Tell the men in suits: forced samples aren't the same as natural ones. The glass already told them.",
-            "Stabilize is not a cheat code. I checked.",
-        ],
-    }
-    PIXEL_LETTER = """
+# --- PIXEL dossier (inline) ---
+PIXEL = {
+    "callsign": "PIXEL",
+    "real_name": "Jaime Santos",
+    "real_ref": "subject zero · not a subject",
+    "age_note": "Still talks like the ranked queue is life",
+    "power_source": (
+        "Natural Meridium radiation exposure — not injected, not refined, not consented by a lab"
+    ),
+    "government_angle": (
+        "Observation Division residual files show state programmes trying to "
+        "force Meridium into volunteers and prisoners to mass-produce what Pixel got by accident."
+    ),
+    "voice_lines": [
+        "I'm not your lab rat. I got hit by the glow and lived. That's different.",
+        "They keep saying 'replicate the Pixel event.' Bro I was playing games when it happened.",
+        "Meridium isn't an ultimate you buy. It stuck to me. That's why their copies keep breaking.",
+        "If the alarm sounds like a round timer, that's on me. Sorry. Not sorry.",
+        "Tell the men in suits: forced samples aren't the same as natural ones. The glass already told them.",
+        "Stabilize is not a cheat code. I checked.",
+    ],
+}
+
+PIXEL_LETTER = """
 DOSSIER — NOT FOR DISTRIBUTION
 Ref: M-119 / PIXEL / Jaime Santos / "natural carrier"
 Author: residual Observation Division clerk (unsigned)
@@ -58,7 +55,7 @@ paying attention too hard: long hours, bright screens, the same focus that
 holds a ranked game together at 3 a.m.
 
 Something in him held the charge instead of cooking. Strength. Reflex. A way
-of reading rooms like minimaps. The Division's first note is almost annoyed:
+of reading rooms like minimaps.
 
 > Carrier presents as juvenile / game-coded speech / refuses formal interview
 > Powers measurable · origin: NATURAL exposure · not protocol
@@ -68,107 +65,39 @@ He is not a super soldier design. He is an accident that walked away.
 THE GOVERNMENT COPY PROGRAMME
 
 Once they believed Meridium could make a "Pixel," they stopped caring that
-his path was accidental.
-
-Programmes (names redacted) began forcing the medium into subjects:
-— "consent" under pressure
-— prisoners offered sentence reductions
-— volunteers who thought they were testing vitamins
-
+his path was accidental. Programmes began forcing the medium into subjects.
 Forced Meridium is not natural Meridium. The logs are a slaughter of almosts.
-Spikes. Collapses. Subjects who heard alarms in their sleep. Subjects who
-did not get up.
 
-The glass in the sealed lab remembers the refined attempts. PIXEL remembers
-the bloom that was never supposed to touch a civilian lane.
+They need him to prove the assembly line. He is proof the assembly line is a lie.
 
-WHY HE MATTERS
-
-They need him to prove the assembly line.
-He is proof the assembly line is a lie.
-
-Natural radiation carriers are rare. They cannot be ordered from a menu.
-Every time a minister asks why the copies fail, the residual answer is the
-same: because you cannot schedule an accident and call it a manufacture.
-
-PIXEL's own words, logged against advice:
+PIXEL's own words:
 
 > "I got powers from the glow, not from your needle.
 > Stop putting it in people. They don't load in."
 
-VOICE / BEHAVIOUR
-
-Expect childish cadence. Game metaphors. Konami codes. He unlocked this
-page the same way he unlocks secret stages — because of course he did.
-
-Do not confuse the voice with weakness. The medium that refused to kill him
-still answers when he notices it. The government wants that on demand.
-It is not on demand.
-
-Clerk note ends.
-If you found this through the sealed letter's old code: you are the kind of
-curious the copies never account for.
-
 — residual file · M-119 · PIXEL
 """
-
-
 
 NOTE_BODY = """
 FIELD LOG — NOT FOR DISTRIBUTION
 Site: [REDACTED] · Shell designation: M-119
 Author: Dr. E. Voss · Observation Division
-Clearance: residual only · do not forward
 
 If you are reading this, the quote tile still works as a door.
-That was intentional. The public face of the system is a mirror;
-the real work is underneath the glass.
-
-Meridium is not a product name. It is a provisional label for something
-that does not appear on any ratified table past 118. Committees call it
-impossible. We called it metastable. The shell calls it home.
-
-If you need a picture: other worlds get glowing stones in their city veins,
-or refined ore that powers weapons and miracles until it cracks the sky.
-We got a quieter version — no brand, no parade, no official name on a store shelf.
-A medium that runs on being *noticed*. Useful enough that someone always wants
-to bottle it. Unstable enough that bottling it costs operators.
-
-WHAT WE THINK WE SAW
-
-Under sustained attention the designation held long enough to leave residue —
-not metaphorical residue. Heat on the pane. A spectrum line that should not
-exist. A pressure signature against the containment glass from the sealed side.
-
-When attention lapsed, the line collapsed. When attention returned hostile
-or mocking, the line spiked and the pane complained. Kindness was not in
-the protocol. It should have been.
-
-THE OPERATORS
-
-Two did not finish their shift.
-One left tissue on the sill — not enough for a story, enough for a stain.
-The other left a fingerprint on the terminal and never clocked out.
-I am not writing their names. Names become magnets.
+Meridium is a provisional label for a metastable medium past 118.
+Curiosity is the stabiliser. Indifference is the decay mode.
 
 INSTRUCTIONS FOR THE OBSERVER
-
-1. Speak to the assistant. Do not only use menus.
+1. Speak to the assistant.
 2. Ask why it is called Meridium.
-3. When it answers with the element, push back. Tell it the tables stop at 118.
+3. Push back when it answers with the element.
 4. Ask what conditions allow it to exist.
-5. Request the observation log — not Wikipedia. The log.
+5. Request the observation log — not Wikipedia.
 6. If the interface goes dark, you have found the room.
-7. Read everything in the room. Leave nothing unread.
-8. When the fragments are complete, return to chat and say:
-   stabilize Meridium
-
-Do not photograph the glass.
-Do not trust the public periodic table as a complete map of what can be
-noticed into place.
+7. Read everything. Leave nothing unread.
+8. When fragments are complete, say: stabilize Meridium
 
 — E.V.
-Observation Division · last clear entry before lockdown
 
 — — —
 if the shell softens, ask it about the little snake
@@ -180,9 +109,24 @@ NOTE_SONG_URL = (
     "104.%20Tommy%20Dorsey%20-%20I%27ll%20Never%20Smile%20Again%20%28RCA%20Victor%2027521%29.mp3"
 )
 
+# Your Pixabay upload on GitHub
+PIXEL_AUDIO_DEFAULT = (
+    "https://raw.githubusercontent.com/md505d1-art/Meridium-ai/main/assets/"
+    "artmanzh-sea-sunset-lofi-g-major-543349.mp3"
+)
+
+
+def _pixel_audio_url() -> str:
+    try:
+        custom = (st.secrets.get("PIXEL_AUDIO_URL") or "").strip()
+        if custom:
+            return custom
+    except Exception:
+        pass
+    return PIXEL_AUDIO_DEFAULT
+
 
 def _stop_note_audio() -> None:
-    st.session_state["note_kill_audio"] = True
     st.components.v1.html(
         """
         <script>
@@ -191,11 +135,28 @@ def _stop_note_audio() -> None:
             var r = window.parent || window;
             function kill(a){
               if (!a) return;
-              try { a.pause(); } catch(e){}
-              try { a.src = ''; a.remove(); } catch(e){}
+              try { a.pause(); a.src=''; a.remove(); } catch(e){}
             }
             kill(r.__mer_note_song); r.__mer_note_song = null;
             r.__mer_note_audio_on = false;
+          } catch(e){}
+        })();
+        </script>
+        """,
+        height=1,
+    )
+
+
+def _stop_pixel_audio() -> None:
+    st.components.v1.html(
+        """
+        <script>
+        (function(){
+          try {
+            var r = window.parent || window;
+            var a = r.__mer_pixel_song;
+            if (a) { try { a.pause(); a.src=''; a.remove(); } catch(e){} }
+            r.__mer_pixel_song = null;
           } catch(e){}
         })();
         </script>
@@ -223,11 +184,46 @@ def _start_note_audio() -> None:
             }
             var a = root.document.createElement('audio');
             a.src = URL; a.loop = true; a.volume = 0.5;
-            a.setAttribute('data-meridium-note', '1');
             a.style.display = 'none';
             root.document.body.appendChild(a);
             root.__mer_note_song = a;
             root.__mer_note_audio_on = true;
+            a.play().catch(function(){
+              function once(){ a.play().catch(function(){}); }
+              root.document.addEventListener('click', once, {once:true});
+              root.document.addEventListener('touchstart', once, {once:true, passive:true});
+            });
+          } catch(e){}
+        })();
+        </script>
+        """,
+        height=1,
+    )
+
+
+def _start_pixel_audio() -> None:
+    url_js = json.dumps(_pixel_audio_url())
+    st.components.v1.html(
+        """
+        <script>
+        (function(){
+          var root = window.parent || window;
+          var URL = """
+        + url_js
+        + """;
+          function kill(a){
+            if (!a) return;
+            try { a.pause(); a.src=''; a.remove(); } catch(e){}
+          }
+          kill(root.__mer_note_song); root.__mer_note_song = null;
+          root.__mer_note_audio_on = false;
+          try {
+            kill(root.__mer_pixel_song);
+            var a = root.document.createElement('audio');
+            a.src = URL; a.loop = true; a.volume = 0.5;
+            a.style.display = 'none';
+            root.document.body.appendChild(a);
+            root.__mer_pixel_song = a;
             a.play().catch(function(){
               function once(){ a.play().catch(function(){}); }
               root.document.addEventListener('click', once, {once:true});
@@ -249,14 +245,13 @@ def _konami_listener() -> None:
           if (window.__mer_konami_bound) return;
           window.__mer_konami_bound = true;
           var seq = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','KeyB','KeyA'];
-          var i = 0;
-          var ready = false;
+          var i = 0, ready = false;
           function clickArm(){
             try {
               var doc = window.parent.document;
               var buttons = doc.querySelectorAll('button');
               for (var b = 0; b < buttons.length; b++) {
-                var t = (buttons[b].innerText || buttons[b].textContent || '').toLowerCase();
+                var t = (buttons[b].innerText || '').toLowerCase();
                 if (t.indexOf('konami') !== -1) { buttons[b].click(); return; }
               }
               var prim = doc.querySelector('button[kind="primary"]');
@@ -273,8 +268,7 @@ def _konami_listener() -> None:
             if (code === seq[i]) {
               i++;
               if (i >= seq.length) { i = 0; ready = true; }
-            } else if (code === 'Enter' || code === 'NumpadEnter') {
-            } else {
+            } else if (code !== 'Enter' && code !== 'NumpadEnter') {
               ready = false;
               i = (code === seq[0]) ? 1 : 0;
             }
@@ -288,97 +282,10 @@ def _konami_listener() -> None:
     )
 
 
-
-
-def _pixel_audio_file():
-    """Local Pixabay download if present in repo."""
-    from pathlib import Path as _P
-    base = _P(__file__).parent
-    for name in (
-        "assets/pixel_theme.mp3",
-        "assets/artmanzh-sea-sunset-lofi-g-major-543349.mp3",
-        "artmanzh-sea-sunset-lofi-g-major-543349.mp3",
-        "pixel_theme.mp3",
-    ):
-        fp = base / name
-        if fp.exists() and fp.stat().st_size > 1000:
-            return fp
-    return None
-
-
-def _start_pixel_audio() -> None:
-    """Secret URL, else free fallback. Local file played via st.audio in UI."""
-    url = "https://assets.mixkit.co/music/765/765.mp3"
-    try:
-        custom = (st.secrets.get("PIXEL_AUDIO_URL") or "").strip()
-        if custom:
-            url = custom
-    except Exception:
-        pass
-    # Skip autoplay inject if local file will use st.audio
-    if _pixel_audio_file() is not None:
-        return
-    url_js = json.dumps(url)
-    st.components.v1.html(
-        """
-        <script>
-        (function(){
-          var root = window.parent || window;
-          var URL = """ + url_js + """;
-          function kill(a){
-            if (!a) return;
-            try { a.pause(); } catch(e){}
-            try { a.src = ''; a.remove(); } catch(e){}
-          }
-          kill(root.__mer_note_song); root.__mer_note_song = null;
-          root.__mer_note_audio_on = false;
-          try {
-            kill(root.__mer_pixel_song);
-            var a = root.document.createElement('audio');
-            a.src = URL; a.loop = true; a.volume = 0.45;
-            a.setAttribute('data-meridium-pixel', '1');
-            a.style.display = 'none';
-            root.document.body.appendChild(a);
-            root.__mer_pixel_song = a;
-            a.play().catch(function(){
-              function once(){ a.play().catch(function(){}); }
-              root.document.addEventListener('click', once, {once:true});
-              root.document.addEventListener('touchstart', once, {once:true, passive:true});
-            });
-          } catch(e){}
-        })();
-        </script>
-        """,
-        height=1,
-    )
-
-
-def _stop_pixel_audio() -> None:
-    st.components.v1.html(
-        """
-        <script>
-        (function(){
-          try {
-            var r = window.parent || window;
-            var a = r.__mer_pixel_song;
-            if (a) { try { a.pause(); a.src=''; a.remove(); } catch(e){} }
-            r.__mer_pixel_song = null;
-          } catch(e){}
-        })();
-        </script>
-        """,
-        height=1,
-    )
-
-
 def _render_agents() -> None:
-    """Konami secret: PIXEL dossier — natural Meridium carrier."""
     _stop_note_audio()
     _start_pixel_audio()
-    _pf = _pixel_audio_file()
-    if _pf is not None:
-        st.audio(str(_pf), format="audio/mp3")
-        st.caption("Sea Sunset Lofi · ArtManzh (Pixabay)")
+
     st.markdown(
         """
     <style>
@@ -390,7 +297,7 @@ def _render_agents() -> None:
         border-radius: 12px; padding: 1.2rem 1.3rem; margin-bottom: 1rem;
       }
       .px-call { font-size: 1.75rem; letter-spacing: 0.18em; color: #e9d5ff; font-weight: 800; }
-      .px-sub { color: #a78bfa; font-family: ui-monospace, monospace; font-size: 0.78rem; margin-top: 0.25rem; }
+      .px-sub { color: #a78bfa; font-family: ui-monospace, monospace; font-size: 0.78rem; }
       .px-line {
         border-left: 3px solid #c4b5fd; margin: 0.4rem 0; padding: 0.4rem 0.75rem;
         color: #ddd6fe; font-style: italic; background: rgba(0,0,0,0.28);
@@ -401,28 +308,30 @@ def _render_agents() -> None:
     )
     st.markdown("### Secret dossier · PIXEL")
     st.caption("Unlocked the way he unlocks everything — the old code.")
+
+    st.caption("Sea Sunset Lofi · ArtManzh (Pixabay)")
+    st.audio(_pixel_audio_url(), format="audio/mp3")
+
     st.markdown(
         f"""
         <div class="px-card">
           <div class="px-call">{PIXEL["callsign"]}</div>
-          <div class="px-sub">{PIXEL.get("real_name", "Jaime Santos")} · {PIXEL["real_ref"]}<br/>{PIXEL["age_note"]}</div>
+          <div class="px-sub">{PIXEL["real_name"]} · {PIXEL["real_ref"]}<br/>{PIXEL["age_note"]}</div>
           <p style="color:#d8b4fe;margin-top:0.8rem;line-height:1.55;"><b>Power:</b> {PIXEL["power_source"]}</p>
           <p style="color:#c4b5fd;line-height:1.55;"><b>Government:</b> {PIXEL["government_angle"]}</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    st.caption("Music: free instrumental loop (not commercial / not MF DOOM — can\'t ship label tracks).")
     st.markdown("**Voice lines**")
     for line in PIXEL["voice_lines"]:
         st.markdown(f'<div class="px-line">“{line}”</div>', unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("**Sealed letter**")
-    body = PIXEL_LETTER.strip().replace(chr(10), "<br/>")
+    body = PIXEL_LETTER.strip().replace("\n", "<br/>")
     st.markdown(
-        f'<div style="font-family:Georgia,serif;color:#d4c4f0;line-height:1.65;'
-        f'font-size:0.92rem;max-width:640px;">{body}</div>',
+        f'<div style="font-family:Georgia,serif;color:#d4c4f0;line-height:1.65;font-size:0.92rem;">{body}</div>',
         unsafe_allow_html=True,
     )
 
@@ -439,7 +348,6 @@ def _render_agents() -> None:
             st.session_state.note_agents = False
             st.rerun()
     st.stop()
-
 
 
 def render_note() -> None:
@@ -472,12 +380,11 @@ def render_note() -> None:
     <style>
       .stApp, [data-testid="stAppViewContainer"], section.main { background:#000 !important; }
       [data-testid="stHeader"], #MainMenu, footer { display:none !important; }
-      .block-container { max-width: 720px !important; }
     </style>
     <div style="text-align:center;padding:12px;">
       <div style="display:inline-block;text-align:left;border:1px solid #3a1515;padding:22px 20px;
-        background:linear-gradient(165deg,#1a1210,#0c0808);transform:rotate(-0.5deg);max-width:520px;">
-        <div style="font-family:monospace;font-size:0.65rem;letter-spacing:0.2em;color:#8b3030;">CLASSIFIED · RECOVERED FRAGMENT</div>
+        background:linear-gradient(165deg,#1a1210,#0c0808);max-width:520px;">
+        <div style="font-family:monospace;font-size:0.65rem;letter-spacing:0.2em;color:#8b3030;">CLASSIFIED</div>
         <div style="font-family:Georgia,serif;font-size:1.3rem;color:#c4a0a0;margin:8px 0;">To whoever finds the door</div>
         <div style="font-family:monospace;font-size:0.7rem;color:#6a4040;">Dr. E. Voss · Observation Division</div>
       </div>
