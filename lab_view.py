@@ -257,34 +257,65 @@ def render_lab() -> None:
         )
 
         # Audio iframe MUST have height > 0 or browsers kill the JS
+        # Auto siren → Heartaches; Enter / tap enter to go in (no arm button)
         st.components.v1.html(
             """
 <!DOCTYPE html>
-<html><body style="margin:0;background:#000;">
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body { margin:0; background:transparent; }
+  .wrap {
+    display:flex; flex-direction:column; align-items:center;
+    padding: 10px 8px; gap: 10px;
+  }
+  #enterBtn {
+    width: min(240px, 85vw);
+    padding: 12px 16px;
+    border-radius: 4px;
+    border: 1px solid #4a0c0c;
+    background: #100303;
+    color: #a02020;
+    font-family: Georgia, "Indie Flower", cursive;
+    font-size: 1rem;
+    letter-spacing: 0.14em;
+    cursor: pointer;
+    opacity: 0;
+    animation: fadeIn 0.8s ease forwards;
+    animation-delay: 4.2s;
+  }
+  @keyframes fadeIn { to { opacity: 1; } }
+  #enterBtn:active { color: #ff3030; background: #1a0505; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <button id="enterBtn" type="button">enter the lab…</button>
+  </div>
 <script>
 (function(){
+  var started = false;
+  var ctx = null;
+
   function scarySiren(sec){
     try{
       var Ctx = window.AudioContext || window.webkitAudioContext;
-      var ctx = new Ctx();
+      ctx = ctx || new Ctx();
       if (ctx.state === 'suspended') ctx.resume();
       var master = ctx.createGain();
-      master.gain.value = 0.12;
+      master.gain.value = 0.14;
       master.connect(ctx.destination);
-
-      // Three harsh layers
       var specs = [
-        {type:'sawtooth', base:550, amp:520, vol:0.5},
-        {type:'square',   base:780, amp:420, vol:0.35},
-        {type:'sawtooth', base:980, amp:300, vol:0.22}
+        {type:'sawtooth', base:550, amp:520, vol:0.55},
+        {type:'square',   base:780, amp:420, vol:0.38},
+        {type:'sawtooth', base:980, amp:300, vol:0.25}
       ];
-      var oscs = [];
-      var now = ctx.currentTime;
+      var oscs = [], now = ctx.currentTime;
       specs.forEach(function(s){
         var o = ctx.createOscillator();
         var g = ctx.createGain();
-        o.type = s.type;
-        g.gain.value = s.vol;
+        o.type = s.type; g.gain.value = s.vol;
         o.connect(g); g.connect(master);
         var t = now;
         for (var i=0;i<8;i++){
@@ -293,59 +324,94 @@ def render_lab() -> None:
           o.frequency.linearRampToValueAtTime(s.base, t+0.76);
           t += 0.8;
         }
-        o.start(now);
-        oscs.push(o);
+        o.start(now); oscs.push(o);
       });
-      // noise burst layer
       try {
-        var nLen = ctx.sampleRate * sec;
+        var nLen = Math.floor(ctx.sampleRate * 2);
         var buf = ctx.createBuffer(1, nLen, ctx.sampleRate);
         var data = buf.getChannelData(0);
-        for (var i=0;i<nLen;i++) data[i] = (Math.random()*2-1) * 0.15;
+        for (var i=0;i<nLen;i++) data[i] = (Math.random()*2-1)*0.12;
         var noise = ctx.createBufferSource();
         var ng = ctx.createGain();
         var filt = ctx.createBiquadFilter();
-        filt.type = 'bandpass'; filt.frequency.value = 1200;
+        filt.type = 'bandpass'; filt.frequency.value = 1100;
         noise.buffer = buf;
         noise.connect(filt); filt.connect(ng); ng.connect(master);
-        ng.gain.value = 0.08;
+        ng.gain.value = 0.1;
         noise.start(now);
       } catch(e){}
-
-      master.gain.setValueAtTime(0.12, now);
+      master.gain.setValueAtTime(0.14, now);
       master.gain.linearRampToValueAtTime(0.0001, now + sec);
       setTimeout(function(){
         oscs.forEach(function(o){ try{o.stop();}catch(e){} });
-        try{ctx.close();}catch(e){}
-      }, sec*1000+200);
-    }catch(e){ console.log('siren', e); }
+      }, sec*1000+100);
+      return true;
+    }catch(e){ return false; }
   }
 
-  // Try immediately + on first user gesture (autoplay policies)
-  scarySiren(3.4);
-  function unlock(){ try{ scarySiren(3.4); }catch(e){}
-    document.removeEventListener('click', unlock);
-    document.removeEventListener('touchstart', unlock);
-  }
-  document.addEventListener('click', unlock, {once:true});
-  document.addEventListener('touchstart', unlock, {once:true});
-
-  setTimeout(function(){
+  function playHeartaches(){
     try{
       var a = new Audio('https://archive.org/download/al-bowlly-sid-phillips-his-melodians-heartaches/Al%20Bowlly%2C%20Sid%20Phillips%20%26%20His%20Melodians%20-%20Heartaches.mp3');
       a.loop = true; a.volume = 0.5;
       a.play().catch(function(){});
       window.__mer_heartaches = a;
     }catch(e){}
-  }, 3500);
+  }
+
+  function startSequence(){
+    if (started) return;
+    started = true;
+    scarySiren(3.4);
+    setTimeout(playHeartaches, 3500);
+  }
+
+  // Try automatic start (works on many desktops)
+  startSequence();
+
+  // If browser blocked autoplay, first touch/click anywhere restarts once (no labeled arm button)
+  function unlock(){
+    started = false;
+    startSequence();
+    try {
+      document.removeEventListener('touchstart', unlock);
+      document.removeEventListener('click', unlock);
+      window.parent.document.removeEventListener('touchstart', unlock);
+      window.parent.document.removeEventListener('click', unlock);
+    } catch(e){}
+  }
+  document.addEventListener('touchstart', unlock, {once:true, passive:true});
+  document.addEventListener('click', unlock, {once:true});
+  try {
+    window.parent.document.addEventListener('touchstart', unlock, {once:true, passive:true});
+    window.parent.document.addEventListener('click', unlock, {once:true});
+  } catch(e){}
+
+  function clickStreamlitEnter(){
+    try {
+      var btn = window.parent.document.querySelector('div[data-testid="stForm"] button');
+      if (btn) btn.click();
+    } catch(e) {}
+  }
+
+  document.getElementById('enterBtn').addEventListener('click', function(){
+    if (!started) startSequence();
+    clickStreamlitEnter();
+  });
+
+  function onKey(e){
+    if (e.key !== 'Enter') return;
+    if (!started) startSequence();
+    clickStreamlitEnter();
+  }
+  document.addEventListener('keydown', onKey);
+  try { window.parent.document.addEventListener('keydown', onKey); } catch(e){}
 })();
 </script>
 </body></html>
             """,
-            height=1,
+            height=90,
         )
 
-        # Enter key submits this form (button visually hidden via CSS)
         with st.form("lab_enter_form"):
             go = st.form_submit_button("enter")
         if go:
@@ -353,6 +419,8 @@ def render_lab() -> None:
             st.session_state.lab_flicker = True
             st.rerun()
         st.stop()
+
+
 
 
 
