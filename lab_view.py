@@ -111,8 +111,18 @@ def _stop_lab_audio_html() -> None:
           var r = window.parent || window;
           r.__mer_audio_on = false;
           if (r.__mer_song_timer) clearTimeout(r.__mer_song_timer);
-          if (r.__mer_heartaches) { r.__mer_heartaches.pause(); r.__mer_heartaches = null; }
-          if (r.__mer_siren) { r.__mer_siren.pause(); r.__mer_siren = null; }
+          if (r.__mer_heartaches) {
+            try { r.__mer_heartaches.pause(); r.__mer_heartaches.remove(); } catch(e){}
+            r.__mer_heartaches = null;
+          }
+          if (r.__mer_siren) {
+            try { r.__mer_siren.pause(); r.__mer_siren.remove(); } catch(e){}
+            r.__mer_siren = null;
+          }
+          var nodes = r.document.querySelectorAll('audio[data-meridium="1"]');
+          for (var i=0;i<nodes.length;i++) {
+            try { nodes[i].pause(); nodes[i].remove(); } catch(e){}
+          }
         } catch (e) {}
         </script>
         """,
@@ -279,32 +289,48 @@ def render_lab() -> None:
   var SIREN_URL = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
   var SONG_URL = 'https://archive.org/download/al-bowlly-sid-phillips-his-melodians-heartaches/Al%20Bowlly%2C%20Sid%20Phillips%20%26%20His%20Melodians%20-%20Heartaches.mp3';
 
+  function makeParentAudio(url, loop, vol){
+    // Attach to parent DOM so sound survives when this iframe is destroyed (entering lab)
+    try {
+      var a = root.document.createElement('audio');
+      a.src = url;
+      a.preload = 'auto';
+      a.loop = !!loop;
+      a.volume = vol;
+      a.setAttribute('data-meridium', '1');
+      a.style.display = 'none';
+      root.document.body.appendChild(a);
+      return a;
+    } catch(e) {
+      var a2 = new Audio(url);
+      a2.loop = !!loop;
+      a2.volume = vol;
+      return a2;
+    }
+  }
+
   function ensureAudio(){
+    // Already playing Heartaches in the lab — leave it alone
+    if (root.__mer_heartaches && !root.__mer_heartaches.paused) {
+      root.__mer_audio_on = true;
+      return;
+    }
     if (root.__mer_audio_on && root.__mer_siren && !root.__mer_siren.paused) return;
-    if (root.__mer_audio_on && root.__mer_heartaches && !root.__mer_heartaches.paused) return;
 
     root.__mer_audio_on = true;
 
     try {
-      if (root.__mer_siren) { try { root.__mer_siren.pause(); } catch(e){} }
-      if (root.__mer_heartaches) { try { root.__mer_heartaches.pause(); } catch(e){} }
+      if (root.__mer_siren) { try { root.__mer_siren.pause(); root.__mer_siren.remove(); } catch(e){} }
     } catch(e){}
 
-    // Siren — autoplay hard
+    // Siren on parent page
     try {
-      var siren = new Audio(SIREN_URL);
-      siren.preload = 'auto';
-      siren.loop = true;
-      siren.volume = 0.8;
-      siren.muted = false;
+      var siren = makeParentAudio(SIREN_URL, true, 0.8);
       root.__mer_siren = siren;
       var sp = siren.play();
       if (sp && sp.catch) {
         sp.catch(function(){
-          // retry unmuted after a tick
-          setTimeout(function(){
-            siren.play().catch(function(){});
-          }, 200);
+          setTimeout(function(){ siren.play().catch(function(){}); }, 250);
         });
       }
     } catch(e){}
@@ -314,20 +340,21 @@ def render_lab() -> None:
       try {
         if (root.__mer_siren) {
           root.__mer_siren.pause();
-          root.__mer_siren.currentTime = 0;
+          try { root.__mer_siren.remove(); } catch(e){}
+          root.__mer_siren = null;
         }
       } catch(e){}
       try {
         if (root.__mer_heartaches && !root.__mer_heartaches.paused) return;
-        var song = new Audio(SONG_URL);
-        song.preload = 'auto';
-        song.loop = true;
-        song.volume = 0.55;
+        if (root.__mer_heartaches) {
+          try { root.__mer_heartaches.pause(); root.__mer_heartaches.remove(); } catch(e){}
+        }
+        var song = makeParentAudio(SONG_URL, true, 0.55);
         root.__mer_heartaches = song;
         var hp = song.play();
         if (hp && hp.catch) {
           hp.catch(function(){
-            setTimeout(function(){ song.play().catch(function(){}); }, 200);
+            setTimeout(function(){ song.play().catch(function(){}); }, 250);
           });
         }
       } catch(e){}
@@ -533,6 +560,24 @@ def render_lab() -> None:
     </div>
     """,
         unsafe_allow_html=True,
+    )
+
+
+    # Keep Heartaches alive while exploring the room
+    st.components.v1.html(
+        """
+        <script>
+        (function(){
+          try {
+            var r = window.parent || window;
+            if (r.__mer_heartaches && r.__mer_heartaches.paused) {
+              r.__mer_heartaches.play().catch(function(){});
+            }
+          } catch(e){}
+        })();
+        </script>
+        """,
+        height=0,
     )
 
     found = st.session_state.lab_found
