@@ -16,7 +16,7 @@ except Exception:
     PIXEL = {
         "callsign": "PIXEL",
         "real_name": "Jaime Santos",
-        "real_ref": "Jaime Santos · subject zero · not a subject",
+        "real_ref": "subject zero · not a subject",
         "age_note": "Still talks like the ranked queue is life",
         "power_source": (
             "Natural Meridium radiation exposure — not injected, not refined, not consented by a lab"
@@ -289,9 +289,96 @@ def _konami_listener() -> None:
 
 
 
+
+def _pixel_audio_file():
+    """Local Pixabay download if present in repo."""
+    from pathlib import Path as _P
+    base = _P(__file__).parent
+    for name in (
+        "assets/pixel_theme.mp3",
+        "assets/artmanzh-sea-sunset-lofi-g-major-543349.mp3",
+        "artmanzh-sea-sunset-lofi-g-major-543349.mp3",
+        "pixel_theme.mp3",
+    ):
+        fp = base / name
+        if fp.exists() and fp.stat().st_size > 1000:
+            return fp
+    return None
+
+
+def _start_pixel_audio() -> None:
+    """Secret URL, else free fallback. Local file played via st.audio in UI."""
+    url = "https://assets.mixkit.co/music/765/765.mp3"
+    try:
+        custom = (st.secrets.get("PIXEL_AUDIO_URL") or "").strip()
+        if custom:
+            url = custom
+    except Exception:
+        pass
+    # Skip autoplay inject if local file will use st.audio
+    if _pixel_audio_file() is not None:
+        return
+    url_js = json.dumps(url)
+    st.components.v1.html(
+        """
+        <script>
+        (function(){
+          var root = window.parent || window;
+          var URL = """ + url_js + """;
+          function kill(a){
+            if (!a) return;
+            try { a.pause(); } catch(e){}
+            try { a.src = ''; a.remove(); } catch(e){}
+          }
+          kill(root.__mer_note_song); root.__mer_note_song = null;
+          root.__mer_note_audio_on = false;
+          try {
+            kill(root.__mer_pixel_song);
+            var a = root.document.createElement('audio');
+            a.src = URL; a.loop = true; a.volume = 0.45;
+            a.setAttribute('data-meridium-pixel', '1');
+            a.style.display = 'none';
+            root.document.body.appendChild(a);
+            root.__mer_pixel_song = a;
+            a.play().catch(function(){
+              function once(){ a.play().catch(function(){}); }
+              root.document.addEventListener('click', once, {once:true});
+              root.document.addEventListener('touchstart', once, {once:true, passive:true});
+            });
+          } catch(e){}
+        })();
+        </script>
+        """,
+        height=1,
+    )
+
+
+def _stop_pixel_audio() -> None:
+    st.components.v1.html(
+        """
+        <script>
+        (function(){
+          try {
+            var r = window.parent || window;
+            var a = r.__mer_pixel_song;
+            if (a) { try { a.pause(); a.src=''; a.remove(); } catch(e){} }
+            r.__mer_pixel_song = null;
+          } catch(e){}
+        })();
+        </script>
+        """,
+        height=1,
+    )
+
+
 def _render_agents() -> None:
     """Konami secret: PIXEL dossier — natural Meridium carrier."""
     _stop_note_audio()
+    _start_pixel_audio()
+    _pf = _pixel_audio_file()
+    if _pf is not None:
+        st.audio(str(_pf), format="audio/mp3")
+        st.caption("Sea Sunset Lofi · ArtManzh (Pixabay)")
     st.markdown(
         """
     <style>
@@ -318,13 +405,14 @@ def _render_agents() -> None:
         f"""
         <div class="px-card">
           <div class="px-call">{PIXEL["callsign"]}</div>
-          <div class="px-sub">{PIXEL.get("real_name", "Jaime Santos")} · {PIXEL["real_ref"]} · {PIXEL["age_note"]}</div>
+          <div class="px-sub">{PIXEL.get("real_name", "Jaime Santos")} · {PIXEL["real_ref"]}<br/>{PIXEL["age_note"]}</div>
           <p style="color:#d8b4fe;margin-top:0.8rem;line-height:1.55;"><b>Power:</b> {PIXEL["power_source"]}</p>
           <p style="color:#c4b5fd;line-height:1.55;"><b>Government:</b> {PIXEL["government_angle"]}</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
+    st.caption("Music: free instrumental loop (not commercial / not MF DOOM — can\'t ship label tracks).")
     st.markdown("**Voice lines**")
     for line in PIXEL["voice_lines"]:
         st.markdown(f'<div class="px-line">“{line}”</div>', unsafe_allow_html=True)
@@ -341,11 +429,13 @@ def _render_agents() -> None:
     c1, c2 = st.columns(2)
     with c1:
         if st.button("Close", use_container_width=True, key="px_close"):
+            _stop_pixel_audio()
             st.session_state.note_agents = False
             st.session_state.view = "home"
             st.rerun()
     with c2:
         if st.button("Back to letter", use_container_width=True, key="px_back"):
+            _stop_pixel_audio()
             st.session_state.note_agents = False
             st.rerun()
     st.stop()
