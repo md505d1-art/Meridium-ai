@@ -732,10 +732,25 @@ def render_lab() -> None:
 
     st.caption("M-119 shell · exit when ready")
 
-    # Anomaly glitch residual in lab
+    # Anomaly glitch residual in lab — clickable image
     st.markdown("---")
-    st.caption("Voss: do not ignore the corrupted tile.")
-    if st.button("▣ corrupted tile", key="glitch_lab", help="anomaly"):
+    st.caption("Voss: do not ignore the interference in the pane.")
+    from pathlib import Path as _P
+    _gpath = None
+    _base = _P(__file__).resolve().parent / "assets"
+    for _name in ("glitch_lab.png", "IMG_1355.jpeg", "IMG_1355.jpg"):
+        _cand = _base / _name
+        if _cand.exists() and _cand.stat().st_size > 500:
+            _gpath = _cand
+            break
+    if _gpath is not None:
+        st.image(str(_gpath), use_container_width=True)
+    else:
+        st.markdown(
+            '<div style="height:72px;border-radius:10px;background:repeating-linear-gradient(90deg,#1a0505,#1a0505 3px,#2a0a0a 3px,#2a0a0a 6px);border:1px solid rgba(239,68,68,0.4);"></div>',
+            unsafe_allow_html=True,
+        )
+    if st.button("Tap anomaly · lab", key="glitch_lab", use_container_width=True):
         found = list(st.session_state.get("glitches_found") or [])
         if "lab" not in found:
             found.append("lab")
