@@ -9,7 +9,7 @@ import json
 
 import streamlit as st
 
-from agents import AGENTS, agent_by_index
+from agents import PIXEL, PIXEL_LETTER
 
 NOTE_BODY = """
 FIELD LOG — NOT FOR DISTRIBUTION
@@ -185,73 +185,68 @@ def _konami_listener() -> None:
     )
 
 
-def _render_agents() -> None:
-    _stop_note_audio()
-    if "agent_idx" not in st.session_state:
-        st.session_state.agent_idx = 0
-    a = agent_by_index(st.session_state.agent_idx)
 
+def _render_agents() -> None:
+    """Konami secret: PIXEL dossier — natural Meridium carrier."""
+    _stop_note_audio()
     st.markdown(
         """
     <style>
-      .stApp, [data-testid="stAppViewContainer"], section.main { background:#07070c !important; }
+      .stApp, [data-testid="stAppViewContainer"], section.main { background:#0a0610 !important; }
       [data-testid="stHeader"], #MainMenu, footer { display:none !important; }
-      .agent-card {
-        border: 1px solid rgba(180,140,255,0.25);
-        background: linear-gradient(160deg, rgba(30,24,48,0.95), rgba(12,10,20,0.98));
-        border-radius: 14px; padding: 1.25rem 1.4rem; margin: 0.5rem 0 1rem;
+      .px-card {
+        border: 1px solid rgba(167,139,250,0.35);
+        background: linear-gradient(165deg, #161022, #0c0814);
+        border-radius: 12px; padding: 1.2rem 1.3rem; margin-bottom: 1rem;
       }
-      .agent-call { font-size: 1.6rem; letter-spacing: 0.14em; color: #e9d5ff; font-weight: 700; }
-      .agent-code { color: #a78bfa; font-family: ui-monospace, monospace; font-size: 0.8rem; }
-      .agent-role { color: #c4b5fd; margin: 0.35rem 0 0.75rem; }
-      .agent-line {
-        border-left: 3px solid #a78bfa; padding: 0.45rem 0.75rem; margin: 0.4rem 0;
-        color: #ddd6fe; font-style: italic; background: rgba(0,0,0,0.25);
+      .px-call { font-size: 1.75rem; letter-spacing: 0.18em; color: #e9d5ff; font-weight: 800; }
+      .px-sub { color: #a78bfa; font-family: ui-monospace, monospace; font-size: 0.78rem; margin-top: 0.25rem; }
+      .px-line {
+        border-left: 3px solid #c4b5fd; margin: 0.4rem 0; padding: 0.4rem 0.75rem;
+        color: #ddd6fe; font-style: italic; background: rgba(0,0,0,0.28);
       }
     </style>
         """,
         unsafe_allow_html=True,
     )
-    st.markdown("### Observation Division · Agent roster")
-    st.caption("Residual profiles · operators who treated the site like a match")
-
+    st.markdown("### Secret dossier · PIXEL")
+    st.caption("Unlocked the way he unlocks everything — the old code.")
     st.markdown(
         f"""
-        <div class="agent-card">
-          <div class="agent-call">{a["callsign"]}</div>
-          <div class="agent-code">{a["codename"]} · {a["role"]}</div>
-          <div class="agent-role">{a["playstyle"]}</div>
-          <p style="color:#c4b5fd;line-height:1.55;">{a["bio"]}</p>
-          <p style="color:#a78bfa;font-size:0.9rem;"><b>Quirk:</b> {a["quirk"]}</p>
+        <div class="px-card">
+          <div class="px-call">{PIXEL["callsign"]}</div>
+          <div class="px-sub">{PIXEL["real_ref"]} · {PIXEL["age_note"]}</div>
+          <p style="color:#d8b4fe;margin-top:0.8rem;line-height:1.55;"><b>Power:</b> {PIXEL["power_source"]}</p>
+          <p style="color:#c4b5fd;line-height:1.55;"><b>Government:</b> {PIXEL["government_angle"]}</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
     st.markdown("**Voice lines**")
-    for line in a["lines"]:
-        st.markdown(f'<div class="agent-line">“{line}”</div>', unsafe_allow_html=True)
+    for line in PIXEL["voice_lines"]:
+        st.markdown(f'<div class="px-line">“{line}”</div>', unsafe_allow_html=True)
 
-    n = len(AGENTS)
-    c1, c2, c3, c4 = st.columns(4)
+    st.markdown("---")
+    st.markdown("**Sealed letter**")
+    body = PIXEL_LETTER.strip().replace(chr(10), "<br/>")
+    st.markdown(
+        f'<div style="font-family:Georgia,serif;color:#d4c4f0;line-height:1.65;'
+        f'font-size:0.92rem;max-width:640px;">{body}</div>',
+        unsafe_allow_html=True,
+    )
+
+    c1, c2 = st.columns(2)
     with c1:
-        if st.button("◀ Prev", use_container_width=True, key="ag_prev"):
-            st.session_state.agent_idx = (st.session_state.agent_idx - 1) % n
-            st.rerun()
-    with c2:
-        if st.button("Next ▶", use_container_width=True, key="ag_next"):
-            st.session_state.agent_idx = (st.session_state.agent_idx + 1) % n
-            st.rerun()
-    with c3:
-        if st.button("Close", use_container_width=True, key="ag_close"):
+        if st.button("Close", use_container_width=True, key="px_close"):
             st.session_state.note_agents = False
             st.session_state.view = "home"
             st.rerun()
-    with c4:
-        if st.button("Letter", use_container_width=True, key="ag_letter"):
+    with c2:
+        if st.button("Back to letter", use_container_width=True, key="px_back"):
             st.session_state.note_agents = False
             st.rerun()
-    st.caption(f"Agent {st.session_state.agent_idx + 1} / {n}")
     st.stop()
+
 
 
 def render_note() -> None:
