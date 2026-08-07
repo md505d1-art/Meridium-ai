@@ -395,18 +395,35 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
         background: {SHELL["panel_solid"]} !important;
         border: 1px solid {SHELL["border"]} !important;
         border-radius: 999px !important;
+        box-shadow: none !important;
     }}
     [data-testid="stBottomBlockContainer"],
     [data-testid="stBottomBlockContainer"] > div,
-    [data-testid="stChatInput"] {{
+    [data-testid="stChatInput"],
+    [data-testid="stChatInput"] > div,
+    [data-testid="stChatInput"] > div > div {{
         background: {SHELL["bg"]} !important;
         background-color: {SHELL["bg"]} !important;
+        border: none !important;
+        box-shadow: none !important;
+        outline: none !important;
     }}
     [data-testid="stChatInput"] textarea {{
         color: {SHELL["text"]} !important;
         background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        outline: none !important;
     }}
     [data-testid="stChatInput"] textarea::placeholder {{ color: {SHELL["muted"]} !important; }}
+    /* kill white bottom strip behind chat box */
+    .stApp [data-testid="stBottom"],
+    section.main > div > div:has([data-testid="stChatInput"]),
+    div[data-testid="stBottomBlockContainer"] {{
+        background: {SHELL["bg"]} !important;
+        border-top: none !important;
+        box-shadow: none !important;
+    }}
 
     /* Buttons */
     .stButton > button {{
@@ -611,19 +628,26 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
       border: none !important;
     }}
     [data-testid="stChatInput"] {{
-      background: transparent !important;
+      background: {SHELL["bg"]} !important;
+      border: none !important;
+      box-shadow: none !important;
     }}
     [data-testid="stChatInput"] textarea,
     [data-testid="stChatInput"] > div,
     [data-testid="stChatInput"] > div > div {{
-      background: rgba(24,24,32,0.95) !important;
-      color: #e8e6f0 !important;
-      border-color: rgba(255,255,255,0.1) !important;
+      background: {SHELL["panel_solid"]} !important;
+      color: {SHELL["text"]} !important;
+      border: 1px solid {SHELL["border"]} !important;
+      box-shadow: none !important;
+      outline: none !important;
     }}
     /* bottom block that often goes white */
     .stBottom, [data-testid="stBottomBlockContainer"],
-    section[data-testid="stBottom"] {{
-      background: transparent !important;
+    section[data-testid="stBottom"],
+    [data-testid="stBottomBlockContainer"] > div {{
+      background: {SHELL["bg"]} !important;
+      border: none !important;
+      box-shadow: none !important;
     }}
     div[data-testid="stVerticalBlock"] > div:has(iframe) {{
       background: transparent !important;
