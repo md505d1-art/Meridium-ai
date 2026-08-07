@@ -751,7 +751,14 @@ def render_lab() -> None:
                 '<div style="height:72px;border-radius:10px;background:repeating-linear-gradient(90deg,#1a0505,#1a0505 3px,#2a0a0a 3px,#2a0a0a 6px);border:1px solid rgba(239,68,68,0.4);"></div>',
                 unsafe_allow_html=True,
             )
-        if st.button("Tap anomaly · lab", key="glitch_lab", use_container_width=True):
+        st.markdown('<style>div[data-testid="stButton"] button{min-height:32px!important;height:32px!important;font-size:0.78rem!important;padding:0 12px!important;}</style>', unsafe_allow_html=True)
+        if st.button("Tap anomaly", key="glitch_lab", use_container_width=False):
+            st.components.v1.html("""
+            <script>
+            (function(){try{var a=new Audio("https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3");a.volume=0.55;a.play().catch(function(){})}catch(e){}})();
+            </script>
+            """, height=0)
+
             found = list(st.session_state.get("glitches_found") or [])
             if "lab" not in found:
                 found.append("lab")
