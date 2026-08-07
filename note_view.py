@@ -439,65 +439,71 @@ def _render_agents() -> None:
     )
 
 
-    # PIXEL letter anomaly glitch — clickable image
-    st.markdown("")
-    st.caption("Voss residual: the dossier is skipping frames.")
-    from pathlib import Path as _P
-    _gpath = None
-    _base = _P(__file__).resolve().parent / "assets"
-    for _name in ("glitch_pixel.png", "IMG_1356.jpeg", "IMG_1356.jpg"):
-        _cand = _base / _name
-        if _cand.exists() and _cand.stat().st_size > 500:
-            _gpath = _cand
-            break
-    if _gpath is not None:
-        st.image(str(_gpath), use_container_width=True)
-    else:
-        st.markdown(
-            '<div style="height:72px;border-radius:10px;background:repeating-linear-gradient(0deg,#030a08,#030a08 2px,#0a1c18 2px,#0a1c18 4px);border:1px solid rgba(34,211,238,0.4);"></div>',
-            unsafe_allow_html=True,
-        )
-    if st.button("Tap anomaly · PIXEL", key="glitch_pixel", use_container_width=True):
-        found = list(st.session_state.get("glitches_found") or [])
-        if "pixel" not in found:
-            found.append("pixel")
-            st.session_state.glitches_found = found
-            st.session_state["_glitch_flash"] = "Voss log: PIXEL marker secured. The boy was never a sample."
-            try:
-                from theme_unlocks import unlock_and_persist
-                # optional reward if all 3
+    if int(st.session_state.get("lab_visits") or 0) >= 2:
+        # PIXEL letter anomaly glitch — clickable image
+        st.markdown("")
+        st.caption("Voss residual: the dossier is skipping frames.")
+        from pathlib import Path as _P
+        _gpath = None
+        _base = _P(__file__).resolve().parent / "assets"
+        for _name in ("glitch_pixel.png", "IMG_1356.jpeg", "IMG_1356.jpg"):
+            _cand = _base / _name
+            if _cand.exists() and _cand.stat().st_size > 500:
+                _gpath = _cand
+                break
+        if _gpath is not None:
+            st.image(str(_gpath), width=280)
+        else:
+            st.markdown(
+                '<div style="height:72px;border-radius:10px;background:repeating-linear-gradient(0deg,#030a08,#030a08 2px,#0a1c18 2px,#0a1c18 4px);border:1px solid rgba(34,211,238,0.4);"></div>',
+                unsafe_allow_html=True,
+            )
+        if st.button("Tap anomaly · PIXEL", key="glitch_pixel", use_container_width=True):
+            found = list(st.session_state.get("glitches_found") or [])
+            if "pixel" not in found:
+                found.append("pixel")
+                st.session_state.glitches_found = found
+                st.session_state["_glitch_flash"] = "Voss log: PIXEL marker secured. The boy was never a sample."
                 if set(found) >= {"home", "lab", "pixel"}:
-                    unlock_and_persist("Pixel Bloom", "all three anomalies logged", apply=True)
-            except Exception:
-                if set(found) >= {"home", "lab", "pixel"}:
-                    u = list(st.session_state.get("unlocked_themes") or [])
-                    if "Pixel Bloom" not in u:
-                        u.append("Pixel Bloom")
-                        st.session_state.unlocked_themes = u
-            try:
-                import json, hashlib
-                from pathlib import Path as _P
-                from datetime import datetime
-                name = (st.session_state.get("username") or "").strip()
-                if name:
-                    key = hashlib.sha256(name.lower().encode()).hexdigest()[:24]
-                    for fp in (_P(__file__).parent / "data" / f"{key}.json",
-                               _P("/tmp") / f"meridium_{hashlib.sha256(name.lower().encode()).hexdigest()[:16]}.json"):
-                        try:
-                            data = {}
-                            if fp.exists():
-                                data = json.loads(fp.read_text(encoding="utf-8"))
-                            data["glitches_found"] = found
-                            data["saved_at"] = datetime.now().isoformat()
-                            fp.parent.mkdir(parents=True, exist_ok=True)
-                            fp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-                        except Exception:
-                            pass
-            except Exception:
-                pass
-        st.rerun()
-    if st.session_state.get("_glitch_flash"):
-        st.success(st.session_state.pop("_glitch_flash"))
+                    st.session_state.voss_file_unlocked = True
+                    st.session_state["_glitch_flash"] = "All three markers secured. Dr. Voss left you a file."
+                    st.session_state.voss_cutscene_stage = 0
+                    st.session_state.view = "voss_file"
+                try:
+                    from theme_unlocks import unlock_and_persist
+                    # optional reward if all 3
+                    if set(found) >= {"home", "lab", "pixel"}:
+                        unlock_and_persist("Pixel Bloom", "all three anomalies logged", apply=True)
+                except Exception:
+                    if set(found) >= {"home", "lab", "pixel"}:
+                        u = list(st.session_state.get("unlocked_themes") or [])
+                        if "Pixel Bloom" not in u:
+                            u.append("Pixel Bloom")
+                            st.session_state.unlocked_themes = u
+                try:
+                    import json, hashlib
+                    from pathlib import Path as _P
+                    from datetime import datetime
+                    name = (st.session_state.get("username") or "").strip()
+                    if name:
+                        key = hashlib.sha256(name.lower().encode()).hexdigest()[:24]
+                        for fp in (_P(__file__).parent / "data" / f"{key}.json",
+                                   _P("/tmp") / f"meridium_{hashlib.sha256(name.lower().encode()).hexdigest()[:16]}.json"):
+                            try:
+                                data = {}
+                                if fp.exists():
+                                    data = json.loads(fp.read_text(encoding="utf-8"))
+                                data["glitches_found"] = found
+                                data["saved_at"] = datetime.now().isoformat()
+                                fp.parent.mkdir(parents=True, exist_ok=True)
+                                fp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
+            st.rerun()
+        if st.session_state.get("_glitch_flash"):
+            st.success(st.session_state.pop("_glitch_flash"))
 
     c1, c2 = st.columns(2)
     with c1:
