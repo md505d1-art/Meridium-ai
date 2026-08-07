@@ -741,6 +741,12 @@ def render_lab() -> None:
             st.markdown("---")
             st.caption("Voss residual sealed. The letter remains.")
             if st.button("Open Dr. Voss's letter", use_container_width=True, key="lab_voss_letter"):
+                u = list(st.session_state.get("unlocked_themes") or [])
+                if "Voss Residual" not in u:
+                    u.append("Voss Residual")
+                    st.session_state.unlocked_themes = u
+                st.session_state.theme = "Voss Residual"
+
                 st.session_state.voss_cutscene_stage = 0
                 st.session_state.view = "voss_file"
                 st.rerun()
