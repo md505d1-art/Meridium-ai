@@ -205,6 +205,78 @@ def render_lab() -> None:
             100% { opacity: 0.95; transform: scaleY(1); transform-origin: top; }
           }
 
+          /* VHS static / tracking */
+          #lab-vhs {
+            position: fixed !important;
+            inset: 0 !important;
+            z-index: 999992 !important;
+            pointer-events: none !important;
+            opacity: 0.22;
+            mix-blend-mode: screen;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+            animation: vhsNoise 0.15s steps(4) infinite;
+          }
+          #lab-vhs-scan {
+            position: fixed !important;
+            inset: 0 !important;
+            z-index: 999993 !important;
+            pointer-events: none !important;
+            background: repeating-linear-gradient(
+              0deg,
+              rgba(0,0,0,0.15) 0px,
+              rgba(0,0,0,0.15) 1px,
+              transparent 2px,
+              transparent 4px
+            );
+            opacity: 0.35;
+          }
+          #lab-vhs-track {
+            position: fixed !important;
+            left: 0; right: 0;
+            height: 18%;
+            z-index: 999994 !important;
+            pointer-events: none !important;
+            background: linear-gradient(
+              180deg,
+              transparent 0%,
+              rgba(255,255,255,0.04) 40%,
+              rgba(0,0,0,0.25) 50%,
+              rgba(255,255,255,0.03) 60%,
+              transparent 100%
+            );
+            animation: vhsTrack 4.5s linear infinite;
+            opacity: 0.55;
+          }
+          #lab-vhs-rgb {
+            position: fixed !important;
+            inset: 0 !important;
+            z-index: 999991 !important;
+            pointer-events: none !important;
+            box-shadow: inset 0 0 80px rgba(0,0,0,0.65);
+            background:
+              linear-gradient(90deg, rgba(255,0,0,0.03), transparent 40%, rgba(0,255,255,0.03));
+            animation: vhsFlicker 3s steps(2) infinite;
+            opacity: 0.5;
+          }
+          @keyframes vhsNoise {
+            0% { transform: translate(0,0); }
+            25% { transform: translate(-1%, 1%); }
+            50% { transform: translate(1%, -1%); }
+            75% { transform: translate(-1%, -1%); }
+            100% { transform: translate(0,0); }
+          }
+          @keyframes vhsTrack {
+            0% { top: -20%; }
+            100% { top: 120%; }
+          }
+          @keyframes vhsFlicker {
+            0%, 90%, 100% { opacity: 0.45; }
+            92% { opacity: 0.7; }
+            94% { opacity: 0.3; }
+            96% { opacity: 0.6; }
+          }
+
+
           /* Small ominous button under the text */
           .stApp [data-testid="stButton"] {
             position: fixed !important;
@@ -239,8 +311,12 @@ def render_lab() -> None:
           }
         </style>
         <div id="lab-full-black"></div>
+        <div id="lab-vhs-rgb"></div>
+        <div id="lab-vhs"></div>
+        <div id="lab-vhs-scan"></div>
+        <div id="lab-vhs-track"></div>
         <div id="lab-blood-msg"><span class="blood">you're not supposed to know</span>
-          <div id="lab-press-hint">press enter</div></div>
+          <div id="lab-press-hint">press enter · or tap the screen</div></div>
         <script>
         (function(){
           if (window.__mer_lab_enter) return;
@@ -257,35 +333,36 @@ def render_lab() -> None:
         )
 
         # Audio iframe MUST have height > 0 or browsers kill the JS
-        # Auto siren → Heartaches; Enter / tap enter to go in (no arm button)
+        # BEST SETUP: autoplay on desktop; first touch on mobile unlocks once
         st.components.v1.html(
             """
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <style>
-  html, body { margin:0; background:transparent; }
+  html, body { margin: 0; background: transparent; }
   .wrap {
-    display:flex; flex-direction:column; align-items:center;
-    padding: 10px 8px; gap: 10px;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 12px 8px; gap: 8px;
   }
   #enterBtn {
-    width: min(240px, 85vw);
-    padding: 12px 16px;
+    width: min(220px, 80vw);
+    padding: 11px 16px;
     border-radius: 4px;
     border: 1px solid #4a0c0c;
     background: #100303;
     color: #a02020;
-    font-family: Georgia, "Indie Flower", cursive;
-    font-size: 1rem;
+    font-family: Georgia, cursive;
+    font-size: 0.95rem;
     letter-spacing: 0.14em;
     cursor: pointer;
     opacity: 0;
-    animation: fadeIn 0.8s ease forwards;
-    animation-delay: 4.2s;
+    animation: showEnter 0.7s ease forwards;
+    animation-delay: 4.5s;
+    -webkit-tap-highlight-color: transparent;
   }
-  @keyframes fadeIn { to { opacity: 1; } }
+  @keyframes showEnter { to { opacity: 1; } }
   #enterBtn:active { color: #ff3030; background: #1a0505; }
 </style>
 </head>
@@ -295,101 +372,71 @@ def render_lab() -> None:
   </div>
 <script>
 (function(){
-  var started = false;
-  var ctx = null;
+  var played = false;
+  var siren = null;
+  var song = null;
 
-  function scarySiren(sec){
-    // Same path as Heartaches (HTML5 Audio) — Web Audio was silent on some devices
-    try{
-      var urls = [
-        'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3',
-        'https://assets.mixkit.co/active_storage/sfx/1626/1626-preview.mp3',
-        'https://upload.wikimedia.org/wikipedia/commons/4/4a/Emergency_alarm_tone.ogg'
-      ];
-      var a = new Audio(urls[0]);
-      a.loop = true;
-      a.volume = 0.75;
-      window.__mer_siren = a;
-      var p = a.play();
-      if (p && p.catch) {
-        p.catch(function(){
-          // fallback second URL
-          a.src = urls[1];
-          a.play().catch(function(){});
-        });
-      }
-      setTimeout(function(){
-        try {
-          a.pause();
-          a.currentTime = 0;
-        } catch(e){}
-      }, (sec || 3.4) * 1000);
-      return true;
-    }catch(e){ return false; }
-  }
+  var SIREN_URL = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
+  var SONG_URL = 'https://archive.org/download/al-bowlly-sid-phillips-his-melodians-heartaches/Al%20Bowlly%2C%20Sid%20Phillips%20%26%20His%20Melodians%20-%20Heartaches.mp3';
 
-  function playHeartaches(){
-    try{
-      var a = new Audio('https://archive.org/download/al-bowlly-sid-phillips-his-melodians-heartaches/Al%20Bowlly%2C%20Sid%20Phillips%20%26%20His%20Melodians%20-%20Heartaches.mp3');
-      a.loop = true; a.volume = 0.5;
-      a.play().catch(function(){});
-      window.__mer_heartaches = a;
-    }catch(e){}
-  }
+  function playSequence(){
+    if (played) return;
+    played = true;
+    try {
+      siren = new Audio(SIREN_URL);
+      siren.loop = true;
+      siren.volume = 0.75;
+      var p = siren.play();
+      if (p && p.catch) p.catch(function(){ played = false; });
+    } catch(e){ played = false; return; }
 
-  function startSequence(){
-    if (started) return;
-    started = true;
-    scarySiren(3.5);
-    // Heartaches only after siren window ends
     setTimeout(function(){
       try {
-        if (window.__mer_siren) {
-          window.__mer_siren.pause();
-          window.__mer_siren.currentTime = 0;
-        }
+        if (siren) { siren.pause(); siren.currentTime = 0; }
       } catch(e){}
-      playHeartaches();
-    }, 3600);
+      try {
+        song = new Audio(SONG_URL);
+        song.loop = true;
+        song.volume = 0.5;
+        song.play().catch(function(){});
+        window.__mer_heartaches = song;
+      } catch(e){}
+    }, 3500);
   }
 
-  // Try automatic start (works on many desktops)
-  startSequence();
+  // Desktop: try autoplay immediately
+  playSequence();
 
-  // If browser blocked autoplay, first touch/click anywhere restarts once (no labeled arm button)
-  function unlock(){
-    started = false;
-    startSequence();
+  // Mobile: first touch/click on page unlocks audio (browser requirement)
+  // Not a labeled "play sound" control — any touch on the black intro
+  function unlockOnce(){
+    if (played) return;
+    playSequence();
+  }
+  ['touchstart','click','pointerdown'].forEach(function(ev){
+    document.addEventListener(ev, unlockOnce, {once:true, passive:true});
     try {
-      document.removeEventListener('touchstart', unlock);
-      document.removeEventListener('click', unlock);
-      window.parent.document.removeEventListener('touchstart', unlock);
-      window.parent.document.removeEventListener('click', unlock);
+      window.parent.document.addEventListener(ev, unlockOnce, {once:true, passive:true});
     } catch(e){}
-  }
-  document.addEventListener('touchstart', unlock, {once:true, passive:true});
-  document.addEventListener('click', unlock, {once:true});
-  try {
-    window.parent.document.addEventListener('touchstart', unlock, {once:true, passive:true});
-    window.parent.document.addEventListener('click', unlock, {once:true});
-  } catch(e){}
+  });
 
-  function clickStreamlitEnter(){
+  function submitEnter(){
     try {
       var btn = window.parent.document.querySelector('div[data-testid="stForm"] button');
       if (btn) btn.click();
-    } catch(e) {}
+    } catch(e){}
   }
 
-  document.getElementById('enterBtn').addEventListener('click', function(){
-    if (!started) startSequence();
-    clickStreamlitEnter();
+  document.getElementById('enterBtn').addEventListener('click', function(e){
+    e.stopPropagation();
+    if (!played) playSequence();
+    submitEnter();
   });
 
   function onKey(e){
     if (e.key !== 'Enter') return;
-    if (!started) startSequence();
-    clickStreamlitEnter();
+    if (!played) playSequence();
+    submitEnter();
   }
   document.addEventListener('keydown', onKey);
   try { window.parent.document.addEventListener('keydown', onKey); } catch(e){}
@@ -397,7 +444,7 @@ def render_lab() -> None:
 </script>
 </body></html>
             """,
-            height=90,
+            height=88,
         )
 
         with st.form("lab_enter_form"):
@@ -407,6 +454,7 @@ def render_lab() -> None:
             st.session_state.lab_flicker = True
             st.rerun()
         st.stop()
+
 
 
 
@@ -465,6 +513,22 @@ def render_lab() -> None:
           #050505;
         border: 1px solid #3a1515; overflow: hidden; margin-bottom: 12px;
       }
+
+      .lab-vhs-room {
+        position: fixed; inset: 0; pointer-events: none; z-index: 50;
+        opacity: 0.12;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+        animation: vhsNoise 0.2s steps(3) infinite;
+      }
+      .lab-vhs-scanlines {
+        position: fixed; inset: 0; pointer-events: none; z-index: 51;
+        background: repeating-linear-gradient(
+          0deg, rgba(0,0,0,0.12) 0px, rgba(0,0,0,0.12) 1px,
+          transparent 2px, transparent 3px
+        );
+        opacity: 0.4;
+      }
+
       .lab-scan {
         position: absolute; inset: 0;
         background: repeating-linear-gradient(
@@ -527,6 +591,8 @@ def render_lab() -> None:
         font-family: ui-monospace, monospace;
       }
     </style>
+    <div class="lab-vhs-room"></div>
+    <div class="lab-vhs-scanlines"></div>
     <div class="lab-hero lab-fade-in">
       <div class="lab-beacon"></div>
       <div class="lab-alarm" title="alarm"></div>
