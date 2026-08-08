@@ -2541,55 +2541,225 @@ if st.session_state.view == "music":
 
     st.markdown("---")
     st.markdown("### Meridium playlist")
-    st.caption("Your personal queue inside Meridium — add tracks by name.")
+    playlist = list(st.session_state.get("meridium_playlist") or [])
+    st.caption(f"Your personal queue inside Meridium — up to 500 tracks. Currently **{len(playlist)}** songs.")
 
-    # Add to playlist
-    add_col1, add_col2 = st.columns([3, 1])
-    with add_col1:
-        new_track = st.text_input("Add track", placeholder="e.g. Nemzzz - Prince of the Scene", key="pl_add", label_visibility="collapsed")
-    with add_col2:
-        if st.button("Add", use_container_width=True, key="pl_add_btn"):
-            t = (new_track or "").strip()
-            if t:
-                pl = list(st.session_state.get("meridium_playlist") or [])
-                pl.append({"title": t, "added": datetime.now().isoformat()})
-                st.session_state.meridium_playlist = pl
+    # ---- Live Spotify search-as-you-type ----
+    MAX_PLAYLIST = 500
+    sp = get_spotify()
+
+    search_q = st.text_input(
+        "Search Spotify",
+        placeholder="Type a song or artist… e.g. Nemzzz Prince of the Scene",
+        key="pl_search",
+        label_visibility="collapsed",
+    )
+    search_q = (search_q or "").strip()
+
+    # Search when user has typed enough characters
+    if search_q and len(search_q) >= 2:
+        if not sp:
+            st.info("Connect Spotify above to search live. You can still add tracks by typing the full name and pressing **Add as text**.")
+        else:
+            # Cache search results so we don't hammer the API on every rerun
+            cache_key = f"pl_search::{search_q.lower()}"
+            if st.session_state.get("_pl_search_key") != cache_key:
+                try:
+                    results = sp.search(q=search_q, type="track", limit=12)
+                    items = (results.get("tracks") or {}).get("items") or []
+                    st.session_state._pl_search_key = cache_key
+                    st.session_state._pl_search_results = [
+                        {
+                            "name": t.get("name") or "Unknown",
+                            "artists": ", ".join(a["name"] for a in (t.get("artists") or [])),
+                            "uri": t.get("uri"),
+                            "album": (t.get("album") or {}).get("name") or "",
+                            "art": ((t.get("album") or {}).get("images") or [{}])[0].get("url"),
+                            "duration_ms": int(t.get("duration_ms") or 0),
+                        }
+                        for t in items
+                    ]
+                except Exception as e:
+                    st.session_state._pl_search_results = []
+                    st.caption(f"Search error: {e}")
+            hits = st.session_state.get("_pl_search_results") or []
+            if not hits:
+                st.caption("No Spotify matches. Try a different spelling, or add as plain text below.")
+            else:
+                st.markdown("**Spotify results** — tap to add")
+                for hi, hit in enumerate(hits):
+                    label = f"{hit['name']} — {hit['artists']}"
+                    if hit.get("album"):
+                        label += f"  ·  {hit['album']}"
+                    bc1, bc2 = st.columns([5, 1])
+                    with bc1:
+                        st.markdown(f"**{hit['name']}**  \n<span style='opacity:0.7;font-size:0.85rem'>{hit['artists']}</span>", unsafe_allow_html=True)
+                    with bc2:
+                        if st.button("＋", key=f"pl_hit_{hi}", help="Add to playlist", use_container_width=True):
+                            if len(playlist) >= MAX_PLAYLIST:
+                                st.warning(f"Playlist is full ({MAX_PLAYLIST} tracks). Remove some first.")
+                            else:
+                                # Avoid exact URI duplicates
+                                existing_uris = {p.get("uri") for p in playlist if p.get("uri")}
+                                if hit.get("uri") and hit["uri"] in existing_uris:
+                                    st.toast("Already in playlist")
+                                else:
+                                    playlist.append({
+                                        "title": f"{hit['name']} - {hit['artists']}",
+                                        "name": hit["name"],
+                                        "artists": hit["artists"],
+                                        "uri": hit.get("uri"),
+                                        "album": hit.get("album") or "",
+                                        "art": hit.get("art"),
+                                        "added": datetime.now().isoformat(),
+                                    })
+                                    st.session_state.meridium_playlist = playlist
+                                    save_user_data()
+                                    st.toast(f"Added: {hit['name']}")
+                                    st.rerun()
+
+    # Manual / text fallback (works offline)
+    with st.expander("Add by typing (no Spotify search)", expanded=False):
+        add_col1, add_col2 = st.columns([3, 1])
+        with add_col1:
+            new_track = st.text_input("Track name", placeholder="e.g. TV Girl - Cynical One", key="pl_add_manual", label_visibility="collapsed")
+        with add_col2:
+            if st.button("Add as text", use_container_width=True, key="pl_add_btn"):
+                t = (new_track or "").strip()
+                if t:
+                    if len(playlist) >= MAX_PLAYLIST:
+                        st.warning(f"Playlist is full ({MAX_PLAYLIST} tracks).")
+                    else:
+                        playlist.append({"title": t, "added": datetime.now().isoformat()})
+                        st.session_state.meridium_playlist = playlist
+                        save_user_data()
+                        st.rerun()
+
+    # ---- Playlist display (handles 250–500 tracks) ----
+    playlist = list(st.session_state.get("meridium_playlist") or [])
+    if not playlist:
+        st.caption("Playlist empty — search above or add a track by name.")
+    else:
+        # Toolbar
+        t1, t2, t3 = st.columns([2, 2, 2])
+        with t1:
+            if sp and st.button("▶ Play first", use_container_width=True, key="pl_play_first"):
+                try:
+                    first = playlist[0]
+                    uri = first.get("uri")
+                    if not uri:
+                        q = first.get("title") or first.get("name") or ""
+                        results = sp.search(q=q, type="track", limit=1)
+                        tracks = (results.get("tracks") or {}).get("items") or []
+                        if tracks:
+                            uri = tracks[0]["uri"]
+                    if uri:
+                        sp.start_playback(uris=[uri])
+                        time.sleep(0.35)
+                        st.success(f"Playing: {first.get('name') or first.get('title')}")
+                        st.rerun()
+                    else:
+                        st.warning("Couldn't resolve that track on Spotify.")
+                except Exception as e:
+                    st.error(f"Playback failed (Premium + active device needed): {e}")
+        with t2:
+            if sp and st.button("▶ Play all (queue)", use_container_width=True, key="pl_play_all", help="Starts the first track; remaining need Premium queue support"):
+                try:
+                    uris = []
+                    for item in playlist[:50]:  # Spotify start_playback uris limit ~100, keep safe
+                        u = item.get("uri")
+                        if u:
+                            uris.append(u)
+                    if not uris and playlist:
+                        # Resolve first few by search
+                        for item in playlist[:10]:
+                            q = item.get("title") or item.get("name") or ""
+                            if not q:
+                                continue
+                            results = sp.search(q=q, type="track", limit=1)
+                            tracks = (results.get("tracks") or {}).get("items") or []
+                            if tracks:
+                                uris.append(tracks[0]["uri"])
+                    if uris:
+                        sp.start_playback(uris=uris)
+                        time.sleep(0.35)
+                        st.success(f"Started queue ({len(uris)} tracks)")
+                        st.rerun()
+                    else:
+                        st.warning("No Spotify URIs found in playlist.")
+                except Exception as e:
+                    st.error(f"Queue failed: {e}")
+        with t3:
+            if st.button("🗑 Clear all", use_container_width=True, key="pl_clear"):
+                st.session_state.meridium_playlist = []
                 save_user_data()
                 st.rerun()
 
-    playlist = st.session_state.get("meridium_playlist") or []
-    if not playlist:
-        st.caption("Playlist empty — add songs above.")
-    else:
-        for i, item in enumerate(playlist):
-            c1, c2 = st.columns([5, 1])
+        # Pagination so 250+ tracks stay usable
+        PAGE_SIZE = 25
+        total = len(playlist)
+        pages = max(1, (total + PAGE_SIZE - 1) // PAGE_SIZE)
+        if "pl_page" not in st.session_state:
+            st.session_state.pl_page = 0
+        # Keep page in range
+        st.session_state.pl_page = max(0, min(st.session_state.pl_page, pages - 1))
+        page = st.session_state.pl_page
+        start = page * PAGE_SIZE
+        end = min(start + PAGE_SIZE, total)
+
+        if pages > 1:
+            nav1, nav2, nav3 = st.columns([1, 2, 1])
+            with nav1:
+                if st.button("← Prev", use_container_width=True, key="pl_prev", disabled=(page <= 0)):
+                    st.session_state.pl_page = page - 1
+                    st.rerun()
+            with nav2:
+                st.markdown(f"<div style='text-align:center;padding-top:8px'>Page **{page+1}** / {pages} · showing {start+1}–{end} of {total}</div>", unsafe_allow_html=True)
+            with nav3:
+                if st.button("Next →", use_container_width=True, key="pl_next", disabled=(page >= pages - 1)):
+                    st.session_state.pl_page = page + 1
+                    st.rerun()
+
+        for i in range(start, end):
+            item = playlist[i]
+            title = item.get("name") or item.get("title") or "Track"
+            artists = item.get("artists") or ""
+            c1, c2, c3 = st.columns([5, 1, 1])
             with c1:
-                st.markdown(f"**{i+1}.** {item.get('title', 'Track')}")
+                if artists:
+                    st.markdown(f"**{i+1}.** {title}  \n<span style='opacity:0.65;font-size:0.82rem'>{artists}</span>", unsafe_allow_html=True)
+                else:
+                    st.markdown(f"**{i+1}.** {title}")
             with c2:
-                if st.button("✕", key=f"pl_del_{i}", help="Remove"):
+                if sp and st.button("▶", key=f"pl_play_{i}", help="Play this track", use_container_width=True):
+                    try:
+                        uri = item.get("uri")
+                        if not uri:
+                            q = item.get("title") or title
+                            results = sp.search(q=q, type="track", limit=1)
+                            tracks = (results.get("tracks") or {}).get("items") or []
+                            if tracks:
+                                uri = tracks[0]["uri"]
+                        if uri:
+                            sp.start_playback(uris=[uri])
+                            time.sleep(0.3)
+                            st.rerun()
+                        else:
+                            st.toast("Couldn't find on Spotify")
+                    except Exception as e:
+                        st.toast(str(e)[:80])
+            with c3:
+                if st.button("✕", key=f"pl_del_{i}", help="Remove", use_container_width=True):
                     pl = list(playlist)
                     pl.pop(i)
                     st.session_state.meridium_playlist = pl
+                    # Adjust page if we emptied the last page
+                    new_total = len(pl)
+                    new_pages = max(1, (new_total + PAGE_SIZE - 1) // PAGE_SIZE)
+                    if st.session_state.pl_page >= new_pages:
+                        st.session_state.pl_page = max(0, new_pages - 1)
                     save_user_data()
                     st.rerun()
-
-        # Try play via Spotify search if connected
-        sp = get_spotify()
-        if sp and st.button("▶ Play first track on Spotify", use_container_width=True, key="pl_play"):
-            try:
-                q = playlist[0].get("title", "")
-                results = sp.search(q=q, type="track", limit=1)
-                tracks = (results.get("tracks") or {}).get("items") or []
-                if tracks:
-                    uri = tracks[0]["uri"]
-                    sp.start_playback(uris=[uri])
-                    time.sleep(0.4)
-                    st.success(f"Playing: {tracks[0]['name']}")
-                    st.rerun()
-                else:
-                    st.warning("No Spotify match found for that title.")
-            except Exception as e:
-                st.error(f"Playback failed (Premium + active Spotify device required): {e}")
 
     st.stop()
 
