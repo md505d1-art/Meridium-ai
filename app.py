@@ -208,6 +208,12 @@ SECRET_THEMES = {
         "accent": "#c4d49a", "accent2": "#6b7a4e", "accent_soft": "rgba(180, 200, 120, 0.16)",
         "unlock": "voss",
     },
+    "TV Girl": {
+        "bg": "#0a0612", "panel": "rgba(28, 16, 40, 0.88)", "panel_solid": "#1a1028",
+        "border": "rgba(244,114,182,0.35)", "text": "#fdf2f8", "muted": "#a8b4d0",
+        "accent": "#f472b6", "accent2": "#60a5fa", "accent_soft": "rgba(244,114,182,0.18)",
+        "unlock": "notallowed",
+    },
 
 }
 
@@ -3389,6 +3395,21 @@ if prompt := st.chat_input("Ask Meridium anything…"):
             st.markdown(soft)
         current["messages"].append({"role": "assistant", "content": soft})
         st.session_state.chats[st.session_state.current_chat_id] = current
+        save_user_data()
+        st.rerun()
+
+    # ARG — TV Girl theme (pink + blue)
+    if prompt.strip().lower() in {"not allowed", "notallowed"}:
+        newly = unlock_theme("TV Girl", "forever will be allowed", apply=True)
+        soft = "Forever will be allowed"
+        with st.chat_message("assistant"):
+            st.markdown(soft)
+        current["messages"].append({"role": "assistant", "content": soft})
+        st.session_state.chats[st.session_state.current_chat_id] = current
+        if newly:
+            st.session_state["_theme_unlock_msg"] = "Theme unlocked: **TV Girl** — pink & blue"
+        else:
+            st.session_state["_theme_unlock_msg"] = "Theme already unlocked: **TV Girl**"
         save_user_data()
         st.rerun()
 
