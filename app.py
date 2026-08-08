@@ -1569,16 +1569,50 @@ def render_spotify_panel(key_prefix="sp"):
                         play_js = "true" if playing else "false"
                         st.components.v1.html(
                             f"""
+                            <style>
+                              html, body {{
+                                margin: 0 !important;
+                                padding: 0 !important;
+                                overflow: hidden !important;
+                                background: transparent !important;
+                                scrollbar-width: none !important;
+                                -ms-overflow-style: none !important;
+                              }}
+                              html::-webkit-scrollbar,
+                              body::-webkit-scrollbar {{
+                                width: 0 !important;
+                                height: 0 !important;
+                                display: none !important;
+                              }}
+                              #mer-lrc-wrap {{
+                                scrollbar-width: none !important;
+                                -ms-overflow-style: none !important;
+                              }}
+                              #mer-lrc-wrap::-webkit-scrollbar {{
+                                width: 0 !important;
+                                height: 0 !important;
+                                display: none !important;
+                                background: transparent !important;
+                              }}
+                              #mer-lrc-wrap::-webkit-scrollbar-thumb,
+                              #mer-lrc-wrap::-webkit-scrollbar-track {{
+                                background: transparent !important;
+                                border: none !important;
+                              }}
+                            </style>
                             <div id="mer-lrc-wrap" style="
                               font-family: Inter, system-ui, sans-serif;
                               color: #e8e6f0;
                               height: 340px;
                               overflow-y: auto;
+                              overflow-x: hidden;
                               padding: 10px 6px;
                               border-radius: 14px;
                               background: rgba(255,255,255,0.04);
                               border: 1px solid rgba(255,255,255,0.1);
                               scroll-behavior: smooth;
+                              scrollbar-width: none;
+                              -ms-overflow-style: none;
                             ">
                               <div id="mer-lrc"></div>
                             </div>
@@ -1659,6 +1693,7 @@ def render_spotify_panel(key_prefix="sp"):
                             </script>
                             """,
                             height=380,
+                            scrolling=False,
                         )
                     else:
                         st.text(lyric_data.get("plain") or lyric_data.get("synced"))
