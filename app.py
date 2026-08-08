@@ -739,6 +739,16 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
 
 
 
+DATA_DIR = Path(__file__).resolve().parent / "data"
+try:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+except Exception:
+    DATA_DIR = Path("/tmp") / "meridium_data"
+    try:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        pass
+
 def _user_file(username: str) -> Path:
     key = hashlib.sha256(username.strip().lower().encode("utf-8")).hexdigest()[:24]
     return DATA_DIR / f"{key}.json"
@@ -1494,7 +1504,7 @@ def render_spotify_panel(key_prefix="sp"):
         if st.button("↻", key=f"{key_prefix}_ref", use_container_width=True):
             st.rerun()
 
-    # —— Lyrics ——
+    # —— Lyrics —— (client-side sync with playback clock)
     try:
         st.markdown("---")
         st.markdown("#### Lyrics")
@@ -1503,7 +1513,7 @@ def render_spotify_panel(key_prefix="sp"):
             st.session_state._lyrics_key = cache_key
             st.session_state._lyrics_data = fetch_synced_lyrics(
                 track["name"],
-                track.get("artist_primary") or track["artists"].split(",")[0].strip(),
+                track.get("artist_primary") or (track.get("artists") or "").split(",")[0].strip(),
                 track.get("album") or "",
                 track.get("duration_ms") or 0,
             )
@@ -1511,36 +1521,115 @@ def render_spotify_panel(key_prefix="sp"):
 
         lyric_data = st.session_state.get("_lyrics_data")
         progress = int(track.get("progress_ms") or 0)
+        playing = bool(track.get("playing"))
 
         if lyric_data and (lyric_data.get("synced") or lyric_data.get("plain")):
             if lyric_data.get("synced"):
                 parsed = parse_lrc(lyric_data["synced"])
                 if parsed:
-                    # find active index
-                    active = 0
-                    for i, (ms, _) in enumerate(parsed):
-                        if ms <= progress:
-                            active = i
-                        else:
-                            break
-                    # show a window of lines
-                    start = max(0, active - 3)
-                    end = min(len(parsed), active + 8)
-                    html_lines = []
-                    for i in range(start, end):
-                        ms, text = parsed[i]
-                        cls = "lyric-line active" if i == active else "lyric-line"
-                        safe = (
-                            text.replace("&", "&amp;")
-                            .replace("<", "&lt;")
-                            .replace(">", "&gt;")
-                        )
-                        html_lines.append(f'<div class="{cls}">{safe}</div>')
-                    st.markdown(
-                        f'<div style="max-height:280px;overflow:auto;padding:0.4rem 0;">{"".join(html_lines)}</div>',
-                        unsafe_allow_html=True,
+                    import json as _json
+                    import html as _html
+                    lines_payload = [
+                        {"ms": int(ms), "text": _html.escape(str(text))}
+                        for ms, text in parsed
+                    ]
+                    payload = _json.dumps(lines_payload)
+                    prog_js = int(progress)
+                    play_js = "true" if playing else "false"
+                    st.components.v1.html(
+                        f"""
+                        <div id="mer-lrc-wrap" style="
+                          font-family: Inter, system-ui, sans-serif;
+                          color: #e8e6f0;
+                          max-height: 320px;
+                          overflow-y: auto;
+                          padding: 12px 8px;
+                          border-radius: 14px;
+                          background: rgba(255,255,255,0.04);
+                          border: 1px solid rgba(255,255,255,0.1);
+                          scroll-behavior: smooth;
+                        ">
+                          <div id="mer-lrc"></div>
+                        </div>
+                        <div id="mer-lrc-status" style="
+                          margin-top:8px;font-size:11px;opacity:0.55;text-align:center;
+                        ">Synced lyrics</div>
+                        <script>
+                        (function(){{
+                          const lines = {payload};
+                          let baseProgress = {prog_js};
+                          const baseWall = Date.now();
+                          let isPlaying = {play_js};
+                          const root = document.getElementById('mer-lrc');
+                          const wrap = document.getElementById('mer-lrc-wrap');
+                          const status = document.getElementById('mer-lrc-status');
+                          if (!root || !lines.length) return;
+
+                          root.innerHTML = lines.map((L, i) =>
+                            '<div class="ml" data-i="'+i+'" style="'
+                            + 'padding:6px 10px;margin:2px 0;border-radius:10px;'
+                            + 'transition:all 0.25s ease;opacity:0.35;font-size:15px;line-height:1.45;'
+                            + 'transform:scale(0.98);">'
+                            + L.text + '</div>'
+                          ).join('');
+
+                          let lastActive = -1;
+                          function currentMs(){{
+                            if (!isPlaying) return baseProgress;
+                            return baseProgress + (Date.now() - baseWall);
+                          }}
+                          function tick(){{
+                            const now = currentMs();
+                            let active = 0;
+                            for (let i = 0; i < lines.length; i++){{
+                              if (lines[i].ms <= now) active = i;
+                              else break;
+                            }}
+                            if (active !== lastActive){{
+                              lastActive = active;
+                              const nodes = root.querySelectorAll('.ml');
+                              nodes.forEach((n, i) => {{
+                                if (i === active){{
+                                  n.style.opacity = '1';
+                                  n.style.fontWeight = '650';
+                                  n.style.transform = 'scale(1.02)';
+                                  n.style.background = 'rgba(196,167,231,0.16)';
+                                  n.style.boxShadow = '0 0 18px rgba(196,167,231,0.15)';
+                                }} else if (Math.abs(i - active) <= 1){{
+                                  n.style.opacity = '0.55';
+                                  n.style.fontWeight = '500';
+                                  n.style.transform = 'scale(1)';
+                                  n.style.background = 'transparent';
+                                  n.style.boxShadow = 'none';
+                                }} else {{
+                                  n.style.opacity = '0.28';
+                                  n.style.fontWeight = '400';
+                                  n.style.transform = 'scale(0.98)';
+                                  n.style.background = 'transparent';
+                                  n.style.boxShadow = 'none';
+                                }}
+                              }});
+                              const el = root.querySelector('.ml[data-i="'+active+'"]');
+                              if (el && wrap){{
+                                const top = el.offsetTop - wrap.clientHeight/2 + el.clientHeight/2;
+                                wrap.scrollTo({{ top: Math.max(0, top), behavior: 'smooth' }});
+                              }}
+                              if (status){{
+                                const sec = Math.floor(now/1000);
+                                const m = Math.floor(sec/60), s = sec%60;
+                                status.textContent = (isPlaying ? '● Live sync  ' : '❚❚ Paused  ')
+                                  + m + ':' + String(s).padStart(2,'0');
+                              }}
+                            }}
+                          }}
+                          tick();
+                          setInterval(tick, 200);
+                        }})();
+                        </script>
+                        """,
+                        height=380,
                     )
-                    st.caption("Synced lyrics · refresh to advance the highlight")
+                    st.caption("Lyrics follow the song in real time · press ↻ if you skip tracks")
                 else:
                     st.text(lyric_data.get("plain") or lyric_data.get("synced"))
             else:
@@ -1552,19 +1641,12 @@ def render_spotify_panel(key_prefix="sp"):
                 with st.spinner("Listening with Meridium…"):
                     est = estimate_lyrics_ai(
                         track["name"],
-                        track.get("artist_primary") or track["artists"],
+                        track.get("artist_primary") or track.get("artists") or "",
                     )
                     st.session_state._lyrics_ai = est or "Could not estimate lyrics right now."
             if st.session_state.get("_lyrics_ai"):
                 st.info("Unofficial AI estimate — not official lyrics.")
                 st.text(st.session_state._lyrics_ai)
-
-        # auto soft-refresh while playing so lyric highlight moves
-        if track.get("playing") and lyric_data and lyric_data.get("synced"):
-            time.sleep(0.05)  # tiny yield
-            # Streamlit fragment-style: user still hits refresh; optional auto
-            st.caption("")
-
     except Exception:
         st.caption("Lyrics unavailable right now.")
 
@@ -2372,9 +2454,38 @@ if st.session_state.view not in ("lab", "note", "voss_file"):
 # MUSIC — dedicated player + Meridium playlist
 if st.session_state.view == "music":
     st.session_state.show_spotify = True
-    # Header filled by panel's Now playing animation
     st.markdown("""
-    <div class="panel" style="text-align:center;max-width:420px;margin:0 auto 12px;">
+    <style>
+      @keyframes musicFadeUp {
+        from { opacity: 0; transform: translateY(14px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes equalizer {
+        0%,100% { height: 6px; }
+        50% { height: 18px; }
+      }
+      .music-hero {
+        text-align: center;
+        max-width: 440px;
+        margin: 0 auto 14px;
+        padding: 18px 16px;
+        animation: musicFadeUp 0.5s ease both;
+      }
+      .music-eq {
+        display: flex; gap: 4px; justify-content: center; align-items: flex-end;
+        height: 22px; margin-bottom: 10px;
+      }
+      .music-eq span {
+        width: 4px; border-radius: 2px; background: #c4a7e7;
+        animation: equalizer 0.9s ease-in-out infinite;
+      }
+      .music-eq span:nth-child(2) { animation-delay: 0.15s; }
+      .music-eq span:nth-child(3) { animation-delay: 0.3s; }
+      .music-eq span:nth-child(4) { animation-delay: 0.45s; }
+      .music-eq span:nth-child(5) { animation-delay: 0.2s; }
+    </style>
+    <div class="panel music-hero">
+      <div class="music-eq"><span></span><span></span><span></span><span></span><span></span></div>
       <div class="panel-label">Music</div>
       <div class="hero" style="font-size:1.35rem;">Now playing</div>
       <div class="ridge"></div>
