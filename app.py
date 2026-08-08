@@ -2621,7 +2621,6 @@ if st.session_state.view == "lyrics_full":
     import html as _html
     import json as _json
 
-    # Keep progress fresh while fullscreen
     sp_fs = get_spotify()
     track_fs = None
     if sp_fs:
@@ -2634,13 +2633,11 @@ if st.session_state.view == "lyrics_full":
     lyric_data = st.session_state.get("_lyrics_fs_data") or {}
 
     if track_fs:
-        # Prefer live Spotify state
         t_name = track_fs.get("name") or saved.get("name") or "Unknown"
         t_artists = track_fs.get("artists") or saved.get("artists") or ""
         t_art = track_fs.get("art") or saved.get("art")
         progress = int(track_fs.get("progress_ms") or 0)
         playing = bool(track_fs.get("playing"))
-        # Refresh lyrics if track changed
         live_key = f"lyrics::{track_fs.get('uri') or t_name}"
         if st.session_state.get("_lyrics_key") != live_key:
             st.session_state._lyrics_key = live_key
@@ -2670,11 +2667,89 @@ if st.session_state.view == "lyrics_full":
         progress = int(saved.get("progress_ms") or 0)
         playing = bool(saved.get("playing"))
 
-    # Exit control (Streamlit button above the immersive layer)
-    if st.button("✕ Exit fullscreen", key="lyrics_fs_exit"):
-        ret = st.session_state.get("_lyrics_fs_return") or "music"
-        st.session_state.view = ret
-        st.rerun()
+    # ---- Control bar (prev / play-pause / next / refresh / exit) ----
+    st.markdown(
+        """
+        <style>
+          .stApp, [data-testid="stAppViewContainer"], section.main,
+          [data-testid="stAppViewBlockContainer"], .block-container {
+            background: #0a0a0e !important;
+            max-width: 100% !important;
+            padding-top: 0.4rem !important;
+            padding-bottom: 0 !important;
+            padding-left: 0.6rem !important;
+            padding-right: 0.6rem !important;
+          }
+          [data-testid="stHeader"], #MainMenu, footer,
+          [data-testid="stToolbar"], header { display:none !important; }
+          /* Control bar buttons */
+          div[data-testid="stHorizontalBlock"] div[data-testid="stButton"] button {
+            background: rgba(255,255,255,0.08) !important;
+            color: #f0eef8 !important;
+            border: 1px solid rgba(255,255,255,0.14) !important;
+            border-radius: 999px !important;
+            min-height: 42px !important;
+            font-weight: 600 !important;
+          }
+          div[data-testid="stHorizontalBlock"] div[data-testid="stButton"] button:hover {
+            background: rgba(196,167,231,0.18) !important;
+            border-color: rgba(196,167,231,0.45) !important;
+            color: #c4a7e7 !important;
+          }
+          iframe { border: none !important; }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
+    with c1:
+        if st.button("⏮", key="fs_prev", use_container_width=True, help="Previous"):
+            if sp_fs:
+                try:
+                    sp_fs.previous_track()
+                    time.sleep(0.4)
+                    st.session_state._lyrics_key = None  # force lyric reload
+                except Exception as e:
+                    st.toast(str(e)[:80])
+            st.rerun()
+    with c2:
+        play_icon = "⏸" if playing else "▶"
+        if st.button(play_icon, key="fs_play", use_container_width=True, help="Play / Pause"):
+            if sp_fs:
+                try:
+                    if playing:
+                        sp_fs.pause_playback()
+                    else:
+                        sp_fs.start_playback()
+                    time.sleep(0.25)
+                except Exception as e:
+                    st.toast(str(e)[:80])
+            st.rerun()
+    with c3:
+        if st.button("⏭", key="fs_next", use_container_width=True, help="Next"):
+            if sp_fs:
+                try:
+                    sp_fs.next_track()
+                    time.sleep(0.4)
+                    st.session_state._lyrics_key = None
+                except Exception as e:
+                    st.toast(str(e)[:80])
+            st.rerun()
+    with c4:
+        if st.button("↻", key="fs_refresh", use_container_width=True, help="Refresh lyrics"):
+            st.session_state._lyrics_key = None
+            st.session_state._lyrics_fs_data = None
+            st.rerun()
+    with c5:
+        if st.button("⛶", key="fs_browser", use_container_width=True, help="Browser fullscreen"):
+            st.session_state._fs_request_browser = True
+            st.rerun()
+    with c6:
+        if st.button("✕", key="lyrics_fs_exit", use_container_width=True, help="Exit"):
+            ret = st.session_state.get("_lyrics_fs_return") or "music"
+            st.session_state.view = ret
+            st.rerun()
 
     # Build lyric lines
     lines_payload = []
@@ -2696,31 +2771,9 @@ if st.session_state.view == "lyrics_full":
     name_js = _json.dumps(t_name)
     artists_js = _json.dumps(t_artists)
     art_js = _json.dumps(t_art or "")
+    want_browser_fs = "true" if st.session_state.pop("_fs_request_browser", False) else "false"
 
-    st.markdown(
-        """
-        <style>
-          .stApp, [data-testid="stAppViewContainer"], section.main,
-          [data-testid="stAppViewBlockContainer"], .block-container {
-            background: #0a0a0e !important;
-            max-width: 100% !important;
-            padding: 0 !important;
-          }
-          [data-testid="stHeader"], #MainMenu, footer,
-          [data-testid="stToolbar"], header { display:none !important; }
-          div[data-testid="stButton"] button {
-            position: relative;
-            z-index: 50;
-            background: rgba(255,255,255,0.08) !important;
-            color: #e8e6f0 !important;
-            border: 1px solid rgba(255,255,255,0.15) !important;
-            border-radius: 999px !important;
-          }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
+    # Tall immersive stage — fills the rest of the viewport under the control bar
     st.components.v1.html(
         f"""
         <style>
@@ -2728,13 +2781,14 @@ if st.session_state.view == "lyrics_full":
             margin: 0; padding: 0; overflow: hidden;
             background: #0a0a0e;
             font-family: Inter, system-ui, sans-serif;
-            height: 100%;
+            width: 100%; height: 100%;
           }}
           #fs-root {{
-            position: fixed; inset: 0;
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
             background:
-              radial-gradient(900px 500px at 20% 0%, rgba(196,167,231,0.14), transparent 55%),
-              radial-gradient(700px 400px at 100% 100%, rgba(96,165,250,0.10), transparent 50%),
+              radial-gradient(1000px 560px at 18% -5%, rgba(196,167,231,0.16), transparent 55%),
+              radial-gradient(800px 480px at 100% 110%, rgba(96,165,250,0.12), transparent 50%),
               #0a0a0e;
             color: #f0eef8;
             display: flex;
@@ -2743,26 +2797,26 @@ if st.session_state.view == "lyrics_full":
             justify-content: center;
           }}
           #fs-meta {{
-            position: fixed;
-            left: 28px;
-            bottom: 28px;
+            position: absolute;
+            left: 24px;
+            bottom: 22px;
             display: flex;
             align-items: center;
             gap: 14px;
             z-index: 5;
-            max-width: min(420px, 70vw);
+            max-width: min(440px, 68vw);
           }}
           #fs-meta img {{
-            width: 72px; height: 72px;
-            border-radius: 10px;
+            width: 76px; height: 76px;
+            border-radius: 12px;
             object-fit: cover;
-            box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+            box-shadow: 0 10px 32px rgba(0,0,0,0.5);
             background: rgba(255,255,255,0.06);
           }}
           #fs-meta .txt {{ min-width: 0; }}
           #fs-meta .name {{
             font-weight: 650;
-            font-size: 1.05rem;
+            font-size: 1.1rem;
             letter-spacing: -0.02em;
             white-space: nowrap;
             overflow: hidden;
@@ -2770,51 +2824,53 @@ if st.session_state.view == "lyrics_full":
           }}
           #fs-meta .artists {{
             opacity: 0.7;
-            font-size: 0.88rem;
-            margin-top: 2px;
+            font-size: 0.9rem;
+            margin-top: 3px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
           }}
           #fs-lrc-wrap {{
-            width: min(820px, 92vw);
-            height: min(70vh, 640px);
+            width: min(900px, 94vw);
+            height: 100%;
+            max-height: 100%;
             overflow-y: auto;
             overflow-x: hidden;
             text-align: center;
-            padding: 24px 12px;
+            padding: 18vh 16px 22vh;
+            box-sizing: border-box;
             scrollbar-width: none;
             -ms-overflow-style: none;
-            mask-image: linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent);
-            -webkit-mask-image: linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent);
+            mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
+            -webkit-mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 86%, transparent);
           }}
           #fs-lrc-wrap::-webkit-scrollbar {{ display: none; width: 0; height: 0; }}
           .fs-line {{
-            padding: 10px 16px;
-            margin: 4px 0;
-            font-size: clamp(1.25rem, 3.6vw, 2rem);
+            padding: 12px 18px;
+            margin: 5px 0;
+            font-size: clamp(1.35rem, 4vw, 2.35rem);
             line-height: 1.35;
             letter-spacing: -0.02em;
-            opacity: 0.28;
+            opacity: 0.26;
             transform: scale(0.96);
             transition: all 0.2s ease;
-            border-radius: 14px;
+            border-radius: 16px;
           }}
           .fs-line.active {{
             opacity: 1;
             font-weight: 700;
-            transform: scale(1.04);
+            transform: scale(1.05);
             color: #fff;
-            text-shadow: 0 0 24px rgba(196,167,231,0.35);
+            text-shadow: 0 0 28px rgba(196,167,231,0.4);
           }}
           .fs-line.near {{
-            opacity: 0.55;
+            opacity: 0.52;
             transform: scale(0.99);
           }}
           #fs-status {{
-            position: fixed;
-            right: 28px;
-            bottom: 32px;
+            position: absolute;
+            right: 24px;
+            bottom: 28px;
             font-size: 12px;
             opacity: 0.5;
             letter-spacing: 0.04em;
@@ -2840,6 +2896,18 @@ if st.session_state.view == "lyrics_full":
           const name = {name_js};
           const artists = {artists_js};
           const art = {art_js};
+          const wantFs = {want_browser_fs};
+
+          // Optional true browser fullscreen (user-gesture from Streamlit button → rerun)
+          if (wantFs) {{
+            try {{
+              const el = window.parent && window.parent.document
+                ? window.parent.document.documentElement
+                : document.documentElement;
+              if (el && el.requestFullscreen) el.requestFullscreen().catch(function(){{}});
+              else if (el && el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+            }} catch(e) {{}}
+          }}
 
           const root = document.getElementById('fs-lrc');
           const wrap = document.getElementById('fs-lrc-wrap');
@@ -2899,17 +2967,15 @@ if st.session_state.view == "lyrics_full":
         }})();
         </script>
         """,
-        height=720,
+        height=820,
         scrolling=False,
     )
 
-    # Keep progress in sync
-    if playing:
-        try:
-            from streamlit_autorefresh import st_autorefresh
-            st_autorefresh(interval=3500, key="lyrics_fs_sync")
-        except Exception:
-            pass
+    try:
+        from streamlit_autorefresh import st_autorefresh
+        st_autorefresh(interval=3500, key="lyrics_fs_sync")
+    except Exception:
+        pass
 
     st.stop()
 
