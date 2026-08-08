@@ -1278,7 +1278,7 @@ def current_track(sp):
 
 
 def fetch_synced_lyrics(track_name: str, artist: str, album: str = "", duration_ms: int = 0):
-    """Fetch synced lyrics from LRCLIB — strict title/artist match only."""
+    """Fetch synced / plain lyrics from LRCLIB (free, no key)."""
     import urllib.parse
     import urllib.request
     import json as _json
@@ -1291,126 +1291,65 @@ def fetch_synced_lyrics(track_name: str, artist: str, album: str = "", duration_
         with urllib.request.urlopen(req, timeout=8) as resp:
             return _json.loads(resp.read().decode("utf-8", "replace"))
 
-    def _norm(s: str) -> str:
-        s = (s or "").lower().strip()
-        s = re.sub(r"\(.*?\)|\[.*?\]", " ", s)  # drop (feat…) etc for compare
-        s = re.sub(r"[^a-z0-9\s]", " ", s)
-        s = re.sub(r"\s+", " ", s).strip()
-        return s
-
-    def _close(a: str, b: str) -> bool:
-        a, b = _norm(a), _norm(b)
-        if not a or not b:
-            return False
-        if a == b:
-            return True
-        if a in b or b in a:
-            return True
-        # token overlap
-        ta, tb = set(a.split()), set(b.split())
-        if not ta or not tb:
-            return False
-        return len(ta & tb) / max(len(ta), len(tb)) >= 0.7
-
     try:
-        tn = (track_name or "").strip()
-        ar = (artist or "").strip()
-        if not tn or not ar:
-            return None
-
-        # 1) Exact get with duration when possible
-        q = {"track_name": tn, "artist_name": ar}
-        if album:
-            q["album_name"] = album
-        if duration_ms and duration_ms > 0:
-            q["duration"] = int(round(duration_ms / 1000))
-        try:
-            data = _get("https://lrclib.net/api/get?" + urllib.parse.urlencode(q))
-            if isinstance(data, dict) and (data.get("syncedLyrics") or data.get("plainLyrics")):
-                if _close(data.get("trackName") or tn, tn) and _close(data.get("artistName") or ar, ar):
+        if track_name and artist:
+            q = {
+                "track_name": track_name,
+                "artist_name": artist,
+            }
+            if album:
+                q["album_name"] = album
+            if duration_ms and duration_ms > 0:
+                q["duration"] = int(round(duration_ms / 1000))
+            url = "https://lrclib.net/api/get?" + urllib.parse.urlencode(q)
+            try:
+                data = _get(url)
+                if isinstance(data, dict) and (data.get("syncedLyrics") or data.get("plainLyrics")):
                     return {
                         "synced": data.get("syncedLyrics") or "",
                         "plain": data.get("plainLyrics") or "",
-                        "source": "lrclib-exact",
-                        "matched": f"{data.get('artistName')} — {data.get('trackName')}",
+                        "source": "lrclib",
                     }
-        except Exception:
-            pass
-
-        # 2) Search, then pick only high-confidence matches
-        results = _get(
-            "https://lrclib.net/api/search?"
-            + urllib.parse.urlencode({"track_name": tn, "artist_name": ar})
-        )
-        if not isinstance(results, list):
-            results = []
-        if not results:
-            results = _get(
-                "https://lrclib.net/api/search?"
-                + urllib.parse.urlencode({"q": f"{ar} {tn}"})
-            ) or []
-
-        best = None
-        best_score = -1
-        target_dur = int(round((duration_ms or 0) / 1000)) if duration_ms else None
-
-        for item in results if isinstance(results, list) else []:
-            if not isinstance(item, dict):
-                continue
-            it_name = item.get("trackName") or ""
-            it_art = item.get("artistName") or ""
-            if not _close(it_name, tn):
-                continue
-            if not _close(it_art, ar):
-                continue
-            score = 0
-            if _norm(it_name) == _norm(tn):
-                score += 5
-            if _norm(it_art) == _norm(ar):
-                score += 5
-            if item.get("syncedLyrics"):
-                score += 4
-            if item.get("plainLyrics"):
-                score += 1
-            if target_dur and item.get("duration"):
-                diff = abs(int(item["duration"]) - target_dur)
-                if diff <= 2:
-                    score += 4
-                elif diff <= 5:
-                    score += 2
-                elif diff > 15:
-                    score -= 3
-            if score > best_score:
-                best_score = score
-                best = item
-
-        # Require a solid match — don't show random same-artist tracks
-        if best is None or best_score < 8:
-            return None
-
-        synced = best.get("syncedLyrics") or ""
-        plain = best.get("plainLyrics") or ""
-        if not synced and not plain and best.get("id"):
-            try:
-                detail = _get(f"https://lrclib.net/api/get/{best['id']}")
-                if isinstance(detail, dict):
-                    synced = detail.get("syncedLyrics") or synced
-                    plain = detail.get("plainLyrics") or plain
-                    best = detail
             except Exception:
                 pass
-
-        if not synced and not plain:
-            return None
-
-        return {
-            "synced": synced,
-            "plain": plain,
-            "source": "lrclib-strict",
-            "matched": f"{best.get('artistName')} — {best.get('trackName')}",
-        }
+            search_url = "https://lrclib.net/api/search?" + urllib.parse.urlencode(
+                {"q": f"{artist} {track_name}"}
+            )
+            results = _get(search_url)
+            if isinstance(results, list) and results:
+                def _score(item):
+                    tn = (item.get("trackName") or "").lower()
+                    an = (item.get("artistName") or "").lower()
+                    s = 0
+                    if track_name.lower() in tn or tn in track_name.lower():
+                        s += 3
+                    if artist.lower() in an or an in artist.lower():
+                        s += 3
+                    if item.get("syncedLyrics"):
+                        s += 5
+                    if item.get("plainLyrics"):
+                        s += 1
+                    return s
+                results = sorted(results, key=_score, reverse=True)
+                best = results[0]
+                if best.get("syncedLyrics") or best.get("plainLyrics"):
+                    return {
+                        "synced": best.get("syncedLyrics") or "",
+                        "plain": best.get("plainLyrics") or "",
+                        "source": "lrclib-search",
+                    }
+                rid = best.get("id")
+                if rid:
+                    detail = _get(f"https://lrclib.net/api/get/{rid}")
+                    if isinstance(detail, dict):
+                        return {
+                            "synced": detail.get("syncedLyrics") or "",
+                            "plain": detail.get("plainLyrics") or "",
+                            "source": "lrclib-id",
+                        }
     except Exception:
-        return None
+        pass
+    return None
 
 
 
@@ -1588,8 +1527,6 @@ def render_spotify_panel(key_prefix="sp"):
             lyric_data = st.session_state.get("_lyrics_data")
             progress = int(track.get("progress_ms") or 0)
             playing = bool(track.get("playing"))
-            if lyric_data and lyric_data.get("matched"):
-                st.caption(f"Matched: {lyric_data['matched']}")
 
             if lyric_data and (lyric_data.get("synced") or lyric_data.get("plain")):
                 if lyric_data.get("synced"):
@@ -1703,7 +1640,7 @@ def render_spotify_panel(key_prefix="sp"):
                     st.text(lyric_data.get("plain") or "")
                     st.caption("Plain lyrics (not timed)")
             else:
-                st.caption("No matching lyrics for this exact track (won't show a different song).")
+                st.caption("No synced lyrics found.")
                 if st.button("Estimate lyrics with AI", key=f"{key_prefix}_ai_lyrics"):
                     with st.spinner("Listening with Meridium…"):
                         est = estimate_lyrics_ai(
