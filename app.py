@@ -3550,6 +3550,127 @@ if st.session_state.view == "listen":
     st.stop()
 
 
+# ===== LIBRARY HELPERS =====
+LIBRARY_CATALOG = [
+    {
+        "id": "frankenstein",
+        "title": "Frankenstein",
+        "author": "Mary Shelley",
+        "note": "Full text · Project Gutenberg",
+        "file": "frankenstein.txt",
+        "gutenberg": "https://www.gutenberg.org/ebooks/84",
+    },
+    {
+        "id": "pride",
+        "title": "Pride and Prejudice",
+        "author": "Jane Austen",
+        "note": "Full text · Project Gutenberg",
+        "file": "pride.txt",
+        "gutenberg": "https://www.gutenberg.org/ebooks/1342",
+    },
+    {
+        "id": "scandal",
+        "title": "A Scandal in Bohemia",
+        "author": "Arthur Conan Doyle",
+        "note": "Full story · Project Gutenberg",
+        "file": "scandal.txt",
+        "gutenberg": "https://www.gutenberg.org/ebooks/1661",
+    },
+]
+
+def _library_dir() -> Path:
+    d = Path(__file__).resolve().parent / "data" / "library"
+    try:
+        d.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        d = Path("/tmp") / "meridium_library"
+        d.mkdir(parents=True, exist_ok=True)
+    return d
+
+def _strip_gutenberg_boilerplate(text: str) -> str:
+    """Remove Project Gutenberg header/footer when present."""
+    if not text:
+        return ""
+    start_markers = (
+        "*** START OF THE PROJECT GUTENBERG EBOOK",
+        "*** START OF THIS PROJECT GUTENBERG EBOOK",
+        "***START OF THE PROJECT GUTENBERG EBOOK",
+    )
+    end_markers = (
+        "*** END OF THE PROJECT GUTENBERG EBOOK",
+        "*** END OF THIS PROJECT GUTENBERG EBOOK",
+        "***END OF THE PROJECT GUTENBERG EBOOK",
+    )
+    upper = text
+    start = 0
+    for m in start_markers:
+        idx = upper.find(m)
+        if idx != -1:
+            # skip the rest of that line
+            nl = upper.find("\n", idx)
+            start = (nl + 1) if nl != -1 else idx + len(m)
+            break
+    end = len(text)
+    for m in end_markers:
+        idx = upper.find(m, start)
+        if idx != -1:
+            end = idx
+            break
+    body = text[start:end].strip()
+    # Soft trim excess leading blank lines
+    return body
+
+def load_library_book_text(book: dict) -> str:
+    """Load full book text from local cache (data/library)."""
+    fname = book.get("file") or ""
+    if not fname:
+        return book.get("text") or ""
+    path = _library_dir() / fname
+    # Also try alongside the packaged artifacts path
+    alts = [
+        path,
+        Path(__file__).resolve().parent / "data" / "library" / fname,
+        Path("/home/workdir/artifacts/data/library") / fname,
+    ]
+    for p in alts:
+        try:
+            if p.exists() and p.stat().st_size > 100:
+                raw = p.read_text(encoding="utf-8", errors="replace")
+                return _strip_gutenberg_boilerplate(raw)
+        except Exception:
+            continue
+    return book.get("text") or (
+        f"Full text file not found ({fname}). "
+        f"Add it under data/library/ or read on Project Gutenberg."
+    )
+
+def paginate_text(text: str, page_size: int = 2200) -> list:
+    """Split text into readable pages near page_size, preferring paragraph breaks."""
+    text = (text or "").strip()
+    if not text:
+        return [""]
+    pages = []
+    i = 0
+    n = len(text)
+    while i < n:
+        if i + page_size >= n:
+            pages.append(text[i:].strip())
+            break
+        # Prefer break at paragraph, then sentence, then space
+        window = text[i : i + page_size + 400]
+        cut = page_size
+        for sep in ("\n\n", "\n", ". ", "? ", "! ", "; ", " "):
+            pos = window.rfind(sep, int(page_size * 0.55), page_size + 350)
+            if pos != -1:
+                cut = pos + len(sep)
+                break
+        chunk = text[i : i + cut].strip()
+        if chunk:
+            pages.append(chunk)
+        i += max(cut, 1)
+    return pages or [""]
+
+
 # ===== LIBRARY =====
 if st.session_state.view == "library":
     st.markdown(
@@ -3557,7 +3678,7 @@ if st.session_state.view == "library":
         <div class="panel">
           <div class="panel-label">Library</div>
           <div class="hero" style="font-size:1.4rem;">Free shelf</div>
-          <div class="sub">Public domain &amp; open texts · read in Meridium</div>
+          <div class="sub">Full public-domain books · turn the page</div>
           <div class="ridge"></div>
         </div>
         """,
@@ -3566,9 +3687,10 @@ if st.session_state.view == "library":
     if st.button("← Home", key="lib_back_home"):
         st.session_state.view = "home"
         st.session_state.library_reading = None
+        st.session_state.library_page = 0
         st.rerun()
 
-    shelf = list(st.session_state.get("library_shelf") or [])
+    shelf = LIBRARY_CATALOG
     reading_id = st.session_state.get("library_reading")
     current_book = next((b for b in shelf if b.get("id") == reading_id), None)
 
@@ -3578,20 +3700,87 @@ if st.session_state.view == "library":
             f"{current_book.get('author', '')}"
             + (f" · {current_book['note']}" if current_book.get("note") else "")
         )
-        st.markdown("---")
-        # Reader
-        body = current_book.get("text") or "_No text loaded for this title yet._"
+
+        full_text = load_library_book_text(current_book)
+        pages = paginate_text(full_text, page_size=2200)
+        total_pages = max(1, len(pages))
+        if "library_page" not in st.session_state:
+            st.session_state.library_page = 0
+        # Reset page when switching books
+        if st.session_state.get("_library_page_book") != current_book.get("id"):
+            st.session_state.library_page = 0
+            st.session_state._library_page_book = current_book.get("id")
+        page = max(0, min(int(st.session_state.library_page), total_pages - 1))
+        st.session_state.library_page = page
+
+        # Page navigation
+        n1, n2, n3 = st.columns([1, 2, 1])
+        with n1:
+            if st.button("← Prev page", key="lib_prev", use_container_width=True, disabled=(page <= 0)):
+                st.session_state.library_page = page - 1
+                st.rerun()
+        with n2:
+            st.markdown(
+                f"<div style='text-align:center;padding-top:8px'>"
+                f"Page **{page + 1}** / **{total_pages}**"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+        with n3:
+            if st.button("Next page →", key="lib_next", use_container_width=True, disabled=(page >= total_pages - 1)):
+                st.session_state.library_page = page + 1
+                st.rerun()
+
+        # Jump to page
+        jump = st.number_input(
+            "Go to page",
+            min_value=1,
+            max_value=total_pages,
+            value=page + 1,
+            step=1,
+            key="lib_page_jump",
+        )
+        if int(jump) - 1 != page:
+            st.session_state.library_page = int(jump) - 1
+            st.rerun()
+
+        body = pages[page]
+        # Escape minimal HTML risk
+        import html as _html_lib
+        safe = _html_lib.escape(body)
         st.markdown(
-            f"<div class='panel' style='line-height:1.7;font-size:1.02rem;"
-            f"white-space:pre-wrap'>{body}</div>",
+            f"<div class='panel' style='line-height:1.75;font-size:1.05rem;"
+            f"white-space:pre-wrap'>{safe}</div>",
             unsafe_allow_html=True,
         )
-        if st.button("← Back to shelf", key="lib_back_shelf"):
-            st.session_state.library_reading = None
-            st.rerun()
+
+        # Bottom nav too
+        b1, b2, b3 = st.columns([1, 2, 1])
+        with b1:
+            if st.button("← Prev", key="lib_prev_b", use_container_width=True, disabled=(page <= 0)):
+                st.session_state.library_page = page - 1
+                st.rerun()
+        with b2:
+            if st.button("← Back to shelf", key="lib_back_shelf", use_container_width=True):
+                st.session_state.library_reading = None
+                st.session_state.library_page = 0
+                st.rerun()
+        with b3:
+            if st.button("Next →", key="lib_next_b", use_container_width=True, disabled=(page >= total_pages - 1)):
+                st.session_state.library_page = page + 1
+                st.rerun()
+
+        if current_book.get("gutenberg"):
+            st.caption(f"Source: [Project Gutenberg]({current_book['gutenberg']})")
     else:
-        st.caption("Choose a book to read.")
+        st.caption("Choose a book to read — full text, page by page.")
         for book in shelf:
+            # Quick page count preview
+            try:
+                t = load_library_book_text(book)
+                pc = len(paginate_text(t, 2200))
+            except Exception:
+                pc = "?"
             bc1, bc2 = st.columns([4, 1])
             with bc1:
                 st.markdown(
@@ -3599,18 +3788,20 @@ if st.session_state.view == "library":
                     f"<span style='opacity:0.7;font-size:0.85rem'>"
                     f"{book.get('author', '')}"
                     f"{(' · ' + book['note']) if book.get('note') else ''}"
+                    f" · {pc} pages"
                     f"</span>",
                     unsafe_allow_html=True,
                 )
             with bc2:
                 if st.button("Read", key=f"lib_read_{book.get('id')}", use_container_width=True):
                     st.session_state.library_reading = book.get("id")
+                    st.session_state.library_page = 0
                     st.rerun()
 
         st.markdown("---")
         st.caption(
-            "Only public-domain or explicitly free texts belong here. "
-            "Full classics: [Project Gutenberg](https://www.gutenberg.org)."
+            "Public-domain texts from [Project Gutenberg](https://www.gutenberg.org). "
+            "Only free/open works are hosted in Meridium."
         )
     st.stop()
 
@@ -3907,58 +4098,7 @@ if st.session_state.view == "home":
         )
         st.caption("Free to read · public domain & open texts")
 
-        # Built-in free shelf + any user-added titles in session
-        LIBRARY_SHELF = list(st.session_state.get("library_shelf") or [])
-        if not LIBRARY_SHELF:
-            LIBRARY_SHELF = [
-                {
-                    "id": "frankenstein",
-                    "title": "Frankenstein",
-                    "author": "Mary Shelley",
-                    "note": "Public domain",
-                    "text": (
-                        "Chapter 1\n\n"
-                        "I am by birth a Genevese, and my family is one of the most "
-                        "distinguished of that republic. My ancestors had been for many "
-                        "years counsellors and syndics, and my father had filled several "
-                        "public situations with honour and reputation. He was respected "
-                        "by all who knew him for his integrity and indefatigable attention "
-                        "to public business.\n\n"
-                        "— Opening of Frankenstein (1818). Full text free on Project Gutenberg."
-                    ),
-                },
-                {
-                    "id": "pride",
-                    "title": "Pride and Prejudice",
-                    "author": "Jane Austen",
-                    "note": "Public domain",
-                    "text": (
-                        "Chapter 1\n\n"
-                        "It is a truth universally acknowledged, that a single man in "
-                        "possession of a good fortune, must be in want of a wife.\n\n"
-                        "However little known the feelings or views of such a man may be "
-                        "on his first entering a neighbourhood, this truth is so well "
-                        "fixed in the minds of the surrounding families, that he is "
-                        "considered the rightful property of some one or other of their daughters.\n\n"
-                        "— Opening of Pride and Prejudice. Full text free on Project Gutenberg."
-                    ),
-                },
-                {
-                    "id": "sherlock",
-                    "title": "A Scandal in Bohemia",
-                    "author": "Arthur Conan Doyle",
-                    "note": "Public domain",
-                    "text": (
-                        "To Sherlock Holmes she is always the woman. I have seldom heard "
-                        "him mention her under any other name. In his eyes she eclipses "
-                        "and predominates the whole of her sex.\n\n"
-                        "— From The Adventures of Sherlock Holmes. Free on Project Gutenberg."
-                    ),
-                },
-            ]
-            st.session_state.library_shelf = LIBRARY_SHELF
-
-        for book in LIBRARY_SHELF[:6]:
+        for book in LIBRARY_CATALOG:
             bcol1, bcol2 = st.columns([4, 1])
             with bcol1:
                 st.markdown(
@@ -3972,11 +4112,13 @@ if st.session_state.view == "home":
             with bcol2:
                 if st.button("Read", key=f"lib_home_{book.get('id')}", use_container_width=True):
                     st.session_state.library_reading = book.get("id")
+                    st.session_state.library_page = 0
                     st.session_state.view = "library"
                     st.rerun()
 
         if st.button("Open full library", key="lib_home_open", use_container_width=True):
             st.session_state.library_reading = None
+            st.session_state.library_page = 0
             st.session_state.view = "library"
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
