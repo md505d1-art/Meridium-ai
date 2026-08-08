@@ -663,6 +663,22 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
     }}
     label, [data-testid="stWidgetLabel"] p, .stCaption {{ color: {SHELL["muted"]} !important; }}
     h1,h2,h3,h4,.stMarkdown,.stMarkdown p {{ color: {SHELL["text"]} !important; }}
+    /* Now-playing row in Meridium playlist (beats theme text colour) */
+    .mer-now-playing, .mer-now-playing strong, .mer-now-playing span {{
+        color: #4ade80 !important;
+    }}
+    .mer-now-playing .mer-now-sub {{
+        color: #86efac !important;
+        opacity: 0.9;
+        font-size: 0.82rem;
+    }}
+    .mer-now-playing .mer-now-badge {{
+        color: #86efac !important;
+        opacity: 0.95;
+        font-size: 0.75rem;
+        font-weight: 500;
+        margin-left: 6px;
+    }}
     .stCheckbox label p {{ color: {SHELL["text"]} !important; }}
     [data-testid="stAlert"] {{
         background: {SHELL["panel_solid"]} !important;
@@ -2943,20 +2959,95 @@ if st.session_state.view == "music":
             else:
                 st.caption(f"Showing all **{total}** tracks")
 
+            # Now-playing indicator (green title when this track is active on Spotify)
+            now = None
+            now_uri = ""
+            now_name = ""
+            now_artists = ""
+            if sp:
+                try:
+                    now = current_track(sp)
+                except Exception:
+                    now = None
+            if now:
+                now_uri = (now.get("uri") or "").strip()
+                now_name = (now.get("name") or "").strip().lower()
+                now_artists = (now.get("artist_primary") or now.get("artists") or "").strip().lower()
+                # Gentle refresh so the green highlight advances with the queue
+                try:
+                    from streamlit_autorefresh import st_autorefresh
+                    st_autorefresh(interval=3500, key="pl_now_playing_refresh")
+                except Exception:
+                    pass
+
+            def _norm(s: str) -> str:
+                s = (s or "").lower().strip()
+                s = re.sub(r"\s+-\s+", " ", s)
+                s = re.sub(r"[^\w\s]", " ", s)
+                s = re.sub(r"\s+", " ", s).strip()
+                return s
+
+            def _is_now_playing(item: dict) -> bool:
+                if not now:
+                    return False
+                uri = (item.get("uri") or "").strip()
+                if now_uri and uri and uri == now_uri:
+                    return True
+                # Compare normalized names (handles "Song - Artist" titles)
+                item_name = _norm(item.get("name") or "")
+                item_title = _norm(item.get("title") or "")
+                item_arts = _norm(item.get("artists") or "")
+                nn = _norm(now_name)
+                na = _norm(now_artists)
+                if not nn:
+                    return False
+                # Direct name hits
+                if item_name and (item_name == nn or nn in item_name or item_name in nn):
+                    if not item_arts or not na or na in item_arts or item_arts in na:
+                        return True
+                if item_title:
+                    if item_title == nn or nn in item_title:
+                        return True
+                    # "name artist" contained in title
+                    if na and nn in item_title and (na.split()[0] in item_title if na else True):
+                        return True
+                return False
+
             for i in range(start, end):
                 item = playlist[i]
                 title = item.get("name") or item.get("title") or "Track"
                 artists = item.get("artists") or ""
+                playing_now = _is_now_playing(item)
                 c1, c2, c3 = st.columns([5, 1, 1])
                 with c1:
-                    if artists:
-                        st.markdown(
-                            f"**{i+1}.** {title}  \n"
-                            f"<span style='opacity:0.65;font-size:0.82rem'>{artists}</span>",
-                            unsafe_allow_html=True,
-                        )
+                    if playing_now:
+                        # Green = currently playing on Spotify (class beats theme CSS)
+                        if artists:
+                            st.markdown(
+                                f"<div class='mer-now-playing'>"
+                                f"<strong>{i+1}. {title}</strong>"
+                                f"<span class='mer-now-badge'>● now playing</span>"
+                                f"<br/><span class='mer-now-sub'>{artists}</span>"
+                                f"</div>",
+                                unsafe_allow_html=True,
+                            )
+                        else:
+                            st.markdown(
+                                f"<div class='mer-now-playing'>"
+                                f"<strong>{i+1}. {title}</strong>"
+                                f"<span class='mer-now-badge'>● now playing</span>"
+                                f"</div>",
+                                unsafe_allow_html=True,
+                            )
                     else:
-                        st.markdown(f"**{i+1}.** {title}")
+                        if artists:
+                            st.markdown(
+                                f"**{i+1}.** {title}  \n"
+                                f"<span style='opacity:0.65;font-size:0.82rem'>{artists}</span>",
+                                unsafe_allow_html=True,
+                            )
+                        else:
+                            st.markdown(f"**{i+1}.** {title}")
                 with c2:
                     if sp and st.button("▶", key=f"pl_play_{i}", help="Play from this track onward (in order)", use_container_width=True):
                         msg = _play_playlist_from(i)
