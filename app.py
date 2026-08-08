@@ -3550,6 +3550,70 @@ if st.session_state.view == "listen":
     st.stop()
 
 
+# ===== LIBRARY =====
+if st.session_state.view == "library":
+    st.markdown(
+        """
+        <div class="panel">
+          <div class="panel-label">Library</div>
+          <div class="hero" style="font-size:1.4rem;">Free shelf</div>
+          <div class="sub">Public domain &amp; open texts · read in Meridium</div>
+          <div class="ridge"></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    if st.button("← Home", key="lib_back_home"):
+        st.session_state.view = "home"
+        st.session_state.library_reading = None
+        st.rerun()
+
+    shelf = list(st.session_state.get("library_shelf") or [])
+    reading_id = st.session_state.get("library_reading")
+    current_book = next((b for b in shelf if b.get("id") == reading_id), None)
+
+    if current_book:
+        st.markdown(f"### {current_book.get('title', 'Untitled')}")
+        st.caption(
+            f"{current_book.get('author', '')}"
+            + (f" · {current_book['note']}" if current_book.get("note") else "")
+        )
+        st.markdown("---")
+        # Reader
+        body = current_book.get("text") or "_No text loaded for this title yet._"
+        st.markdown(
+            f"<div class='panel' style='line-height:1.7;font-size:1.02rem;"
+            f"white-space:pre-wrap'>{body}</div>",
+            unsafe_allow_html=True,
+        )
+        if st.button("← Back to shelf", key="lib_back_shelf"):
+            st.session_state.library_reading = None
+            st.rerun()
+    else:
+        st.caption("Choose a book to read.")
+        for book in shelf:
+            bc1, bc2 = st.columns([4, 1])
+            with bc1:
+                st.markdown(
+                    f"**{book.get('title', 'Untitled')}**  \n"
+                    f"<span style='opacity:0.7;font-size:0.85rem'>"
+                    f"{book.get('author', '')}"
+                    f"{(' · ' + book['note']) if book.get('note') else ''}"
+                    f"</span>",
+                    unsafe_allow_html=True,
+                )
+            with bc2:
+                if st.button("Read", key=f"lib_read_{book.get('id')}", use_container_width=True):
+                    st.session_state.library_reading = book.get("id")
+                    st.rerun()
+
+        st.markdown("---")
+        st.caption(
+            "Only public-domain or explicitly free texts belong here. "
+            "Full classics: [Project Gutenberg](https://www.gutenberg.org)."
+        )
+    st.stop()
+
 # HOME — Design 1
 if st.session_state.view == "home":
 
@@ -3836,6 +3900,87 @@ if st.session_state.view == "home":
         if st.session_state.show_spotify:
             render_spotify_panel("home")
     with c2:
+        # ---- Library (public-domain / free shelf) ----
+        st.markdown(
+            '<div class="panel"><div class="panel-label">Library</div>',
+            unsafe_allow_html=True,
+        )
+        st.caption("Free to read · public domain & open texts")
+
+        # Built-in free shelf + any user-added titles in session
+        LIBRARY_SHELF = list(st.session_state.get("library_shelf") or [])
+        if not LIBRARY_SHELF:
+            LIBRARY_SHELF = [
+                {
+                    "id": "frankenstein",
+                    "title": "Frankenstein",
+                    "author": "Mary Shelley",
+                    "note": "Public domain",
+                    "text": (
+                        "Chapter 1\n\n"
+                        "I am by birth a Genevese, and my family is one of the most "
+                        "distinguished of that republic. My ancestors had been for many "
+                        "years counsellors and syndics, and my father had filled several "
+                        "public situations with honour and reputation. He was respected "
+                        "by all who knew him for his integrity and indefatigable attention "
+                        "to public business.\n\n"
+                        "— Opening of Frankenstein (1818). Full text free on Project Gutenberg."
+                    ),
+                },
+                {
+                    "id": "pride",
+                    "title": "Pride and Prejudice",
+                    "author": "Jane Austen",
+                    "note": "Public domain",
+                    "text": (
+                        "Chapter 1\n\n"
+                        "It is a truth universally acknowledged, that a single man in "
+                        "possession of a good fortune, must be in want of a wife.\n\n"
+                        "However little known the feelings or views of such a man may be "
+                        "on his first entering a neighbourhood, this truth is so well "
+                        "fixed in the minds of the surrounding families, that he is "
+                        "considered the rightful property of some one or other of their daughters.\n\n"
+                        "— Opening of Pride and Prejudice. Full text free on Project Gutenberg."
+                    ),
+                },
+                {
+                    "id": "sherlock",
+                    "title": "A Scandal in Bohemia",
+                    "author": "Arthur Conan Doyle",
+                    "note": "Public domain",
+                    "text": (
+                        "To Sherlock Holmes she is always the woman. I have seldom heard "
+                        "him mention her under any other name. In his eyes she eclipses "
+                        "and predominates the whole of her sex.\n\n"
+                        "— From The Adventures of Sherlock Holmes. Free on Project Gutenberg."
+                    ),
+                },
+            ]
+            st.session_state.library_shelf = LIBRARY_SHELF
+
+        for book in LIBRARY_SHELF[:6]:
+            bcol1, bcol2 = st.columns([4, 1])
+            with bcol1:
+                st.markdown(
+                    f"**{book.get('title', 'Untitled')}**  \n"
+                    f"<span style='opacity:0.7;font-size:0.8rem'>"
+                    f"{book.get('author', '')}"
+                    f"{(' · ' + book['note']) if book.get('note') else ''}"
+                    f"</span>",
+                    unsafe_allow_html=True,
+                )
+            with bcol2:
+                if st.button("Read", key=f"lib_home_{book.get('id')}", use_container_width=True):
+                    st.session_state.library_reading = book.get("id")
+                    st.session_state.view = "library"
+                    st.rerun()
+
+        if st.button("Open full library", key="lib_home_open", use_container_width=True):
+            st.session_state.library_reading = None
+            st.session_state.view = "library"
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
         st.markdown('<div class="panel"><div class="panel-label">Chat history</div>', unsafe_allow_html=True)
         items = sorted(st.session_state.chats.items(), key=lambda x: x[1].get("created", ""), reverse=True)[:10]
         if not items:
