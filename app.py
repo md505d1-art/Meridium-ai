@@ -2667,7 +2667,6 @@ if st.session_state.view == "lyrics_full":
         progress = int(saved.get("progress_ms") or 0)
         playing = bool(saved.get("playing"))
 
-    # ---- Control bar (prev / play-pause / next / refresh / exit) ----
     st.markdown(
         """
         <style>
@@ -2675,20 +2674,20 @@ if st.session_state.view == "lyrics_full":
           [data-testid="stAppViewBlockContainer"], .block-container {
             background: #0a0a0e !important;
             max-width: 100% !important;
-            padding-top: 0.4rem !important;
-            padding-bottom: 0 !important;
+            padding-top: 0 !important;
+            padding-bottom: 0.5rem !important;
             padding-left: 0.6rem !important;
             padding-right: 0.6rem !important;
           }
           [data-testid="stHeader"], #MainMenu, footer,
           [data-testid="stToolbar"], header { display:none !important; }
-          /* Control bar buttons */
+          /* Bottom control bar buttons */
           div[data-testid="stHorizontalBlock"] div[data-testid="stButton"] button {
             background: rgba(255,255,255,0.08) !important;
             color: #f0eef8 !important;
             border: 1px solid rgba(255,255,255,0.14) !important;
             border-radius: 999px !important;
-            min-height: 42px !important;
+            min-height: 44px !important;
             font-weight: 600 !important;
           }
           div[data-testid="stHorizontalBlock"] div[data-testid="stButton"] button:hover {
@@ -2701,55 +2700,6 @@ if st.session_state.view == "lyrics_full":
         """,
         unsafe_allow_html=True,
     )
-
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
-    with c1:
-        if st.button("⏮", key="fs_prev", use_container_width=True, help="Previous"):
-            if sp_fs:
-                try:
-                    sp_fs.previous_track()
-                    time.sleep(0.4)
-                    st.session_state._lyrics_key = None  # force lyric reload
-                except Exception as e:
-                    st.toast(str(e)[:80])
-            st.rerun()
-    with c2:
-        play_icon = "⏸" if playing else "▶"
-        if st.button(play_icon, key="fs_play", use_container_width=True, help="Play / Pause"):
-            if sp_fs:
-                try:
-                    if playing:
-                        sp_fs.pause_playback()
-                    else:
-                        sp_fs.start_playback()
-                    time.sleep(0.25)
-                except Exception as e:
-                    st.toast(str(e)[:80])
-            st.rerun()
-    with c3:
-        if st.button("⏭", key="fs_next", use_container_width=True, help="Next"):
-            if sp_fs:
-                try:
-                    sp_fs.next_track()
-                    time.sleep(0.4)
-                    st.session_state._lyrics_key = None
-                except Exception as e:
-                    st.toast(str(e)[:80])
-            st.rerun()
-    with c4:
-        if st.button("↻", key="fs_refresh", use_container_width=True, help="Refresh lyrics"):
-            st.session_state._lyrics_key = None
-            st.session_state._lyrics_fs_data = None
-            st.rerun()
-    with c5:
-        if st.button("⛶", key="fs_browser", use_container_width=True, help="Browser fullscreen"):
-            st.session_state._fs_request_browser = True
-            st.rerun()
-    with c6:
-        if st.button("✕", key="lyrics_fs_exit", use_container_width=True, help="Exit"):
-            ret = st.session_state.get("_lyrics_fs_return") or "music"
-            st.session_state.view = ret
-            st.rerun()
 
     # Build lyric lines
     lines_payload = []
@@ -2967,9 +2917,59 @@ if st.session_state.view == "lyrics_full":
         }})();
         </script>
         """,
-        height=820,
+        height=780,
         scrolling=False,
     )
+
+    # ---- Bottom control bar (prev / play-pause / next / refresh / fullscreen / exit) ----
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
+    with c1:
+        if st.button("⏮", key="fs_prev", use_container_width=True, help="Previous"):
+            if sp_fs:
+                try:
+                    sp_fs.previous_track()
+                    time.sleep(0.4)
+                    st.session_state._lyrics_key = None
+                except Exception as e:
+                    st.toast(str(e)[:80])
+            st.rerun()
+    with c2:
+        play_icon = "⏸" if playing else "▶"
+        if st.button(play_icon, key="fs_play", use_container_width=True, help="Play / Pause"):
+            if sp_fs:
+                try:
+                    if playing:
+                        sp_fs.pause_playback()
+                    else:
+                        sp_fs.start_playback()
+                    time.sleep(0.25)
+                except Exception as e:
+                    st.toast(str(e)[:80])
+            st.rerun()
+    with c3:
+        if st.button("⏭", key="fs_next", use_container_width=True, help="Next"):
+            if sp_fs:
+                try:
+                    sp_fs.next_track()
+                    time.sleep(0.4)
+                    st.session_state._lyrics_key = None
+                except Exception as e:
+                    st.toast(str(e)[:80])
+            st.rerun()
+    with c4:
+        if st.button("↻", key="fs_refresh", use_container_width=True, help="Refresh lyrics"):
+            st.session_state._lyrics_key = None
+            st.session_state._lyrics_fs_data = None
+            st.rerun()
+    with c5:
+        if st.button("⛶", key="fs_browser", use_container_width=True, help="Browser fullscreen"):
+            st.session_state._fs_request_browser = True
+            st.rerun()
+    with c6:
+        if st.button("✕", key="lyrics_fs_exit", use_container_width=True, help="Exit"):
+            ret = st.session_state.get("_lyrics_fs_return") or "music"
+            st.session_state.view = ret
+            st.rerun()
 
     try:
         from streamlit_autorefresh import st_autorefresh
