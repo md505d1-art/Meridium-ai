@@ -1189,6 +1189,13 @@ def _spotify_cache_path():
     key = hashlib.sha256(name.encode()).hexdigest()[:16]
     return f"/tmp/meridium_spotify_{key}.cache"
 
+SPOTIFY_SCOPE = (
+    "user-read-currently-playing "
+    "user-read-playback-state "
+    "user-modify-playback-state "
+    "user-read-recently-played"
+)
+
 def get_spotify_oauth():
     cid, secret, redirect = _spotify_creds()
     if not cid or not secret:
