@@ -1357,8 +1357,15 @@ def estimate_lyrics_ai(track_name: str, artist: str) -> str:
         if not client:
             return ""
         model = "llama-3.1-8b-instant"
-        if st.session_state.get("provider") == "groq":
-            model = GROQ_MODELS.get(st.session_state.get("model_name"), model)
+        try:
+            if st.session_state.get("provider") == "groq" and isinstance(GROQ_MODELS, dict):
+                mn = st.session_state.get("model_name")
+                if mn in GROQ_MODELS:
+                    model = GROQ_MODELS[mn]
+                elif mn in GROQ_MODELS.values():
+                    model = mn
+        except Exception:
+            pass
         prompt = (
             f"Write short unofficial estimated lyrics for the song '{track_name}' by {artist}. "
             "If you are unsure, write a brief atmospheric verse inspired by the title only. "
@@ -1398,6 +1405,10 @@ def render_spotify_panel(key_prefix="sp"):
         return True
 
     # Animated now playing banner
+    import html as _html
+    _tname = _html.escape(str(track.get("name") or "Unknown"))
+    _tarts = _html.escape(str(track.get("artists") or ""))
+    _status = "Now playing" if track.get("playing") else "Paused"
     st.markdown(
         f"""
         <style>
@@ -1435,9 +1446,9 @@ def render_spotify_panel(key_prefix="sp"):
           }}
         </style>
         <div class="np-banner">
-          <div class="np-label">{"Now playing" if track.get("playing") else "Paused"}</div>
-          <div class="np-title">Now playing: {track["name"]}</div>
-          <div style="opacity:0.7;font-size:0.85rem;margin-top:0.25rem;">{track["artists"]}</div>
+          <div class="np-label">{_status}</div>
+          <div class="np-title">Now playing: {_tname}</div>
+          <div style="opacity:0.7;font-size:0.85rem;margin-top:0.25rem;">{_tarts}</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -1477,74 +1488,79 @@ def render_spotify_panel(key_prefix="sp"):
             st.rerun()
 
     # —— Lyrics ——
-    st.markdown("---")
-    st.markdown("#### Lyrics")
-    cache_key = f"lyrics::{track.get('uri') or track['name']}"
-    if st.session_state.get("_lyrics_key") != cache_key:
-        st.session_state._lyrics_key = cache_key
-        st.session_state._lyrics_data = fetch_synced_lyrics(
-            track["name"],
-            track.get("artist_primary") or track["artists"].split(",")[0].strip(),
-            track.get("album") or "",
-            track.get("duration_ms") or 0,
-        )
-        st.session_state._lyrics_ai = None
+    try:
+        st.markdown("---")
+        st.markdown("#### Lyrics")
+        cache_key = f"lyrics::{track.get('uri') or track['name']}"
+        if st.session_state.get("_lyrics_key") != cache_key:
+            st.session_state._lyrics_key = cache_key
+            st.session_state._lyrics_data = fetch_synced_lyrics(
+                track["name"],
+                track.get("artist_primary") or track["artists"].split(",")[0].strip(),
+                track.get("album") or "",
+                track.get("duration_ms") or 0,
+            )
+            st.session_state._lyrics_ai = None
 
-    lyric_data = st.session_state.get("_lyrics_data")
-    progress = int(track.get("progress_ms") or 0)
+        lyric_data = st.session_state.get("_lyrics_data")
+        progress = int(track.get("progress_ms") or 0)
 
-    if lyric_data and (lyric_data.get("synced") or lyric_data.get("plain")):
-        if lyric_data.get("synced"):
-            parsed = parse_lrc(lyric_data["synced"])
-            if parsed:
-                # find active index
-                active = 0
-                for i, (ms, _) in enumerate(parsed):
-                    if ms <= progress:
-                        active = i
-                    else:
-                        break
-                # show a window of lines
-                start = max(0, active - 3)
-                end = min(len(parsed), active + 8)
-                html_lines = []
-                for i in range(start, end):
-                    ms, text = parsed[i]
-                    cls = "lyric-line active" if i == active else "lyric-line"
-                    safe = (
-                        text.replace("&", "&amp;")
-                        .replace("<", "&lt;")
-                        .replace(">", "&gt;")
+        if lyric_data and (lyric_data.get("synced") or lyric_data.get("plain")):
+            if lyric_data.get("synced"):
+                parsed = parse_lrc(lyric_data["synced"])
+                if parsed:
+                    # find active index
+                    active = 0
+                    for i, (ms, _) in enumerate(parsed):
+                        if ms <= progress:
+                            active = i
+                        else:
+                            break
+                    # show a window of lines
+                    start = max(0, active - 3)
+                    end = min(len(parsed), active + 8)
+                    html_lines = []
+                    for i in range(start, end):
+                        ms, text = parsed[i]
+                        cls = "lyric-line active" if i == active else "lyric-line"
+                        safe = (
+                            text.replace("&", "&amp;")
+                            .replace("<", "&lt;")
+                            .replace(">", "&gt;")
+                        )
+                        html_lines.append(f'<div class="{cls}">{safe}</div>')
+                    st.markdown(
+                        f'<div style="max-height:280px;overflow:auto;padding:0.4rem 0;">{"".join(html_lines)}</div>',
+                        unsafe_allow_html=True,
                     )
-                    html_lines.append(f'<div class="{cls}">{safe}</div>')
-                st.markdown(
-                    f'<div style="max-height:280px;overflow:auto;padding:0.4rem 0;">{"".join(html_lines)}</div>',
-                    unsafe_allow_html=True,
-                )
-                st.caption("Synced lyrics · refresh to advance the highlight")
+                    st.caption("Synced lyrics · refresh to advance the highlight")
+                else:
+                    st.text(lyric_data.get("plain") or lyric_data.get("synced"))
             else:
-                st.text(lyric_data.get("plain") or lyric_data.get("synced"))
+                st.text(lyric_data.get("plain") or "")
+                st.caption("Plain lyrics (not timed)")
         else:
-            st.text(lyric_data.get("plain") or "")
-            st.caption("Plain lyrics (not timed)")
-    else:
-        st.caption("No official synced lyrics found for this track.")
-        if st.button("Estimate lyrics with AI", key=f"{key_prefix}_ai_lyrics"):
-            with st.spinner("Listening with Meridium…"):
-                est = estimate_lyrics_ai(
-                    track["name"],
-                    track.get("artist_primary") or track["artists"],
-                )
-                st.session_state._lyrics_ai = est or "Could not estimate lyrics right now."
-        if st.session_state.get("_lyrics_ai"):
-            st.info("Unofficial AI estimate — not official lyrics.")
-            st.text(st.session_state._lyrics_ai)
+            st.caption("No official synced lyrics found for this track.")
+            if st.button("Estimate lyrics with AI", key=f"{key_prefix}_ai_lyrics"):
+                with st.spinner("Listening with Meridium…"):
+                    est = estimate_lyrics_ai(
+                        track["name"],
+                        track.get("artist_primary") or track["artists"],
+                    )
+                    st.session_state._lyrics_ai = est or "Could not estimate lyrics right now."
+            if st.session_state.get("_lyrics_ai"):
+                st.info("Unofficial AI estimate — not official lyrics.")
+                st.text(st.session_state._lyrics_ai)
 
-    # auto soft-refresh while playing so lyric highlight moves
-    if track.get("playing") and lyric_data and lyric_data.get("synced"):
-        time.sleep(0.05)  # tiny yield
-        # Streamlit fragment-style: user still hits refresh; optional auto
-        st.caption("")
+        # auto soft-refresh while playing so lyric highlight moves
+        if track.get("playing") and lyric_data and lyric_data.get("synced"):
+            time.sleep(0.05)  # tiny yield
+            # Streamlit fragment-style: user still hits refresh; optional auto
+            st.caption("")
+
+    except Exception:
+        st.caption("Lyrics unavailable right now.")
+
     return True
 
 def create_new_chat():
