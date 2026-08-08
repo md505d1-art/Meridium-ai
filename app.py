@@ -2559,7 +2559,7 @@ if st.session_state.view == "music":
     # Search when user has typed enough characters
     if search_q and len(search_q) >= 2:
         if not sp:
-            st.info("Connect Spotify above to search live. You can still add tracks by typing the full name and pressing **Add as text**.")
+            st.info("Connect Spotify above to search and add tracks.")
         else:
             # Cache search results so we don't hammer the API on every rerun
             cache_key = f"pl_search::{search_q.lower()}"
@@ -2584,7 +2584,7 @@ if st.session_state.view == "music":
                     st.caption(f"Search error: {e}")
             hits = st.session_state.get("_pl_search_results") or []
             if not hits:
-                st.caption("No Spotify matches. Try a different spelling, or add as plain text below.")
+                st.caption("No Spotify matches. Try a different spelling.")
             else:
                 st.markdown("**Spotify results** — tap to add")
                 for hi, hit in enumerate(hits):
@@ -2618,27 +2618,10 @@ if st.session_state.view == "music":
                                     st.toast(f"Added: {hit['name']}")
                                     st.rerun()
 
-    # Manual / text fallback (works offline)
-    with st.expander("Add by typing (no Spotify search)", expanded=False):
-        add_col1, add_col2 = st.columns([3, 1])
-        with add_col1:
-            new_track = st.text_input("Track name", placeholder="e.g. TV Girl - Cynical One", key="pl_add_manual", label_visibility="collapsed")
-        with add_col2:
-            if st.button("Add as text", use_container_width=True, key="pl_add_btn"):
-                t = (new_track or "").strip()
-                if t:
-                    if len(playlist) >= MAX_PLAYLIST:
-                        st.warning(f"Playlist is full ({MAX_PLAYLIST} tracks).")
-                    else:
-                        playlist.append({"title": t, "added": datetime.now().isoformat()})
-                        st.session_state.meridium_playlist = playlist
-                        save_user_data()
-                        st.rerun()
-
     # ---- Playlist display (handles 250–500 tracks) ----
     playlist = list(st.session_state.get("meridium_playlist") or [])
     if not playlist:
-        st.caption("Playlist empty — search above or add a track by name.")
+        st.caption("Playlist empty — search Spotify above to add tracks.")
     else:
         # Toolbar
         t1, t2, t3 = st.columns([2, 2, 2])
