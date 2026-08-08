@@ -1087,6 +1087,13 @@ def speak_html(text: str, autoplay: bool = True) -> str:
     </script>
     """
 
+GROQ_MODELS = {
+    "Smart · Llama 3.3 70B": "llama-3.3-70b-versatile",
+    "Fast · Llama 3.1 8B": "llama-3.1-8b-instant",
+    "Qwen3 32B": "qwen/qwen3-32b",
+    "Llama 3.1 70B": "llama-3.1-70b-versatile",
+}
+
 def make_client(provider: str, api_key: str = None):
     if provider == "groq":
         key = api_key or os.getenv("GROQ_API_KEY") or st.secrets.get("GROQ_API_KEY", "")
