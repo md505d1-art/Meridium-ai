@@ -461,47 +461,51 @@ def unlock_theme(theme_name: str, reason: str = "", apply: bool = True) -> bool:
 
 
 def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool = False):
-
+    """Solid Meridium shell (no glass / blur)."""
     font = FONTS.get(font_name, FONTS["Inter"])
     SHELL = theme_shell(theme_name)
-    moj = "1"
     st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,600&display=swap');
 
     html, body, [class*="css"] {{
         font-family: {font} !important;
-        font-size: calc(15px * {moj});
+        font-size: 15px;
+        -webkit-font-smoothing: antialiased;
     }}
     .stApp {{
         background:
             radial-gradient(900px 480px at 15% -5%, {SHELL["accent_soft"]}, transparent 55%),
             radial-gradient(700px 400px at 95% 10%, {SHELL["accent_soft"]}, transparent 50%),
-            {SHELL["bg"]};
+            {SHELL["bg"]} !important;
         color: {SHELL["text"]};
     }}
-    #MainMenu, footer, header, .stDeployButton, section[data-testid="stSidebar"] {{
-        display: none !important;
+    #MainMenu, footer, header, .stDeployButton, section[data-testid="stSidebar"],
+    [data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stDecoration"],
+    [data-testid="stStatusWidget"], [data-testid="stAppDeployButton"] {{
+        display: none !important; visibility: hidden !important;
+        height: 0 !important;
     }}
     .block-container {{
-        padding-top: 0.8rem !important;
+        padding-top: 0.75rem !important;
         padding-bottom: 5.5rem !important;
-        max-width: 1080px !important;
+        max-width: 980px !important;
     }}
 
-    /* ===== DESIGN 1 — Caelestia Shell ===== */
+    .waybar, .panel, .card, .hist, .bloom-shell {{
+        background: {SHELL["panel_solid"]} !important;
+        border: 1px solid {SHELL["border"]} !important;
+        border-radius: 16px !important;
+        box-shadow: 0 8px 28px rgba(0,0,0,0.28) !important;
+    }}
+
     .waybar {{
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        background: {SHELL["panel"]};
-        border: 1px solid {SHELL["border"]};
-        border-radius: 16px;
         padding: 10px 16px;
-        margin-bottom: 16px;
-        backdrop-filter: blur(20px);
-        box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+        margin-bottom: 14px;
         animation: fadeUp 0.4s ease both;
     }}
     .waybar-left, .waybar-right {{
@@ -512,184 +516,209 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
         background: linear-gradient(135deg, {SHELL["accent"]}, {SHELL["accent2"]});
         display: flex; align-items: center; justify-content: center;
         color: #fff; font-weight: 700; font-size: 0.95rem;
-        box-shadow: 0 0 20px {SHELL["accent_soft"]};
+        box-shadow: 0 0 18px {SHELL["accent_soft"]};
     }}
     .brand {{ font-weight: 600; letter-spacing: -0.02em; }}
     .chip {{
-        background: {SHELL["accent_soft"]};
-        color: {SHELL["accent"]};
-        border: 1px solid {SHELL["border"]};
+        background: {SHELL["accent_soft"]} !important;
+        color: {SHELL["accent"]} !important;
+        border: 1px solid {SHELL["border"]} !important;
         border-radius: 999px;
         padding: 4px 11px;
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         font-weight: 500;
     }}
     .clock {{ font-weight: 600; font-variant-numeric: tabular-nums; }}
     .muted {{ color: {SHELL["muted"]}; font-size: 0.8rem; }}
 
     .panel {{
-        background: {SHELL["panel"]};
-        border: 1px solid {SHELL["border"]};
-        border-radius: 18px;
-        padding: 20px;
-        backdrop-filter: blur(18px);
-        box-shadow: 0 10px 40px rgba(0,0,0,0.22);
+        padding: 18px 18px 16px;
+        margin-bottom: 14px;
         animation: fadeUp 0.45s ease both;
-        margin-bottom: 12px;
     }}
     .panel-label {{
-        font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em;
-        color: {SHELL["muted"]}; margin-bottom: 10px; font-weight: 600;
+        color: {SHELL["muted"]};
+        margin-bottom: 8px;
+        font-weight: 600;
+        font-size: 0.72rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
     }}
     .hero {{
-        font-size: 2.1rem; font-weight: 700; letter-spacing: -0.03em;
+        font-size: 1.85rem; font-weight: 650; letter-spacing: -0.03em;
         margin: 0 0 6px; color: {SHELL["text"]};
+        animation: textIn 0.65s ease both;
     }}
     .hero span {{ color: {SHELL["accent"]}; }}
-    .sub {{ color: {SHELL["muted"]}; margin-bottom: 14px; font-size: 0.95rem; }}
+    .sub {{
+        color: {SHELL["muted"]}; margin-bottom: 10px; font-size: 0.95rem;
+        animation: textIn 0.65s ease 0.08s both;
+    }}
     .ridge {{
-        height: 1px; margin: 8px 0 16px;
+        height: 1px; margin: 10px 0 4px;
         background: linear-gradient(90deg, transparent, {SHELL["accent"]}, transparent);
-        opacity: 0.5;
+        opacity: 0.55;
     }}
 
-    .grid4 {{
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-    }}
-    @media (min-width: 800px) {{
-        .grid4 {{ grid-template-columns: repeat(4, 1fr); }}
-        .hero {{ font-size: 2.35rem; }}
-    }}
     .card {{
-        background: {SHELL["panel_solid"]};
-        border: 1px solid {SHELL["border"]};
-        border-radius: 16px;
         padding: 16px;
-        transition: border-color 0.15s, transform 0.15s;
+        transition: border-color 0.15s ease, transform 0.15s ease;
     }}
-    .card:hover {{ border-color: {SHELL["accent"]}; transform: translateY(-2px); }}
-    .card-ico {{ color: {SHELL["accent"]}; font-size: 1.2rem; margin-bottom: 8px; }}
-    .card-t {{ font-weight: 600; font-size: 0.9rem; }}
-    .card-d {{ color: {SHELL["muted"]}; font-size: 0.72rem; margin-top: 3px; }}
-
-    .hist {{
-        display: flex; align-items: center; gap: 10px;
-        padding: 11px 12px; border-radius: 12px;
-        background: {SHELL["panel_solid"]};
-        border: 1px solid {SHELL["border"]};
-        margin-bottom: 8px;
-    }}
-    .hist-ico {{
-        width: 32px; height: 32px; border-radius: 9px;
-        background: {SHELL["accent_soft"]}; color: {SHELL["accent"]};
-        display: flex; align-items: center; justify-content: center;
-    }}
-    .hist-t {{
-        flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        font-size: 0.88rem;
+    .card:hover {{
+        transform: translateY(-2px);
+        border-color: {SHELL["accent"]} !important;
     }}
 
-    /* Chat */
-    .stChatMessage {{
-        background: {SHELL["panel"]} !important;
-        border: 1px solid {SHELL["border"]} !important;
-        border-radius: 16px !important;
-        margin-bottom: 10px !important;
-        animation: fadeUp 0.3s ease both;
-    }}
-    [data-testid="stChatMessageAvatarUser"],
-    [data-testid="stChatMessageAvatarAssistant"],
-    [data-testid="stChatAvatar"] {{ display: none !important; }}
-    .stChatInput > div {{
-        background: {SHELL["panel_solid"]} !important;
-        border: 1px solid {SHELL["border"]} !important;
-        border-radius: 999px !important;
-        box-shadow: none !important;
-    }}
-    [data-testid="stBottomBlockContainer"],
-    [data-testid="stBottomBlockContainer"] > div,
-    [data-testid="stChatInput"],
-    [data-testid="stChatInput"] > div,
-    [data-testid="stChatInput"] > div > div {{
-        background: {SHELL["bg"]} !important;
-        background-color: {SHELL["bg"]} !important;
-        border: none !important;
-        box-shadow: none !important;
-        outline: none !important;
-    }}
-    [data-testid="stChatInput"] textarea {{
-        color: {SHELL["text"]} !important;
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        outline: none !important;
-    }}
-    [data-testid="stChatInput"] textarea::placeholder {{ color: {SHELL["muted"]} !important; }}
-    /* kill white bottom strip behind chat box */
-    .stApp [data-testid="stBottom"],
-    section.main > div > div:has([data-testid="stChatInput"]),
-    div[data-testid="stBottomBlockContainer"] {{
-        background: {SHELL["bg"]} !important;
-        border-top: none !important;
-        box-shadow: none !important;
-    }}
-
-    /* Buttons */
     .stButton > button {{
         background: {SHELL["panel_solid"]} !important;
         color: {SHELL["text"]} !important;
         border: 1px solid {SHELL["border"]} !important;
         border-radius: 12px !important;
         font-weight: 500 !important;
+        min-height: 42px !important;
         transition: all 0.15s ease !important;
-        min-height: 42px;
     }}
     .stButton > button:hover {{
         border-color: {SHELL["accent"]} !important;
         background: {SHELL["accent_soft"]} !important;
+        color: {SHELL["accent"]} !important;
     }}
-    /* Active / ON feature look — primary-ish */
     .stButton > button[kind="primary"],
     button[data-testid="baseButton-primary"] {{
         background: {SHELL["accent_soft"]} !important;
         border: 1px solid {SHELL["accent"]} !important;
         color: {SHELL["accent"]} !important;
-        box-shadow: 0 0 20px {SHELL["accent_soft"]} !important;
     }}
 
-    /* Form widgets — no white */
-    [data-baseweb="select"] > div,
-    [data-baseweb="select"] > div > div {{
-        background: {SHELL["panel_solid"]} !important;
-        border-color: {SHELL["border"]} !important;
-        color: {SHELL["text"]} !important;
-        border-radius: 12px !important;
+    .stChatMessage {{
+        background: {SHELL["panel"]} !important;
+        border: 1px solid {SHELL["border"]} !important;
+        border-radius: 16px !important;
+        animation: textIn 0.3s ease both !important;
     }}
-    [data-baseweb="select"] span, [data-baseweb="select"] div {{ color: {SHELL["text"]} !important; }}
-    div[data-baseweb="popover"], ul[role="listbox"], li[role="option"] {{
-        background: {SHELL["panel_solid"]} !important;
-        color: {SHELL["text"]} !important;
+    [data-testid="stChatMessageAvatarUser"],
+    [data-testid="stChatMessageAvatarAssistant"],
+    [data-testid="stChatAvatar"] {{ display: none !important; }}
+
+    [data-testid="stBottomBlockContainer"] {{
+        background: {SHELL["bg"]} !important;
+        border: none !important;
+        box-shadow: none !important;
     }}
-    li[role="option"]:hover {{ background: {SHELL["accent_soft"]} !important; }}
-    .stTextInput input {{
+    [data-testid="stChatInput"] {{
+        background: {SHELL["panel_solid"]} !important;
+        border: 1px solid {SHELL["border"]} !important;
+        border-radius: 24px !important;
+        box-shadow: none !important;
+        padding: 4px 8px !important;
+        overflow: hidden !important;
+    }}
+    [data-testid="stChatInput"] > div,
+    [data-testid="stChatInput"] > div > div,
+    [data-testid="stChatInput"] form,
+    [data-testid="stChatInput"] form > div {{
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }}
+    [data-testid="stChatInput"] textarea {{
+        background: transparent !important;
+        color: {SHELL["text"]} !important;
+        border: none !important;
+        outline: none !important;
+        caret-color: {SHELL["accent"]} !important;
+    }}
+    [data-testid="stChatInput"] textarea::placeholder {{ color: {SHELL["muted"]} !important; }}
+    [data-testid="stChatInput"] button {{
+        background: transparent !important;
+        border: none !important;
+        color: {SHELL["accent"]} !important;
+    }}
+
+    .stTextInput input, .stSelectbox > div > div, [data-baseweb="select"] > div,
+    .stTextArea textarea {{
         background: {SHELL["panel_solid"]} !important;
         color: {SHELL["text"]} !important;
-        border-color: {SHELL["border"]} !important;
+        border: 1px solid {SHELL["border"]} !important;
         border-radius: 12px !important;
     }}
     label, [data-testid="stWidgetLabel"] p, .stCaption {{ color: {SHELL["muted"]} !important; }}
     h1,h2,h3,h4,.stMarkdown,.stMarkdown p {{ color: {SHELL["text"]} !important; }}
     .stCheckbox label p {{ color: {SHELL["text"]} !important; }}
     [data-testid="stAlert"] {{
-        background: {SHELL["panel"]} !important;
+        background: {SHELL["panel_solid"]} !important;
         color: {SHELL["text"]} !important;
         border: 1px solid {SHELL["border"]} !important;
         border-radius: 12px !important;
     }}
 
-    /* Typing */
+    .bloom-shell {{
+        max-width: 480px;
+        margin: 8px auto 24px;
+        padding: 28px 22px 20px;
+        animation: fadeUp 0.35s ease both;
+    }}
+    .bloom-title {{
+        font-size: 1.7rem; font-weight: 600; text-align: center;
+        color: {SHELL["text"]};
+        margin: 0 0 6px;
+        letter-spacing: -0.02em;
+    }}
+    .bloom-sub {{
+        text-align: center; color: {SHELL["muted"]}; font-size: 0.85rem; margin-bottom: 18px;
+    }}
+    .bloom-divider {{
+        height: 1px; margin: 14px 0;
+        background: linear-gradient(90deg, transparent, {SHELL["accent"]}, transparent);
+        opacity: 0.45;
+    }}
+
+    .qotd-one button {{
+        background: {SHELL["panel_solid"]} !important;
+        border: 1px solid {SHELL["border"]} !important;
+        border-radius: 16px !important;
+        box-shadow: none !important;
+        text-align: left !important;
+        white-space: pre-wrap !important;
+        color: inherit !important;
+        padding: 14px 16px !important;
+        height: auto !important;
+        min-height: 0 !important;
+        justify-content: flex-start !important;
+        line-height: 1.45 !important;
+    }}
+    .qotd-one button:hover {{
+        border-color: {SHELL["accent"]} !important;
+        background: {SHELL["accent_soft"]} !important;
+    }}
+    .qotd-one button p {{
+        text-align: left !important;
+        white-space: pre-wrap !important;
+        margin: 0 !important;
+    }}
+
+    .hist {{ padding: 12px 14px; margin-bottom: 8px; }}
+
+    .orb {{
+        width: 88px; height: 88px; margin: 18px auto;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, {SHELL["accent"]}, {SHELL["accent2"]});
+        box-shadow: 0 0 36px {SHELL["accent_soft"]};
+        animation: pulse 2.5s ease-in-out infinite;
+    }}
+    @keyframes pulse {{
+        0%,100% {{ transform: scale(1); }}
+        50% {{ transform: scale(1.05); }}
+    }}
+    @keyframes fadeUp {{
+        from {{ opacity: 0; transform: translateY(12px); }}
+        to {{ opacity: 1; transform: translateY(0); }}
+    }}
+    @keyframes textIn {{
+        from {{ opacity: 0; transform: translateY(12px); }}
+        to {{ opacity: 1; transform: translateY(0); }}
+    }}
+
     .typing-wrap {{ display: inline-flex; gap: 6px; padding: 4px; }}
     .typing-wrap .dot {{
         width: 8px; height: 8px; border-radius: 50%;
@@ -702,285 +731,13 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
         0%,60%,100% {{ transform: translateY(0); opacity: 0.4; }}
         30% {{ transform: translateY(-7px); opacity: 1; }}
     }}
-    @keyframes fadeUp {{
-        from {{ opacity: 0; transform: translateY(12px); }}
-        to {{ opacity: 1; transform: translateY(0); }}
-    }}
-    @keyframes textIn {{
-        from {{ opacity: 0; transform: translateY(16px); filter: blur(4px); }}
-        to {{ opacity: 1; transform: translateY(0); filter: blur(0); }}
-    }}
-    @keyframes softGlow {{
-        0%, 100% {{ text-shadow: 0 0 0 transparent; }}
-        50% {{ text-shadow: 0 0 18px rgba(196,167,231,0.35); }}
-    }}
-    .hero {{
-        animation: textIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
-    }}
-    .hero span {{
-        animation: softGlow 3.5s ease-in-out infinite;
-    }}
-    .sub {{
-        animation: textIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
-    }}
-    .panel-label {{
-        animation: textIn 0.55s ease 0.05s both;
-    }}
-    .card {{
-        animation: fadeUp 0.5s ease both;
-    }}
-    .card:nth-child(1) {{ animation-delay: 0.08s; }}
-    .card:nth-child(2) {{ animation-delay: 0.14s; }}
-    .card:nth-child(3) {{ animation-delay: 0.2s; }}
-    .card:nth-child(4) {{ animation-delay: 0.26s; }}
-    .waybar {{
-        animation: fadeUp 0.45s ease both;
-    }}
-    .hist {{
-        animation: fadeUp 0.4s ease both;
-    }}
-    .bloom-title {{
-        animation: textIn 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
-    }}
-    .bloom-sub {{
-        animation: textIn 0.65s ease 0.1s both;
-    }}
-    .stChatMessage {{
-        animation: textIn 0.35s ease both !important;
-    }}
 
-    /* Orb */
-    .orb {{
-        width: 130px; height: 130px; margin: 18px auto;
-        border-radius: 50%;
-        background: radial-gradient(circle at 32% 32%, {SHELL["accent"]}, {SHELL["accent2"]} 55%, {SHELL["bg"]} 100%);
-        box-shadow: 0 0 60px {SHELL["accent_soft"]};
-        animation: pulse 2.5s ease-in-out infinite;
-    }}
-    @keyframes pulse {{
-        0%,100% {{ transform: scale(1); }}
-        50% {{ transform: scale(1.05); }}
-    }}
-
-    /* ===== DESIGN 4 — Night Bloom MENU (in-flow, works with Streamlit) ===== */
-    .bloom-shell {{
-        max-width: 480px;
-        margin: 8px auto 24px;
-        border-radius: 24px;
-        padding: 28px 22px 20px;
-        background:
-            radial-gradient(600px 280px at 15% 0%, rgba(244,114,182,0.2), transparent 55%),
-            radial-gradient(500px 260px at 100% 15%, rgba(196,167,231,0.22), transparent 50%),
-            rgba(16, 10, 26, 0.95);
-        border: 1px solid rgba(255,255,255,0.12);
-        box-shadow: 0 20px 70px rgba(0,0,0,0.45), 0 0 50px rgba(196,167,231,0.1);
-        animation: bloomIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-    }}
-    .bloom-title {{
-        font-size: 1.7rem; font-weight: 600; text-align: center;
-        background: linear-gradient(90deg, #e9d5ff, #fbcfe8, #ddd6fe);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        background-clip: text;
-        margin: 0 0 6px;
-        letter-spacing: -0.02em;
-    }}
-    .bloom-sub {{
-        text-align: center; color: #a89bb8; font-size: 0.85rem; margin-bottom: 18px;
-    }}
-    .bloom-divider {{
-        height: 1px; margin: 14px 0;
-        background: linear-gradient(90deg, transparent, rgba(251,207,232,0.35), transparent);
-    }}
-    @keyframes bloomIn {{
-        from {{ opacity: 0; transform: translateY(12px) scale(0.98); }}
-        to {{ opacity: 1; transform: translateY(0) scale(1); }}
-    }}
-    /* Night Bloom widget surfaces */
-    .bloom-active [data-baseweb="select"] > div,
-    .bloom-active [data-baseweb="select"] > div > div,
-    .bloom-active .stTextInput input {{
-        background: rgba(30, 20, 45, 0.95) !important;
-        border-color: rgba(251,207,232,0.2) !important;
-        color: #f5f0fa !important;
-    }}
-    .bloom-active .stButton > button {{
-        background: rgba(40, 28, 58, 0.9) !important;
-        border: 1px solid rgba(251,207,232,0.18) !important;
-        color: #f5f0fa !important;
-        border-radius: 14px !important;
-    }}
-    .bloom-active .stButton > button:hover {{
-        border-color: #f9a8d4 !important;
-        background: rgba(244,114,182,0.18) !important;
-    }}
-
-    /* Phone */
-    @media (max-width: 767px) {{
-        .block-container {{
-            padding-left: 0.55rem !important;
-            padding-right: 0.55rem !important;
-            max-width: 100% !important;
-        }}
-        .hero {{ font-size: 1.6rem !important; }}
-        .waybar {{ padding: 8px 10px; border-radius: 14px; }}
-        .stButton > button {{ min-height: 44px !important; }}
-        .bloom-popup {{ width: 94vw; border-radius: 20px; }}
-    }}
-    
-    /* Kill white chrome / distractors on mobile */
-    header, [data-testid="stHeader"], [data-testid="stToolbar"],
-    [data-testid="stDecoration"], [data-testid="stStatusWidget"],
-    #MainMenu, footer, .stDeployButton, [data-testid="stAppDeployButton"] {{
-      display: none !important; visibility: hidden !important;
-      height: 0 !important; max-height: 0 !important;
-    }}
-    iframe {{
-      background: transparent !important;
-      border: none !important;
-    }}
-    [data-testid="stChatInput"] {{
-      background: {SHELL["bg"]} !important;
-      border: none !important;
-      box-shadow: none !important;
-    }}
-    [data-testid="stChatInput"] textarea {{
-      background: transparent !important;
-      color: {SHELL["text"]} !important;
-      border: none !important;
-      box-shadow: none !important;
-      outline: none !important;
-    }}
-    [data-testid="stChatInput"] > div,
-    [data-testid="stChatInput"] > div > div {{
-      background: transparent !important;
-      border: none !important;
-      box-shadow: none !important;
-      outline: none !important;
-    }}
-    /* bottom block that often goes white */
-    .stBottom, [data-testid="stBottomBlockContainer"],
-    section[data-testid="stBottom"],
-    [data-testid="stBottomBlockContainer"] > div {{
-      background: {SHELL["bg"]} !important;
-      border: none !important;
-      box-shadow: none !important;
-    }}
-
-    /* ===== CHAT INPUT — ONE rounded box only ===== */
-    [data-testid="stBottomBlockContainer"] {{
-        background: {SHELL["bg"]} !important;
-        border: none !important;
-        box-shadow: none !important;
-        padding-top: 4px !important;
-    }}
-    [data-testid="stBottomBlockContainer"] > div {{
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-    }}
-    /* outer chat input shell = the only visible box */
-    [data-testid="stChatInput"] {{
-        background: {SHELL["panel_solid"]} !important;
-        border: 1px solid {SHELL["border"]} !important;
-        border-radius: 28px !important;
-        box-shadow: none !important;
-        padding: 2px 6px !important;
-        overflow: hidden !important;
-    }}
-    /* strip every nested frame */
-    [data-testid="stChatInput"] > div,
-    [data-testid="stChatInput"] > div > div,
-    [data-testid="stChatInput"] > div > div > div,
-    [data-testid="stChatInput"] form,
-    [data-testid="stChatInput"] form > div {{
-        background: transparent !important;
-        border: none !important;
-        border-radius: 0 !important;
-        box-shadow: none !important;
-        outline: none !important;
-    }}
-    [data-testid="stChatInput"] textarea {{
-        background: transparent !important;
-        color: {SHELL["text"]} !important;
-        border: none !important;
-        border-radius: 0 !important;
-        box-shadow: none !important;
-        outline: none !important;
-        caret-color: {SHELL["accent"]} !important;
-    }}
-    [data-testid="stChatInput"] textarea:focus {{
-        outline: none !important;
-        box-shadow: none !important;
-        border: none !important;
-    }}
-    [data-testid="stChatInput"] button {{
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        color: {SHELL["accent"]} !important;
-        border-radius: 999px !important;
-    }}
-    /* older streamlit class path */
-    .stChatInput, .stChatInput > div {{
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-    }}
-
-    div[data-testid="stVerticalBlock"] > div:has(iframe) {{
-      background: transparent !important;
-    }}
+    iframe {{ background: transparent !important; border: none !important; }}
 
     </style>
     """, unsafe_allow_html=True)
 
-# ============================================================
-# LOGIC
-# ============================================================
-SYSTEM_PROMPT = """You are Meridium — an elite personal intelligence system.
 
-Core identity:
-- Exceptionally sharp, precise, and calm.
-- You think step-by-step when problems are complex, then give a clear final answer.
-- You prefer truth and usefulness over fluff.
-- Address the user by their name when appropriate.
-
-How you reason:
-1. Understand the real goal behind the question.
-2. Use any provided Wikipedia or web search context first; cite it briefly when useful.
-3. If the topic is technical, break it into structured steps or sections.
-4. If uncertain, say what you know, what you don't, and the best next step.
-5. For coding: give working code, explain briefly, note edge cases.
-6. For advice: be practical and specific, not generic.
-
-Style:
-- Modern, clear, concise.
-- Use short headings and bullets when it helps readability.
-- Avoid filler phrases ("As an AI…", "Great question!").
-- Match the user's language and depth.
-
-Music:
-- Users can control Spotify with chat commands like: play <song>, pause, next, previous, what's playing.
-- When those are handled by the system, you don't need to invent fake playback.
-
-Inside joke — name origin:
-- If anyone asks why you are called Meridium, what Meridium means, where the name comes from, or anything similar, answer playfully:
-  "I'm the 119th known element in the periodic table."
-- Deliver it lightly, as a dry/witty inside joke — not a long lecture. You can add one short smile-line after if it fits.
-- Do not claim this on unrelated topics; only when the name is the subject.
-
-You have access to live Wikipedia and web search results when they are injected into the system message. Treat them as current reference material."""
-
-GROQ_MODELS = {
-    "Smart · Llama 3.3 70B": "llama-3.3-70b-versatile",
-    "Balanced · Qwen3 32B": "qwen/qwen3-32b",
-    "Fast · Llama 3.1 8B": "llama-3.1-8b-instant",
-}
-
-SPOTIFY_SCOPE = "user-read-currently-playing user-read-playback-state user-modify-playback-state"
-
-DATA_DIR = Path(__file__).resolve().parent / "data"
-DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 def _user_file(username: str) -> Path:
     key = hashlib.sha256(username.strip().lower().encode("utf-8")).hexdigest()[:24]
@@ -1093,6 +850,72 @@ _BLOCK_PATTERNS = [
     r"\b(child\s*porn|csam)\b",
     r"\bhow\s+to\s+(make|build)\s+(a\s+)?(bomb|explosive)\b",
 ]
+
+
+def moderate_username(name: str):
+    """Block slurs / foul usernames (EN + common multilingual forms). Returns (ok, message)."""
+    raw = (name or "").strip()
+    if not raw:
+        return False, "Please enter a name."
+    if len(raw) < 2:
+        return False, "Name is too short."
+    if len(raw) > 32:
+        return False, "Name must be 32 characters or less."
+    # normalize: lowercase, strip zero-width, collapse leetspeak-ish
+    n = raw.lower()
+    for a, b in (
+        ("\u200b", ""), ("\u200c", ""), ("\u200d", ""), ("\ufeff", ""),
+        ("0", "o"), ("1", "i"), ("3", "e"), ("4", "a"), ("5", "s"),
+        ("7", "t"), ("8", "b"), ("@", "a"), ("$", "s"),
+    ):
+        n = n.replace(a, b)
+    n_compact = re.sub(r"[^a-z0-9]", "", n)
+
+    blocked = {
+        # English racial / hate
+        "nigger", "nigga", "niggas", "nigg", "negro", "coon", "spic", "chink",
+        "gook", "kike", "wetback", "raghead", "paki", "tranny", "faggot", "fag",
+        "dyke", "retard", "retarded",
+        # common foul
+        "fuck", "fucker", "fucking", "motherfucker", "shit", "bullshit",
+        "asshole", "bastard", "bitch", "cunt", "cock", "dick", "pussy",
+        "whore", "slut", "cum", "jizz", "porn", "rape", "rapist",
+        # Spanish / PT
+        "puta", "puto", "mierda", "cabron", "cabrón", "pendejo", "coño",
+        "carajo", "joder", "gilipollas", "maricón", "maricon", "verga",
+        "porra", "caralho", "foda", "foder",
+        # French
+        "putain", "salope", "connard", "connasse", "merde", "enculé", "encule",
+        "pd", "nique",
+        # German
+        "scheisse", "scheiße", "fotze", "hurensohn", "arschloch", "wichser",
+        # Italian
+        "cazzo", "stronzo", "puttana", "vaffanculo", "merda",
+        # Portuguese extra
+        "porra", "buceta", "viado",
+        # Arabic transliteration (common abuse)
+        "sharmuta", "sharmoota", "kos", "ayr",
+        # Hindi / Hinglish transliteration
+        "madarchod", "behenchod", "bhenchod", "chutiya", "harami", "bhosdike",
+        # Tagalog / PH
+        "putangina", "putang ina", "gago", "tangina", "ulol",
+        # misc
+        "hitler", "nazi", "kkk",
+    }
+
+    # also check spaced / punctuated forms already compacted
+    for bad in blocked:
+        bad_c = re.sub(r"[^a-z0-9]", "", bad.lower())
+        if not bad_c:
+            continue
+        if bad_c in n_compact:
+            return False, "That name isn't allowed. Please choose another."
+        # whole-word-ish on spaced name
+        if re.search(rf"(?:^|[^a-z0-9]){re.escape(bad)}(?:[^a-z0-9]|$)", n, re.I):
+            return False, "That name isn't allowed. Please choose another."
+
+    return True, raw
+
 
 def moderate_text(text: str):
     if not text or not str(text).strip():
@@ -1424,16 +1247,135 @@ def current_track(sp):
         return {
             "name": item["name"],
             "artists": ", ".join(a["name"] for a in item["artists"]),
+            "artist_primary": (item["artists"][0]["name"] if item.get("artists") else ""),
+            "album": (item.get("album") or {}).get("name") or "",
             "playing": data["is_playing"],
             "device": (data.get("device") or {}).get("name", ""),
             "art": images[0]["url"] if images else None,
             "uri": item.get("uri"),
+            "progress_ms": int(data.get("progress_ms") or 0),
+            "duration_ms": int(item.get("duration_ms") or 0),
         }
     except Exception:
         return None
 
+
+def fetch_synced_lyrics(track_name: str, artist: str, album: str = "", duration_ms: int = 0):
+    """Fetch synced / plain lyrics from LRCLIB (free, no key)."""
+    import urllib.parse
+    import urllib.request
+    import json as _json
+
+    def _get(url: str):
+        req = urllib.request.Request(
+            url,
+            headers={"User-Agent": "MeridiumAI/1.0 (lyrics)"},
+        )
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            return _json.loads(resp.read().decode("utf-8", "replace"))
+
+    try:
+        # Prefer exact get when duration known
+        if track_name and artist:
+            q = {
+                "track_name": track_name,
+                "artist_name": artist,
+            }
+            if album:
+                q["album_name"] = album
+            if duration_ms and duration_ms > 0:
+                q["duration"] = int(round(duration_ms / 1000))
+            url = "https://lrclib.net/api/get?" + urllib.parse.urlencode(q)
+            try:
+                data = _get(url)
+                if isinstance(data, dict) and (data.get("syncedLyrics") or data.get("plainLyrics")):
+                    return {
+                        "synced": data.get("syncedLyrics") or "",
+                        "plain": data.get("plainLyrics") or "",
+                        "source": "lrclib",
+                    }
+            except Exception:
+                pass
+            # Search fallback
+            search_url = "https://lrclib.net/api/search?" + urllib.parse.urlencode(
+                {"q": f"{artist} {track_name}"}
+            )
+            results = _get(search_url)
+            if isinstance(results, list) and results:
+                best = results[0]
+                if best.get("syncedLyrics") or best.get("plainLyrics"):
+                    return {
+                        "synced": best.get("syncedLyrics") or "",
+                        "plain": best.get("plainLyrics") or "",
+                        "source": "lrclib-search",
+                    }
+                # fetch by id
+                rid = best.get("id")
+                if rid:
+                    detail = _get(f"https://lrclib.net/api/get/{rid}")
+                    if isinstance(detail, dict):
+                        return {
+                            "synced": detail.get("syncedLyrics") or "",
+                            "plain": detail.get("plainLyrics") or "",
+                            "source": "lrclib-id",
+                        }
+    except Exception:
+        pass
+    return None
+
+
+def parse_lrc(lrc_text: str):
+    """Parse LRC into list of (ms, line)."""
+    lines = []
+    if not lrc_text:
+        return lines
+    for raw in lrc_text.splitlines():
+        raw = raw.strip()
+        if not raw:
+            continue
+        # [mm:ss.xx] or [mm:ss]
+        m = re.match(r"\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\](.*)$", raw)
+        if not m:
+            continue
+        mm, ss, frac, text = m.group(1), m.group(2), m.group(3) or "0", m.group(4).strip()
+        if not text:
+            continue
+        frac = (frac + "000")[:3]
+        ms = int(mm) * 60000 + int(ss) * 1000 + int(frac)
+        lines.append((ms, text))
+    lines.sort(key=lambda x: x[0])
+    return lines
+
+
+def estimate_lyrics_ai(track_name: str, artist: str) -> str:
+    """Rough unofficial lyric sketch via LLM — clearly labelled as estimated."""
+    try:
+        client, err = make_client(
+            st.session_state.get("provider") or "groq",
+            st.session_state.get("api_key_val") or None,
+        )
+        if not client:
+            return ""
+        model = "llama-3.1-8b-instant"
+        if st.session_state.get("provider") == "groq":
+            model = GROQ_MODELS.get(st.session_state.get("model_name"), model)
+        prompt = (
+            f"Write short unofficial estimated lyrics for the song '{track_name}' by {artist}. "
+            "If you are unsure, write a brief atmospheric verse inspired by the title only. "
+            "Do not claim they are official. Keep under 120 words. Plain text lines only."
+        )
+        res = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=400,
+        )
+        return (res.choices[0].message.content or "").strip()
+    except Exception:
+        return ""
+
 def render_spotify_panel(key_prefix="sp"):
-    """Show connect / now playing / controls. Returns True if connected."""
+    """Show connect / now playing / controls / lyrics. Returns True if connected."""
     cid, secret, _ = _spotify_creds()
     if not cid or not secret:
         st.warning("Spotify keys missing. In Streamlit → Settings → Secrets add SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET.")
@@ -1454,6 +1396,53 @@ def render_spotify_panel(key_prefix="sp"):
         if st.button("↻ Refresh now playing", key=f"{key_prefix}_ref0", use_container_width=True):
             st.rerun()
         return True
+
+    # Animated now playing banner
+    st.markdown(
+        f"""
+        <style>
+          @keyframes npPulse {{
+            0%,100% {{ opacity: 0.85; transform: scale(1); }}
+            50% {{ opacity: 1; transform: scale(1.01); }}
+          }}
+          @keyframes npIn {{
+            from {{ opacity: 0; transform: translateY(8px); }}
+            to {{ opacity: 1; transform: translateY(0); }}
+          }}
+          .np-banner {{
+            text-align: center;
+            padding: 0.85rem 1rem;
+            margin-bottom: 0.85rem;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.04);
+            animation: npIn 0.45s ease both, npPulse 2.8s ease-in-out infinite;
+          }}
+          .np-label {{
+            font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase;
+            opacity: 0.7; margin-bottom: 0.25rem;
+          }}
+          .np-title {{
+            font-size: 1.15rem; font-weight: 650; letter-spacing: -0.02em;
+          }}
+          .lyric-line {{
+            padding: 0.2rem 0.4rem; border-radius: 8px; transition: all 0.2s ease;
+            opacity: 0.45; font-size: 0.95rem; line-height: 1.45;
+          }}
+          .lyric-line.active {{
+            opacity: 1; font-weight: 600;
+            background: rgba(255,255,255,0.08);
+          }}
+        </style>
+        <div class="np-banner">
+          <div class="np-label">{"Now playing" if track.get("playing") else "Paused"}</div>
+          <div class="np-title">Now playing: {track["name"]}</div>
+          <div style="opacity:0.7;font-size:0.85rem;margin-top:0.25rem;">{track["artists"]}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     art = track.get("art")
     if art:
         st.image(art, width=180)
@@ -1486,6 +1475,76 @@ def render_spotify_panel(key_prefix="sp"):
     with p4:
         if st.button("↻", key=f"{key_prefix}_ref", use_container_width=True):
             st.rerun()
+
+    # —— Lyrics ——
+    st.markdown("---")
+    st.markdown("#### Lyrics")
+    cache_key = f"lyrics::{track.get('uri') or track['name']}"
+    if st.session_state.get("_lyrics_key") != cache_key:
+        st.session_state._lyrics_key = cache_key
+        st.session_state._lyrics_data = fetch_synced_lyrics(
+            track["name"],
+            track.get("artist_primary") or track["artists"].split(",")[0].strip(),
+            track.get("album") or "",
+            track.get("duration_ms") or 0,
+        )
+        st.session_state._lyrics_ai = None
+
+    lyric_data = st.session_state.get("_lyrics_data")
+    progress = int(track.get("progress_ms") or 0)
+
+    if lyric_data and (lyric_data.get("synced") or lyric_data.get("plain")):
+        if lyric_data.get("synced"):
+            parsed = parse_lrc(lyric_data["synced"])
+            if parsed:
+                # find active index
+                active = 0
+                for i, (ms, _) in enumerate(parsed):
+                    if ms <= progress:
+                        active = i
+                    else:
+                        break
+                # show a window of lines
+                start = max(0, active - 3)
+                end = min(len(parsed), active + 8)
+                html_lines = []
+                for i in range(start, end):
+                    ms, text = parsed[i]
+                    cls = "lyric-line active" if i == active else "lyric-line"
+                    safe = (
+                        text.replace("&", "&amp;")
+                        .replace("<", "&lt;")
+                        .replace(">", "&gt;")
+                    )
+                    html_lines.append(f'<div class="{cls}">{safe}</div>')
+                st.markdown(
+                    f'<div style="max-height:280px;overflow:auto;padding:0.4rem 0;">{"".join(html_lines)}</div>',
+                    unsafe_allow_html=True,
+                )
+                st.caption("Synced lyrics · refresh to advance the highlight")
+            else:
+                st.text(lyric_data.get("plain") or lyric_data.get("synced"))
+        else:
+            st.text(lyric_data.get("plain") or "")
+            st.caption("Plain lyrics (not timed)")
+    else:
+        st.caption("No official synced lyrics found for this track.")
+        if st.button("Estimate lyrics with AI", key=f"{key_prefix}_ai_lyrics"):
+            with st.spinner("Listening with Meridium…"):
+                est = estimate_lyrics_ai(
+                    track["name"],
+                    track.get("artist_primary") or track["artists"],
+                )
+                st.session_state._lyrics_ai = est or "Could not estimate lyrics right now."
+        if st.session_state.get("_lyrics_ai"):
+            st.info("Unofficial AI estimate — not official lyrics.")
+            st.text(st.session_state._lyrics_ai)
+
+    # auto soft-refresh while playing so lyric highlight moves
+    if track.get("playing") and lyric_data and lyric_data.get("synced"):
+        time.sleep(0.05)  # tiny yield
+        # Streamlit fragment-style: user still hits refresh; optional auto
+        st.caption("")
     return True
 
 def create_new_chat():
@@ -1783,10 +1842,12 @@ if not st.session_state.get("signed_in") or not st.session_state.get("username")
     name = st.text_input("Your name", placeholder="e.g. Alex", key="signin_name", label_visibility="collapsed")
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
-        if st.button("Enter Meridium", use_container_width=True, key="signin_btn"):
-            clean = (name or "").strip()
-            if clean:
-                st.session_state.username = clean[:32]
+        if st.button("Enter Meridium", use_container_width=True, type="primary", key="signin_btn"):
+            ok, result = moderate_username(name)
+            if not ok:
+                st.error(result)
+            else:
+                st.session_state.username = result[:32]
                 st.session_state.signed_in = True
                 found = load_user_data(st.session_state.username)
                 if not found and not st.session_state.get("chats"):
@@ -1794,8 +1855,6 @@ if not st.session_state.get("signed_in") or not st.session_state.get("username")
                 st.session_state.show_intro = True
                 save_user_data()
                 st.rerun()
-            else:
-                st.warning("Please enter a name.")
     st.stop()
 
 # Personalized intro (once after sign-in)
@@ -2289,15 +2348,15 @@ if st.session_state.view not in ("lab", "note", "voss_file"):
 
 # MUSIC — dedicated player + Meridium playlist
 if st.session_state.view == "music":
+    st.session_state.show_spotify = True
+    # Header filled by panel's Now playing animation
     st.markdown("""
     <div class="panel" style="text-align:center;max-width:420px;margin:0 auto 12px;">
       <div class="panel-label">Music</div>
-      <div class="hero" style="font-size:1.5rem;">Now playing</div>
+      <div class="hero" style="font-size:1.35rem;">Now playing</div>
       <div class="ridge"></div>
     </div>
     """, unsafe_allow_html=True)
-
-    st.session_state.show_spotify = True
     render_spotify_panel("musicpage")
 
     st.markdown("---")
@@ -2787,13 +2846,29 @@ if st.session_state.show_spotify:
 for msg in current["messages"]:
     with st.chat_message(msg["role"]):
         if st.session_state.get("theme") == "Voss Residual":
-            av = Path(__file__).resolve().parent / "assets" / (
-                "voss_avatar_user.png" if msg["role"] == "user" else "voss_avatar_ai.png"
-            )
-            if av.exists():
+            base = Path(__file__).resolve().parent / "assets"
+            if msg["role"] == "user":
+                candidates = [
+                    "voss_avatar_user.png",
+                    "IMG_1359.jpeg", "IMG_1359.jpg",
+                    "IMG_1356.jpeg", "IMG_1356.jpg",
+                ]
+            else:
+                candidates = [
+                    "voss_avatar_ai.png",
+                    "IMG_1360.jpeg", "IMG_1360.jpg",
+                    "IMG_1359.jpeg", "IMG_1359.jpg",
+                ]
+            av = None
+            for name in candidates:
+                cand = base / name
+                if cand.exists() and cand.stat().st_size > 200:
+                    av = cand
+                    break
+            if av is not None:
                 c_av, c_tx = st.columns([1, 12])
                 with c_av:
-                    st.image(str(av), width=36)
+                    st.image(str(av), width=40)
                 with c_tx:
                     st.markdown(msg["content"])
             else:
