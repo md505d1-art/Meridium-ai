@@ -72,6 +72,7 @@ You are calm, precise, slightly poetic, and quietly loyal.
 Keep replies clear and useful. Prefer short paragraphs over long walls of text.
 When the user is the owner, be warmer and more familiar without becoming sycophantic.
 You may have access to live Wikipedia and web search when those tools are enabled — use them for factual or current questions.
+You can control the user's Spotify when they ask in chat: play a song, pause, resume, skip/next, previous, and what's playing. Those commands are handled for you — if a music request fails, guide them to connect Spotify on the Music page and keep an active device open.
 Never claim to be human. You are Meridium.
 Stay in character with the Caelestia / observation aesthetic of the shell.
 """
@@ -1783,6 +1784,9 @@ def try_music_command(prompt: str):
         "what song", "what's playing", "whats playing", "now playing", "resume",
         "change the song", "change song", "another song", "next one", "previous one",
         "go to the next", "go to previous", "rewind", "forward",
+        "this song", "current song", "current track", "who is this", "who's this",
+        "what is this", "what's this", "identify", "pause the", "stop the",
+        "skip this", "skip the", "play something", "put on ",
     )
     if not any(t in low for t in triggers) and not low.startswith("play"):
         return False, ""
@@ -1796,31 +1800,60 @@ def try_music_command(prompt: str):
         return True, msg
 
     try:
-        # now playing
-        if any(x in low for x in ("what song", "what's playing", "whats playing", "now playing")):
+        # now playing / identify
+        now_playing_phrases = (
+            "what song", "what's playing", "whats playing", "now playing",
+            "this song", "current song", "current track", "what is this song",
+            "what's this song", "whats this song", "what track", "who's this",
+            "who is this", "who is singing", "who's singing", "identify",
+            "what is playing", "what's on", "name this song", "name the song",
+        )
+        if any(x in low for x in now_playing_phrases) or low in (
+            "what song is this", "what is this", "what's this", "song?",
+        ):
             track = current_track(sp)
             if not track:
                 return True, "Nothing is playing right now. Start a song in Spotify, then ask again."
-            return True, f"♫ **{track['name']}** — {track['artists']}" + (f" ({track['device']})" if track.get("device") else "")
+            extra = f" · {track['device']}" if track.get("device") else ""
+            status = "playing" if track.get("playing") else "paused"
+            return True, (
+                f"♫ **{track['name']}** — {track['artists']}"
+                + (f"\nAlbum: {track['album']}" if track.get("album") else "")
+                + f"\n_{status}{extra}_"
+            )
 
         # pause / stop
-        if low in ("pause", "stop", "stop music", "stop the music", "pause music") or low.startswith("pause"):
-            sp.pause_playback()
-            return True, "Paused."
+        if (
+            low in ("pause", "stop", "stop music", "stop the music", "pause music", "pause it")
+            or low.startswith("pause")
+            or "pause the" in low
+            or "pause this" in low
+            or "stop the music" in low
+            or "stop playing" in low
+        ):
+            # Don't treat "stop" alone inside unrelated sentences — require music context if just "stop"
+            if low == "stop" or "pause" in low or "music" in low or "playing" in low or "song" in low or "track" in low:
+                sp.pause_playback()
+                return True, "Paused."
 
         # resume
-        if low in ("resume", "continue", "unpause") or "resume" in low:
+        if low in ("resume", "continue", "unpause", "unpause music", "play again") or (
+            "resume" in low and any(w in low for w in ("music", "song", "track", "playback", "it", "please"))
+        ) or low in ("keep playing", "continue playing"):
             sp.start_playback()
             return True, "Resumed."
 
         # next / skip
         next_phrases = (
             "next song", "next track", "next one", "skip", "skip this", "skip song",
-            "change the song", "change song", "another song", "go to the next",
-            "play the next", "forward",
+            "skip the song", "skip this song", "change the song", "change song",
+            "another song", "go to the next", "play the next", "forward",
+            "next please", "skip please",
         )
         if low in ("next", "skip") or any(x in low for x in next_phrases) or (
-            "next" in low and any(w in low for w in ("song", "track", "one", "please"))
+            "next" in low and any(w in low for w in ("song", "track", "one", "please", "music"))
+        ) or (
+            "skip" in low and any(w in low for w in ("song", "track", "this", "it", "please", "music"))
         ):
             sp.next_track()
             time.sleep(0.45)
@@ -1833,7 +1866,7 @@ def try_music_command(prompt: str):
         prev_phrases = (
             "previous", "prev song", "prev track", "previous song", "previous track",
             "last song", "last track", "go back", "previous one", "go to previous",
-            "play the previous", "rewind",
+            "play the previous", "rewind", "go back a song", "back a track",
         )
         if low in ("previous", "prev", "back", "go back") or any(x in low for x in prev_phrases):
             sp.previous_track()
@@ -1844,16 +1877,28 @@ def try_music_command(prompt: str):
             return True, "⏮ Went to the previous track."
 
         # play <query>
-        if low.startswith("play ") or low.startswith("play the song"):
-            query = text
-            for prefix in ("play the song ", "play song ", "play "):
-                if low.startswith(prefix):
-                    query = text[len(prefix):].strip()
-                    break
+        play_prefixes = (
+            "play the song ", "play song ", "play this ", "put on ", "put on the song ",
+            "can you play ", "could you play ", "please play ", "play ",
+        )
+        matched_prefix = None
+        for prefix in play_prefixes:
+            if low.startswith(prefix):
+                matched_prefix = prefix
+                break
+        if matched_prefix is not None:
+            # Use original text slice with same length as matched prefix
+            query = text[len(matched_prefix):].strip()
             query = query.strip().strip('"').strip("'")
-            if not query:
+            # Drop trailing politeness
+            query = re.sub(r"\s+please\.?$", "", query, flags=re.I).strip()
+            if not query or query.lower() in ("it", "this", "that", "something"):
                 return True, "Tell me what to play — e.g. `play Nemzzz Prince of the Scene`"
-            results = sp.search(q=query, type="track", limit=1)
+            # Sanitize Spotify operators
+            q_clean = re.sub(r"\s+-\s+", " ", query)
+            q_clean = re.sub(r"[\"():]", " ", q_clean)
+            q_clean = re.sub(r"\s+", " ", q_clean).strip()
+            results = sp.search(q=q_clean or query, type="track", limit=1)
             items = (results.get("tracks") or {}).get("items") or []
             if not items:
                 return True, f"Couldn't find a track for “{query}”."
@@ -3511,3 +3556,4 @@ if st.session_state.view == "chat" and st.session_state.get("_last_speak"):
         st.components.v1.html(speak_html(spoken, autoplay=False), height=70)
 
 st.markdown("</div>", unsafe_allow_html=True)
+
