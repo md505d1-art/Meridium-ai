@@ -2726,63 +2726,143 @@ if st.session_state.view == "music":
     # ========== TAB: PLAYLIST ==========
     with tab_playlist:
         st.markdown("#### Meridium playlist")
-        st.caption(f"Up to {MAX_PLAYLIST} tracks · **{len(playlist)}** saved · every song is listed below.")
+        st.caption(
+            f"Up to {MAX_PLAYLIST} tracks · **{len(playlist)}** saved · "
+            "songs play in order — when one ends, the next starts."
+        )
 
         playlist = list(st.session_state.get("meridium_playlist") or [])
+
+        # Repeat mode: off | all | one  (synced to Spotify when possible)
+        if "pl_repeat" not in st.session_state:
+            st.session_state.pl_repeat = "off"  # off | all | one
+
+        def _resolve_playlist_uris(items, max_resolve=40):
+            """Return list of Spotify URIs for playlist items; resolve missing via search."""
+            uris = []
+            resolved = 0
+            for item in items:
+                u = item.get("uri")
+                if u:
+                    uris.append(u)
+                    continue
+                if not sp or resolved >= max_resolve:
+                    continue
+                q = _sanitize_spotify_query(item.get("title") or item.get("name") or "")
+                if not q:
+                    continue
+                try:
+                    results = sp.search(q=q, type="track", limit=1)
+                    tracks = (results.get("tracks") or {}).get("items") or []
+                    if tracks:
+                        uris.append(tracks[0]["uri"])
+                        resolved += 1
+                except Exception:
+                    pass
+            return uris
+
+        def _apply_repeat_mode():
+            """Push Meridium repeat preference to Spotify device."""
+            if not sp:
+                return
+            mode = st.session_state.get("pl_repeat") or "off"
+            state = {"off": "off", "all": "context", "one": "track"}.get(mode, "off")
+            try:
+                sp.repeat(state)
+            except Exception:
+                pass
+
+        def _play_playlist_from(start_index: int = 0) -> str:
+            """
+            Start sequential playback from start_index through the rest of the list.
+            If repeat=all, wrap so the queue loops the full playlist.
+            Spotify advances automatically when each track ends.
+            """
+            if not sp:
+                return "Connect Spotify first."
+            items = list(st.session_state.get("meridium_playlist") or [])
+            if not items:
+                return "Playlist is empty."
+            start_index = max(0, min(start_index, len(items) - 1))
+            # Build ordered queue from start_index → end (then wrap if repeat all)
+            ordered = items[start_index:]
+            if st.session_state.get("pl_repeat") == "all" and start_index > 0:
+                ordered = ordered + items[:start_index]
+            # Spotify start_playback uris limit is generous but keep under ~80
+            uris = _resolve_playlist_uris(ordered, max_resolve=50)
+            uris = uris[:80]
+            if not uris:
+                return "Couldn't resolve any tracks on Spotify."
+            try:
+                sp.start_playback(uris=uris)
+                time.sleep(0.25)
+                _apply_repeat_mode()
+                first_name = ordered[0].get("name") or ordered[0].get("title") or "track"
+                extra = f" · {len(uris)} in queue"
+                if st.session_state.get("pl_repeat") == "all":
+                    extra += " · repeat all"
+                elif st.session_state.get("pl_repeat") == "one":
+                    extra += " · repeat one"
+                return f"▶ Playing **{first_name}**{extra}"
+            except Exception as e:
+                err = str(e)
+                if "premium" in err.lower():
+                    return "Spotify Premium is required for playlist playback control."
+                if "NO_ACTIVE_DEVICE" in err or "active device" in err.lower():
+                    return "No active Spotify device. Open Spotify and play something once, then try again."
+                return f"Playback failed: {e}"
 
         if not playlist:
             st.info("Playlist is empty. Switch to **Search Spotify** to add tracks.")
         else:
-            t1, t2, t3 = st.columns([2, 2, 2])
+            t1, t2, t3, t4 = st.columns([2, 2, 2, 2])
             with t1:
-                if sp and st.button("▶ Play first", use_container_width=True, key="pl_play_first"):
-                    try:
-                        first = playlist[0]
-                        uri = first.get("uri")
-                        if not uri:
-                            q = _sanitize_spotify_query(first.get("title") or first.get("name") or "")
-                            results = sp.search(q=q, type="track", limit=1)
-                            tracks = (results.get("tracks") or {}).get("items") or []
-                            if tracks:
-                                uri = tracks[0]["uri"]
-                        if uri:
-                            sp.start_playback(uris=[uri])
-                            time.sleep(0.35)
-                            st.success(f"Playing: {first.get('name') or first.get('title')}")
-                            st.rerun()
-                        else:
-                            st.warning("Couldn't resolve that track on Spotify.")
-                    except Exception as e:
-                        st.error(f"Playback failed (Premium + active device needed): {e}")
+                if sp and st.button("▶ Play", use_container_width=True, key="pl_play_first", help="Play from the top — continues in order"):
+                    msg = _play_playlist_from(0)
+                    if msg.startswith("▶"):
+                        st.success(msg)
+                    else:
+                        st.warning(msg)
+                    time.sleep(0.2)
+                    st.rerun()
             with t2:
-                if sp and st.button("▶ Play all (queue)", use_container_width=True, key="pl_play_all"):
-                    try:
-                        uris = [item.get("uri") for item in playlist if item.get("uri")]
-                        uris = uris[:50]
-                        if not uris:
-                            for item in playlist[:10]:
-                                q = _sanitize_spotify_query(item.get("title") or item.get("name") or "")
-                                if not q:
-                                    continue
-                                results = sp.search(q=q, type="track", limit=1)
-                                tracks = (results.get("tracks") or {}).get("items") or []
-                                if tracks:
-                                    uris.append(tracks[0]["uri"])
-                        if uris:
-                            sp.start_playback(uris=uris)
-                            time.sleep(0.35)
-                            st.success(f"Started queue ({len(uris)} tracks)")
-                            st.rerun()
-                        else:
-                            st.warning("No Spotify URIs found in playlist.")
-                    except Exception as e:
-                        st.error(f"Queue failed: {e}")
+                # Cycle repeat: off → all → one → off
+                mode = st.session_state.get("pl_repeat") or "off"
+                repeat_label = {
+                    "off": "Repeat: Off",
+                    "all": "Repeat: All",
+                    "one": "Repeat: One",
+                }.get(mode, "Repeat: Off")
+                if st.button(f"🔁 {repeat_label}", use_container_width=True, key="pl_repeat_btn",
+                             type="primary" if mode != "off" else "secondary"):
+                    order = ["off", "all", "one"]
+                    st.session_state.pl_repeat = order[(order.index(mode) + 1) % len(order)]
+                    _apply_repeat_mode()
+                    st.rerun()
             with t3:
+                if sp and st.button("▶ From here", use_container_width=True, key="pl_play_page",
+                                    help="Play from the first track on this page onward"):
+                    page_start = int(st.session_state.get("pl_page") or 0) * 25
+                    msg = _play_playlist_from(page_start)
+                    if msg.startswith("▶"):
+                        st.success(msg)
+                    else:
+                        st.warning(msg)
+                    st.rerun()
+            with t4:
                 if st.button("🗑 Clear all", use_container_width=True, key="pl_clear"):
                     st.session_state.meridium_playlist = []
                     st.session_state.pl_page = 0
                     save_user_data()
                     st.rerun()
+
+            mode = st.session_state.get("pl_repeat") or "off"
+            if mode == "all":
+                st.caption("🔁 Repeat **all** — when the last song ends, the playlist starts again.")
+            elif mode == "one":
+                st.caption("🔁 Repeat **one** — the current song loops.")
+            else:
+                st.caption("Repeat is off — playback stops after the last queued track.")
 
             # Show ALL songs with pagination (every track accessible)
             PAGE_SIZE = 25
@@ -2795,7 +2875,6 @@ if st.session_state.view == "music":
             start = page * PAGE_SIZE
             end = min(start + PAGE_SIZE, total)
 
-            # Page jump so large playlists stay fully accessible
             if pages > 1:
                 nav1, nav2, nav3, nav4 = st.columns([1, 1, 2, 1])
                 with nav1:
@@ -2844,23 +2923,13 @@ if st.session_state.view == "music":
                     else:
                         st.markdown(f"**{i+1}.** {title}")
                 with c2:
-                    if sp and st.button("▶", key=f"pl_play_{i}", help="Play this track", use_container_width=True):
-                        try:
-                            uri = item.get("uri")
-                            if not uri:
-                                q = _sanitize_spotify_query(item.get("title") or title)
-                                results = sp.search(q=q, type="track", limit=1)
-                                tracks = (results.get("tracks") or {}).get("items") or []
-                                if tracks:
-                                    uri = tracks[0]["uri"]
-                            if uri:
-                                sp.start_playback(uris=[uri])
-                                time.sleep(0.3)
-                                st.rerun()
-                            else:
-                                st.toast("Couldn't find on Spotify")
-                        except Exception as e:
-                            st.toast(str(e)[:80])
+                    if sp and st.button("▶", key=f"pl_play_{i}", help="Play from this track onward (in order)", use_container_width=True):
+                        msg = _play_playlist_from(i)
+                        if msg.startswith("▶"):
+                            st.toast(msg.replace("**", ""))
+                        else:
+                            st.toast(msg)
+                        st.rerun()
                 with c3:
                     if st.button("✕", key=f"pl_del_{i}", help="Remove", use_container_width=True):
                         pl = list(playlist)
@@ -3556,4 +3625,3 @@ if st.session_state.view == "chat" and st.session_state.get("_last_speak"):
         st.components.v1.html(speak_html(spoken, autoplay=False), height=70)
 
 st.markdown("</div>", unsafe_allow_html=True)
-
