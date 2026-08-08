@@ -1319,6 +1319,21 @@ def fetch_synced_lyrics(track_name: str, artist: str, album: str = "", duration_
             )
             results = _get(search_url)
             if isinstance(results, list) and results:
+                # Prefer closest name/artist match with synced lyrics
+                def _score(item):
+                    tn = (item.get("trackName") or "").lower()
+                    an = (item.get("artistName") or "").lower()
+                    s = 0
+                    if track_name.lower() in tn or tn in track_name.lower():
+                        s += 3
+                    if artist.lower() in an or an in artist.lower():
+                        s += 3
+                    if item.get("syncedLyrics"):
+                        s += 5
+                    if item.get("plainLyrics"):
+                        s += 1
+                    return s
+                results = sorted(results, key=_score, reverse=True)
                 best = results[0]
                 if best.get("syncedLyrics") or best.get("plainLyrics"):
                     return {
@@ -1430,227 +1445,228 @@ def render_spotify_panel(key_prefix="sp"):
         f"""
         <style>
           @keyframes npPulse {{
-            0%,100% {{ opacity: 0.85; transform: scale(1); }}
-            50% {{ opacity: 1; transform: scale(1.01); }}
-          }}
-          @keyframes npIn {{
-            from {{ opacity: 0; transform: translateY(8px); }}
-            to {{ opacity: 1; transform: translateY(0); }}
+            0%,100% {{ opacity: 0.9; }}
+            50% {{ opacity: 1; }}
           }}
           .np-banner {{
             text-align: center;
-            padding: 0.85rem 1rem;
-            margin-bottom: 0.85rem;
+            padding: 0.7rem 1rem;
+            margin-bottom: 0.75rem;
             border-radius: 14px;
             border: 1px solid rgba(255,255,255,0.12);
             background: rgba(255,255,255,0.04);
-            animation: npIn 0.45s ease both, npPulse 2.8s ease-in-out infinite;
+            animation: npPulse 2.6s ease-in-out infinite;
           }}
           .np-label {{
-            font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase;
-            opacity: 0.7; margin-bottom: 0.25rem;
+            font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase;
+            opacity: 0.7; margin-bottom: 0.2rem;
           }}
           .np-title {{
-            font-size: 1.15rem; font-weight: 650; letter-spacing: -0.02em;
-          }}
-          .lyric-line {{
-            padding: 0.2rem 0.4rem; border-radius: 8px; transition: all 0.2s ease;
-            opacity: 0.45; font-size: 0.95rem; line-height: 1.45;
-          }}
-          .lyric-line.active {{
-            opacity: 1; font-weight: 600;
-            background: rgba(255,255,255,0.08);
+            font-size: 1.1rem; font-weight: 650; letter-spacing: -0.02em;
           }}
         </style>
         <div class="np-banner">
           <div class="np-label">{_status}</div>
           <div class="np-title">Now playing: {_tname}</div>
-          <div style="opacity:0.7;font-size:0.85rem;margin-top:0.25rem;">{_tarts}</div>
+          <div style="opacity:0.7;font-size:0.85rem;margin-top:0.2rem;">{_tarts}</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    art = track.get("art")
-    if art:
-        st.image(art, width=180)
-    st.markdown(f"### {track['name']}")
-    st.caption(track["artists"] + (f" · {track['device']}" if track.get("device") else ""))
-    p1, p2, p3, p4 = st.columns(4)
-    with p1:
-        if st.button("⏮", key=f"{key_prefix}_prev", use_container_width=True):
-            try:
-                sp.previous_track(); time.sleep(0.35); st.rerun()
-            except Exception as e:
-                st.caption(str(e))
-    with p2:
-        icon = "⏸" if track["playing"] else "▶"
-        if st.button(icon, key=f"{key_prefix}_play", use_container_width=True):
-            try:
-                if track["playing"]:
-                    sp.pause_playback()
-                else:
-                    sp.start_playback()
-                time.sleep(0.35); st.rerun()
-            except Exception as e:
-                st.caption(f"Needs Premium + active device: {e}")
-    with p3:
-        if st.button("⏭", key=f"{key_prefix}_next", use_container_width=True):
-            try:
-                sp.next_track(); time.sleep(0.35); st.rerun()
-            except Exception as e:
-                st.caption(str(e))
-    with p4:
-        if st.button("↻", key=f"{key_prefix}_ref", use_container_width=True):
-            st.rerun()
+    # Layout: art + controls LEFT · lyrics RIGHT (where user pointed)
+    left, right = st.columns([1.05, 1.35], gap="medium")
 
-    # —— Lyrics —— (client-side sync with playback clock)
-    try:
-        st.markdown("---")
+    with left:
+        art = track.get("art")
+        if art:
+            st.image(art, width=200)
+        st.markdown(f"### {track['name']}")
+        st.caption(track["artists"] + (f" · {track['device']}" if track.get("device") else ""))
+        p1, p2, p3, p4 = st.columns(4)
+        with p1:
+            if st.button("⏮", key=f"{key_prefix}_prev", use_container_width=True):
+                try:
+                    sp.previous_track(); time.sleep(0.25); st.rerun()
+                except Exception as e:
+                    st.caption(str(e))
+        with p2:
+            icon = "⏸" if track["playing"] else "▶"
+            if st.button(icon, key=f"{key_prefix}_play", use_container_width=True):
+                try:
+                    if track["playing"]:
+                        sp.pause_playback()
+                    else:
+                        sp.start_playback()
+                    time.sleep(0.25); st.rerun()
+                except Exception as e:
+                    st.caption(f"Needs Premium + active device: {e}")
+        with p3:
+            if st.button("⏭", key=f"{key_prefix}_next", use_container_width=True):
+                try:
+                    sp.next_track(); time.sleep(0.25); st.rerun()
+                except Exception as e:
+                    st.caption(str(e))
+        with p4:
+            if st.button("↻", key=f"{key_prefix}_ref", use_container_width=True):
+                # force fresh lyrics + progress
+                st.session_state._lyrics_key = None
+                st.rerun()
+
+    with right:
         st.markdown("#### Lyrics")
-        cache_key = f"lyrics::{track.get('uri') or track['name']}"
-        if st.session_state.get("_lyrics_key") != cache_key:
-            st.session_state._lyrics_key = cache_key
-            st.session_state._lyrics_data = fetch_synced_lyrics(
-                track["name"],
-                track.get("artist_primary") or (track.get("artists") or "").split(",")[0].strip(),
-                track.get("album") or "",
-                track.get("duration_ms") or 0,
-            )
-            st.session_state._lyrics_ai = None
+        try:
+            cache_key = f"lyrics::{track.get('uri') or track['name']}"
+            if st.session_state.get("_lyrics_key") != cache_key:
+                st.session_state._lyrics_key = cache_key
+                st.session_state._lyrics_data = fetch_synced_lyrics(
+                    track["name"],
+                    track.get("artist_primary") or (track.get("artists") or "").split(",")[0].strip(),
+                    track.get("album") or "",
+                    track.get("duration_ms") or 0,
+                )
+                st.session_state._lyrics_ai = None
 
-        lyric_data = st.session_state.get("_lyrics_data")
-        progress = int(track.get("progress_ms") or 0)
-        playing = bool(track.get("playing"))
+            lyric_data = st.session_state.get("_lyrics_data")
+            progress = int(track.get("progress_ms") or 0)
+            playing = bool(track.get("playing"))
 
-        if lyric_data and (lyric_data.get("synced") or lyric_data.get("plain")):
-            if lyric_data.get("synced"):
-                parsed = parse_lrc(lyric_data["synced"])
-                if parsed:
-                    import json as _json
-                    import html as _html
-                    lines_payload = [
-                        {"ms": int(ms), "text": _html.escape(str(text))}
-                        for ms, text in parsed
-                    ]
-                    payload = _json.dumps(lines_payload)
-                    prog_js = int(progress)
-                    play_js = "true" if playing else "false"
-                    st.components.v1.html(
-                        f"""
-                        <div id="mer-lrc-wrap" style="
-                          font-family: Inter, system-ui, sans-serif;
-                          color: #e8e6f0;
-                          max-height: 320px;
-                          overflow-y: auto;
-                          padding: 12px 8px;
-                          border-radius: 14px;
-                          background: rgba(255,255,255,0.04);
-                          border: 1px solid rgba(255,255,255,0.1);
-                          scroll-behavior: smooth;
-                        ">
-                          <div id="mer-lrc"></div>
-                        </div>
-                        <div id="mer-lrc-status" style="
-                          margin-top:8px;font-size:11px;opacity:0.55;text-align:center;
-                        ">Synced lyrics</div>
-                        <script>
-                        (function(){{
-                          const lines = {payload};
-                          let baseProgress = {prog_js};
-                          const baseWall = Date.now();
-                          let isPlaying = {play_js};
-                          const root = document.getElementById('mer-lrc');
-                          const wrap = document.getElementById('mer-lrc-wrap');
-                          const status = document.getElementById('mer-lrc-status');
-                          if (!root || !lines.length) return;
+            if lyric_data and (lyric_data.get("synced") or lyric_data.get("plain")):
+                if lyric_data.get("synced"):
+                    parsed = parse_lrc(lyric_data["synced"])
+                    if parsed:
+                        import json as _json
+                        lines_payload = [
+                            {"ms": int(ms), "text": _html.escape(str(text))}
+                            for ms, text in parsed
+                        ]
+                        payload = _json.dumps(lines_payload)
+                        # slight lead so highlight feels on-beat (LRC often lags a bit)
+                        prog_js = max(0, int(progress) + 150)
+                        play_js = "true" if playing else "false"
+                        st.components.v1.html(
+                            f"""
+                            <div id="mer-lrc-wrap" style="
+                              font-family: Inter, system-ui, sans-serif;
+                              color: #e8e6f0;
+                              height: 340px;
+                              overflow-y: auto;
+                              padding: 10px 6px;
+                              border-radius: 14px;
+                              background: rgba(255,255,255,0.04);
+                              border: 1px solid rgba(255,255,255,0.1);
+                              scroll-behavior: smooth;
+                            ">
+                              <div id="mer-lrc"></div>
+                            </div>
+                            <div id="mer-lrc-status" style="
+                              margin-top:8px;font-size:11px;opacity:0.55;text-align:center;
+                            ">Synced lyrics</div>
+                            <script>
+                            (function(){{
+                              const lines = {payload};
+                              let baseProgress = {prog_js};
+                              const baseWall = Date.now();
+                              let isPlaying = {play_js};
+                              const root = document.getElementById('mer-lrc');
+                              const wrap = document.getElementById('mer-lrc-wrap');
+                              const status = document.getElementById('mer-lrc-status');
+                              if (!root || !lines.length) return;
 
-                          root.innerHTML = lines.map((L, i) =>
-                            '<div class="ml" data-i="'+i+'" style="'
-                            + 'padding:6px 10px;margin:2px 0;border-radius:10px;'
-                            + 'transition:all 0.25s ease;opacity:0.35;font-size:15px;line-height:1.45;'
-                            + 'transform:scale(0.98);">'
-                            + L.text + '</div>'
-                          ).join('');
+                              root.innerHTML = lines.map((L, i) =>
+                                '<div class="ml" data-i="'+i+'" style="'
+                                + 'padding:7px 10px;margin:2px 0;border-radius:10px;'
+                                + 'transition:all 0.18s ease;opacity:0.32;font-size:14.5px;line-height:1.4;'
+                                + 'transform:scale(0.98);">'
+                                + L.text + '</div>'
+                              ).join('');
 
-                          let lastActive = -1;
-                          function currentMs(){{
-                            if (!isPlaying) return baseProgress;
-                            return baseProgress + (Date.now() - baseWall);
-                          }}
-                          function tick(){{
-                            const now = currentMs();
-                            let active = 0;
-                            for (let i = 0; i < lines.length; i++){{
-                              if (lines[i].ms <= now) active = i;
-                              else break;
-                            }}
-                            if (active !== lastActive){{
-                              lastActive = active;
-                              const nodes = root.querySelectorAll('.ml');
-                              nodes.forEach((n, i) => {{
-                                if (i === active){{
-                                  n.style.opacity = '1';
-                                  n.style.fontWeight = '650';
-                                  n.style.transform = 'scale(1.02)';
-                                  n.style.background = 'rgba(196,167,231,0.16)';
-                                  n.style.boxShadow = '0 0 18px rgba(196,167,231,0.15)';
-                                }} else if (Math.abs(i - active) <= 1){{
-                                  n.style.opacity = '0.55';
-                                  n.style.fontWeight = '500';
-                                  n.style.transform = 'scale(1)';
-                                  n.style.background = 'transparent';
-                                  n.style.boxShadow = 'none';
-                                }} else {{
-                                  n.style.opacity = '0.28';
-                                  n.style.fontWeight = '400';
-                                  n.style.transform = 'scale(0.98)';
-                                  n.style.background = 'transparent';
-                                  n.style.boxShadow = 'none';
+                              let lastActive = -1;
+                              function currentMs(){{
+                                if (!isPlaying) return baseProgress;
+                                return baseProgress + (Date.now() - baseWall);
+                              }}
+                              function tick(){{
+                                const now = currentMs();
+                                let active = 0;
+                                for (let i = 0; i < lines.length; i++){{
+                                  if (lines[i].ms <= now) active = i;
+                                  else break;
                                 }}
-                              }});
-                              const el = root.querySelector('.ml[data-i="'+active+'"]');
-                              if (el && wrap){{
-                                const top = el.offsetTop - wrap.clientHeight/2 + el.clientHeight/2;
-                                wrap.scrollTo({{ top: Math.max(0, top), behavior: 'smooth' }});
+                                if (active !== lastActive){{
+                                  lastActive = active;
+                                  const nodes = root.querySelectorAll('.ml');
+                                  nodes.forEach((n, i) => {{
+                                    if (i === active){{
+                                      n.style.opacity = '1';
+                                      n.style.fontWeight = '650';
+                                      n.style.transform = 'scale(1.02)';
+                                      n.style.background = 'rgba(196,167,231,0.18)';
+                                      n.style.boxShadow = '0 0 16px rgba(196,167,231,0.12)';
+                                    }} else if (Math.abs(i - active) <= 1){{
+                                      n.style.opacity = '0.55';
+                                      n.style.fontWeight = '500';
+                                      n.style.transform = 'scale(1)';
+                                      n.style.background = 'transparent';
+                                      n.style.boxShadow = 'none';
+                                    }} else {{
+                                      n.style.opacity = '0.28';
+                                      n.style.fontWeight = '400';
+                                      n.style.transform = 'scale(0.98)';
+                                      n.style.background = 'transparent';
+                                      n.style.boxShadow = 'none';
+                                    }}
+                                  }});
+                                  const el = root.querySelector('.ml[data-i="'+active+'"]');
+                                  if (el && wrap){{
+                                    const top = el.offsetTop - wrap.clientHeight/2 + el.clientHeight/2;
+                                    wrap.scrollTo({{ top: Math.max(0, top), behavior: 'smooth' }});
+                                  }}
+                                }}
+                                if (status){{
+                                  const sec = Math.floor(now/1000);
+                                  const m = Math.floor(sec/60), s = sec%60;
+                                  status.textContent = (isPlaying ? '● Live  ' : '❚❚  ')
+                                    + m + ':' + String(s).padStart(2,'0');
+                                }}
                               }}
-                              if (status){{
-                                const sec = Math.floor(now/1000);
-                                const m = Math.floor(sec/60), s = sec%60;
-                                status.textContent = (isPlaying ? '● Live sync  ' : '❚❚ Paused  ')
-                                  + m + ':' + String(s).padStart(2,'0');
-                              }}
-                            }}
-                          }}
-                          tick();
-                          setInterval(tick, 200);
-                        }})();
-                        </script>
-                        """,
-                        height=380,
-                    )
-                    st.caption("Lyrics follow the song in real time · press ↻ if you skip tracks")
+                              tick();
+                              setInterval(tick, 120);
+                            }})();
+                            </script>
+                            """,
+                            height=380,
+                        )
+                    else:
+                        st.text(lyric_data.get("plain") or lyric_data.get("synced"))
                 else:
-                    st.text(lyric_data.get("plain") or lyric_data.get("synced"))
+                    st.text(lyric_data.get("plain") or "")
+                    st.caption("Plain lyrics (not timed)")
             else:
-                st.text(lyric_data.get("plain") or "")
-                st.caption("Plain lyrics (not timed)")
-        else:
-            st.caption("No official synced lyrics found for this track.")
-            if st.button("Estimate lyrics with AI", key=f"{key_prefix}_ai_lyrics"):
-                with st.spinner("Listening with Meridium…"):
-                    est = estimate_lyrics_ai(
-                        track["name"],
-                        track.get("artist_primary") or track.get("artists") or "",
-                    )
-                    st.session_state._lyrics_ai = est or "Could not estimate lyrics right now."
-            if st.session_state.get("_lyrics_ai"):
-                st.info("Unofficial AI estimate — not official lyrics.")
-                st.text(st.session_state._lyrics_ai)
-    except Exception:
-        st.caption("Lyrics unavailable right now.")
+                st.caption("No synced lyrics found.")
+                if st.button("Estimate lyrics with AI", key=f"{key_prefix}_ai_lyrics"):
+                    with st.spinner("Listening with Meridium…"):
+                        est = estimate_lyrics_ai(
+                            track["name"],
+                            track.get("artist_primary") or track.get("artists") or "",
+                        )
+                        st.session_state._lyrics_ai = est or "Could not estimate lyrics right now."
+                if st.session_state.get("_lyrics_ai"):
+                    st.info("Unofficial AI estimate — not official lyrics.")
+                    st.text(st.session_state._lyrics_ai)
+        except Exception:
+            st.caption("Lyrics unavailable right now.")
+
+    # Re-anchor Spotify progress so lyrics stay accurate while playing
+    if track.get("playing"):
+        try:
+            from streamlit_autorefresh import st_autorefresh
+            st_autorefresh(interval=3500, key=f"{key_prefix}_lyric_sync")
+        except Exception:
+            st.caption("Tip: press ↻ every so often if lyrics drift")
 
     return True
+
 
 def create_new_chat():
     new_id = str(uuid.uuid4())[:8]
