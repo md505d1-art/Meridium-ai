@@ -1750,12 +1750,14 @@ def try_music_command(prompt: str):
     Returns (handled: bool, reply: str).
     """
     text = (prompt or "").strip()
-    low = text.lower()
-    # Only treat as command if it looks like one
+    low = text.lower().strip()
+    # Natural-language triggers for playback control
     triggers = (
         "play ", "play the song", "play song", "pause", "stop music", "stop the music",
-        "next song", "next track", "skip", "previous", "prev song", "what song",
-        "what's playing", "whats playing", "now playing", "resume",
+        "next", "skip", "previous", "prev", "go back", "last song", "last track",
+        "what song", "what's playing", "whats playing", "now playing", "resume",
+        "change the song", "change song", "another song", "next one", "previous one",
+        "go to the next", "go to previous", "rewind", "forward",
     )
     if not any(t in low for t in triggers) and not low.startswith("play"):
         return False, ""
@@ -1787,22 +1789,34 @@ def try_music_command(prompt: str):
             return True, "Resumed."
 
         # next / skip
-        if any(x in low for x in ("next song", "next track", "skip", "next")):
+        next_phrases = (
+            "next song", "next track", "next one", "skip", "skip this", "skip song",
+            "change the song", "change song", "another song", "go to the next",
+            "play the next", "forward",
+        )
+        if low in ("next", "skip") or any(x in low for x in next_phrases) or (
+            "next" in low and any(w in low for w in ("song", "track", "one", "please"))
+        ):
             sp.next_track()
-            time.sleep(0.4)
+            time.sleep(0.45)
             track = current_track(sp)
             if track:
-                return True, f"⏭ **{track['name']}** — {track['artists']}"
-            return True, "Skipped to next track."
+                return True, f"⏭ Skipped. Now playing **{track['name']}** — {track['artists']}"
+            return True, "⏭ Skipped to the next track."
 
-        # previous
-        if any(x in low for x in ("previous", "prev song", "last song")):
+        # previous / back
+        prev_phrases = (
+            "previous", "prev song", "prev track", "previous song", "previous track",
+            "last song", "last track", "go back", "previous one", "go to previous",
+            "play the previous", "rewind",
+        )
+        if low in ("previous", "prev", "back", "go back") or any(x in low for x in prev_phrases):
             sp.previous_track()
-            time.sleep(0.4)
+            time.sleep(0.45)
             track = current_track(sp)
             if track:
-                return True, f"⏮ **{track['name']}** — {track['artists']}"
-            return True, "Went to previous track."
+                return True, f"⏮ Back. Now playing **{track['name']}** — {track['artists']}"
+            return True, "⏮ Went to the previous track."
 
         # play <query>
         if low.startswith("play ") or low.startswith("play the song"):
