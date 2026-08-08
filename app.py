@@ -2544,79 +2544,134 @@ if st.session_state.view == "music":
     playlist = list(st.session_state.get("meridium_playlist") or [])
     st.caption(f"Your personal queue inside Meridium — up to 500 tracks. Currently **{len(playlist)}** songs.")
 
-    # ---- Live Spotify search-as-you-type ----
+    # ---- Live Spotify search (Enter = add top match) ----
     MAX_PLAYLIST = 500
     sp = get_spotify()
 
-    search_q = st.text_input(
-        "Search Spotify",
-        placeholder="Type a song or artist… e.g. Nemzzz Prince of the Scene",
-        key="pl_search",
-        label_visibility="collapsed",
-    )
+    def _sanitize_spotify_query(q: str) -> str:
+        """Strip Spotify search operators so 'Artist - Song' works."""
+        q = (q or "").strip()
+        # Replace dashes used as separators (not meant as NOT operator)
+        q = re.sub(r"\s+-\s+", " ", q)
+        # Remove leftover operator chars that break the API
+        q = re.sub(r"[\"():]", " ", q)
+        q = re.sub(r"\s+", " ", q).strip()
+        return q
+
+    def _track_from_spotify_item(t: dict) -> dict:
+        return {
+            "name": t.get("name") or "Unknown",
+            "artists": ", ".join(a["name"] for a in (t.get("artists") or [])),
+            "uri": t.get("uri"),
+            "album": (t.get("album") or {}).get("name") or "",
+            "art": ((t.get("album") or {}).get("images") or [{}])[0].get("url"),
+            "duration_ms": int(t.get("duration_ms") or 0),
+        }
+
+    def _add_hit_to_playlist(hit: dict) -> str:
+        """Add a search hit. Returns status message."""
+        pl = list(st.session_state.get("meridium_playlist") or [])
+        if len(pl) >= MAX_PLAYLIST:
+            return f"Playlist is full ({MAX_PLAYLIST} tracks)."
+        existing_uris = {p.get("uri") for p in pl if p.get("uri")}
+        if hit.get("uri") and hit["uri"] in existing_uris:
+            return "Already in playlist"
+        pl.append({
+            "title": f"{hit['name']} - {hit['artists']}",
+            "name": hit["name"],
+            "artists": hit["artists"],
+            "uri": hit.get("uri"),
+            "album": hit.get("album") or "",
+            "art": hit.get("art"),
+            "added": datetime.now().isoformat(),
+        })
+        st.session_state.meridium_playlist = pl
+        save_user_data()
+        return f"Added: {hit['name']}"
+
+    def _spotify_search_tracks(query: str, limit: int = 10):
+        if not sp or not query:
+            return []
+        clean = _sanitize_spotify_query(query)
+        if len(clean) < 2:
+            return []
+        # Spotify max limit is 50; keep modest to avoid 400s on some accounts
+        limit = max(1, min(int(limit), 10))
+        try:
+            results = sp.search(q=clean, type="track", limit=limit, market="from_token")
+            items = (results.get("tracks") or {}).get("items") or []
+            return [_track_from_spotify_item(t) for t in items]
+        except Exception:
+            # Retry without market if from_token fails
+            try:
+                results = sp.search(q=clean, type="track", limit=limit)
+                items = (results.get("tracks") or {}).get("items") or []
+                return [_track_from_spotify_item(t) for t in items]
+            except Exception as e2:
+                st.session_state._pl_search_error = str(e2)
+                return []
+
+    # Form so pressing Enter submits and adds the top result
+    with st.form("pl_search_form", clear_on_submit=False):
+        search_q = st.text_input(
+            "Search Spotify",
+            placeholder="Type a song or artist, then press Enter… e.g. Zaliya think about you",
+            key="pl_search",
+            label_visibility="collapsed",
+        )
+        submitted = st.form_submit_button("Search / Add top result", use_container_width=True)
+
     search_q = (search_q or "").strip()
 
-    # Search when user has typed enough characters
-    if search_q and len(search_q) >= 2:
-        if not sp:
-            st.info("Connect Spotify above to search and add tracks.")
+    if not sp:
+        st.info("Connect Spotify above to search and add tracks.")
+    elif search_q and len(search_q) >= 2:
+        # Always refresh results when query changes or form submitted
+        cache_key = f"pl_search::{_sanitize_spotify_query(search_q).lower()}"
+        need_search = (
+            submitted
+            or st.session_state.get("_pl_search_key") != cache_key
+        )
+        if need_search:
+            st.session_state._pl_search_error = None
+            hits = _spotify_search_tracks(search_q, limit=10)
+            st.session_state._pl_search_key = cache_key
+            st.session_state._pl_search_results = hits
         else:
-            # Cache search results so we don't hammer the API on every rerun
-            cache_key = f"pl_search::{search_q.lower()}"
-            if st.session_state.get("_pl_search_key") != cache_key:
-                try:
-                    results = sp.search(q=search_q, type="track", limit=12)
-                    items = (results.get("tracks") or {}).get("items") or []
-                    st.session_state._pl_search_key = cache_key
-                    st.session_state._pl_search_results = [
-                        {
-                            "name": t.get("name") or "Unknown",
-                            "artists": ", ".join(a["name"] for a in (t.get("artists") or [])),
-                            "uri": t.get("uri"),
-                            "album": (t.get("album") or {}).get("name") or "",
-                            "art": ((t.get("album") or {}).get("images") or [{}])[0].get("url"),
-                            "duration_ms": int(t.get("duration_ms") or 0),
-                        }
-                        for t in items
-                    ]
-                except Exception as e:
-                    st.session_state._pl_search_results = []
-                    st.caption(f"Search error: {e}")
             hits = st.session_state.get("_pl_search_results") or []
-            if not hits:
-                st.caption("No Spotify matches. Try a different spelling.")
+
+        err = st.session_state.get("_pl_search_error")
+        if err:
+            st.caption(f"Search error: {err}")
+
+        hits = st.session_state.get("_pl_search_results") or []
+
+        # Enter / form submit → add top match
+        if submitted:
+            if hits:
+                msg = _add_hit_to_playlist(hits[0])
+                st.toast(msg)
+                st.rerun()
             else:
-                st.markdown("**Spotify results** — tap to add")
-                for hi, hit in enumerate(hits):
-                    label = f"{hit['name']} — {hit['artists']}"
-                    if hit.get("album"):
-                        label += f"  ·  {hit['album']}"
-                    bc1, bc2 = st.columns([5, 1])
-                    with bc1:
-                        st.markdown(f"**{hit['name']}**  \n<span style='opacity:0.7;font-size:0.85rem'>{hit['artists']}</span>", unsafe_allow_html=True)
-                    with bc2:
-                        if st.button("＋", key=f"pl_hit_{hi}", help="Add to playlist", use_container_width=True):
-                            if len(playlist) >= MAX_PLAYLIST:
-                                st.warning(f"Playlist is full ({MAX_PLAYLIST} tracks). Remove some first.")
-                            else:
-                                # Avoid exact URI duplicates
-                                existing_uris = {p.get("uri") for p in playlist if p.get("uri")}
-                                if hit.get("uri") and hit["uri"] in existing_uris:
-                                    st.toast("Already in playlist")
-                                else:
-                                    playlist.append({
-                                        "title": f"{hit['name']} - {hit['artists']}",
-                                        "name": hit["name"],
-                                        "artists": hit["artists"],
-                                        "uri": hit.get("uri"),
-                                        "album": hit.get("album") or "",
-                                        "art": hit.get("art"),
-                                        "added": datetime.now().isoformat(),
-                                    })
-                                    st.session_state.meridium_playlist = playlist
-                                    save_user_data()
-                                    st.toast(f"Added: {hit['name']}")
-                                    st.rerun()
+                st.warning("No Spotify match for that search. Try a simpler name.")
+
+        if not hits:
+            st.caption("No Spotify matches. Try a different spelling.")
+        else:
+            st.markdown("**Spotify results** — press Enter to add the top one, or tap ＋")
+            for hi, hit in enumerate(hits):
+                bc1, bc2 = st.columns([5, 1])
+                with bc1:
+                    st.markdown(
+                        f"**{hit['name']}**  \n"
+                        f"<span style='opacity:0.7;font-size:0.85rem'>{hit['artists']}</span>",
+                        unsafe_allow_html=True,
+                    )
+                with bc2:
+                    if st.button("＋", key=f"pl_hit_{hi}", help="Add to playlist", use_container_width=True):
+                        msg = _add_hit_to_playlist(hit)
+                        st.toast(msg)
+                        st.rerun()
 
     # ---- Playlist display (handles 250–500 tracks) ----
     playlist = list(st.session_state.get("meridium_playlist") or [])
