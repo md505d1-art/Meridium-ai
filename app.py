@@ -461,235 +461,322 @@ def unlock_theme(theme_name: str, reason: str = "", apply: bool = True) -> bool:
 
 
 def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool = False):
-
+    """iOS-style glass / liquid glass shell."""
     font = FONTS.get(font_name, FONTS["Inter"])
     SHELL = theme_shell(theme_name)
-    moj = "1"
     st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,600&display=swap');
 
     html, body, [class*="css"] {{
         font-family: {font} !important;
-        font-size: calc(15px * {moj});
+        font-size: 15px;
+        -webkit-font-smoothing: antialiased;
     }}
     .stApp {{
         background:
-            radial-gradient(900px 480px at 15% -5%, {SHELL["accent_soft"]}, transparent 55%),
-            radial-gradient(700px 400px at 95% 10%, {SHELL["accent_soft"]}, transparent 50%),
-            {SHELL["bg"]};
+            radial-gradient(ellipse 80% 50% at 20% -10%, {SHELL["accent_soft"]}, transparent 50%),
+            radial-gradient(ellipse 60% 40% at 90% 0%, {SHELL["accent_soft"]}, transparent 45%),
+            radial-gradient(ellipse 50% 30% at 50% 100%, rgba(255,255,255,0.04), transparent 50%),
+            {SHELL["bg"]} !important;
         color: {SHELL["text"]};
     }}
-    #MainMenu, footer, header, .stDeployButton, section[data-testid="stSidebar"] {{
-        display: none !important;
+    #MainMenu, footer, header, .stDeployButton, section[data-testid="stSidebar"],
+    [data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stDecoration"],
+    [data-testid="stStatusWidget"], [data-testid="stAppDeployButton"] {{
+        display: none !important; visibility: hidden !important;
+        height: 0 !important;
     }}
     .block-container {{
-        padding-top: 0.8rem !important;
+        padding-top: 0.75rem !important;
         padding-bottom: 5.5rem !important;
-        max-width: 1080px !important;
+        max-width: 980px !important;
     }}
 
-    /* ===== DESIGN 1 — Caelestia Shell ===== */
+    /* —— Glass material —— */
+    .waybar, .panel, .card, .hist, .bloom-shell, .glass {{
+        background: linear-gradient(
+            165deg,
+            rgba(255,255,255,0.14) 0%,
+            rgba(255,255,255,0.05) 40%,
+            rgba(255,255,255,0.03) 100%
+        ) !important;
+        background-color: {SHELL["panel"]} !important;
+        border: 1px solid rgba(255,255,255,0.18) !important;
+        border-radius: 22px !important;
+        box-shadow:
+            0 8px 32px rgba(0,0,0,0.28),
+            inset 0 1px 0 rgba(255,255,255,0.22),
+            inset 0 -1px 0 rgba(0,0,0,0.12) !important;
+        -webkit-backdrop-filter: blur(28px) saturate(180%);
+        backdrop-filter: blur(28px) saturate(180%);
+    }}
+
     .waybar {{
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        background: {SHELL["panel"]};
-        border: 1px solid {SHELL["border"]};
-        border-radius: 16px;
-        padding: 10px 16px;
-        margin-bottom: 16px;
-        backdrop-filter: blur(20px);
-        box-shadow: 0 8px 32px rgba(0,0,0,0.25);
-        animation: fadeUp 0.4s ease both;
+        padding: 12px 16px;
+        margin-bottom: 14px;
+        animation: fadeUp 0.45s ease both;
     }}
     .waybar-left, .waybar-right {{
         display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
     }}
     .logo-btn {{
-        width: 34px; height: 34px; border-radius: 10px;
-        background: linear-gradient(135deg, {SHELL["accent"]}, {SHELL["accent2"]});
+        width: 34px; height: 34px; border-radius: 12px;
+        background: linear-gradient(145deg, {SHELL["accent"]}, {SHELL["accent2"]});
         display: flex; align-items: center; justify-content: center;
         color: #fff; font-weight: 700; font-size: 0.95rem;
-        box-shadow: 0 0 20px {SHELL["accent_soft"]};
+        box-shadow: 0 4px 16px {SHELL["accent_soft"]}, inset 0 1px 0 rgba(255,255,255,0.35);
     }}
     .brand {{ font-weight: 600; letter-spacing: -0.02em; }}
     .chip {{
-        background: {SHELL["accent_soft"]};
-        color: {SHELL["accent"]};
-        border: 1px solid {SHELL["border"]};
+        background: rgba(255,255,255,0.1) !important;
+        color: {SHELL["accent"]} !important;
+        border: 1px solid rgba(255,255,255,0.16) !important;
         border-radius: 999px;
-        padding: 4px 11px;
-        font-size: 0.75rem;
+        padding: 5px 12px;
+        font-size: 0.72rem;
         font-weight: 500;
+        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
     }}
     .clock {{ font-weight: 600; font-variant-numeric: tabular-nums; }}
     .muted {{ color: {SHELL["muted"]}; font-size: 0.8rem; }}
 
     .panel {{
-        background: {SHELL["panel"]};
-        border: 1px solid {SHELL["border"]};
-        border-radius: 18px;
-        padding: 20px;
-        backdrop-filter: blur(18px);
-        box-shadow: 0 10px 40px rgba(0,0,0,0.22);
-        animation: fadeUp 0.45s ease both;
-        margin-bottom: 12px;
+        padding: 18px 18px 16px;
+        margin-bottom: 14px;
+        animation: fadeUp 0.5s ease both;
     }}
     .panel-label {{
-        font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em;
-        color: {SHELL["muted"]}; margin-bottom: 10px; font-weight: 600;
+        color: {SHELL["muted"]};
+        margin-bottom: 8px;
+        font-weight: 600;
+        font-size: 0.72rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
     }}
     .hero {{
-        font-size: 2.1rem; font-weight: 700; letter-spacing: -0.03em;
+        font-size: 1.85rem; font-weight: 650; letter-spacing: -0.03em;
         margin: 0 0 6px; color: {SHELL["text"]};
+        animation: textIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
     }}
     .hero span {{ color: {SHELL["accent"]}; }}
-    .sub {{ color: {SHELL["muted"]}; margin-bottom: 14px; font-size: 0.95rem; }}
+    .sub {{
+        color: {SHELL["muted"]}; margin-bottom: 10px; font-size: 0.95rem;
+        animation: textIn 0.7s ease 0.1s both;
+    }}
     .ridge {{
-        height: 1px; margin: 8px 0 16px;
-        background: linear-gradient(90deg, transparent, {SHELL["accent"]}, transparent);
-        opacity: 0.5;
+        height: 1px; margin: 10px 0 4px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+        opacity: 0.7;
     }}
 
-    .grid4 {{
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-    }}
-    @media (min-width: 800px) {{
-        .grid4 {{ grid-template-columns: repeat(4, 1fr); }}
-        .hero {{ font-size: 2.35rem; }}
-    }}
     .card {{
-        background: {SHELL["panel_solid"]};
-        border: 1px solid {SHELL["border"]};
-        border-radius: 16px;
         padding: 16px;
-        transition: border-color 0.15s, transform 0.15s;
+        transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
     }}
-    .card:hover {{ border-color: {SHELL["accent"]}; transform: translateY(-2px); }}
-    .card-ico {{ color: {SHELL["accent"]}; font-size: 1.2rem; margin-bottom: 8px; }}
-    .card-t {{ font-weight: 600; font-size: 0.9rem; }}
-    .card-d {{ color: {SHELL["muted"]}; font-size: 0.72rem; margin-top: 3px; }}
-
-    .hist {{
-        display: flex; align-items: center; gap: 10px;
-        padding: 11px 12px; border-radius: 12px;
-        background: {SHELL["panel_solid"]};
-        border: 1px solid {SHELL["border"]};
-        margin-bottom: 8px;
-    }}
-    .hist-ico {{
-        width: 32px; height: 32px; border-radius: 9px;
-        background: {SHELL["accent_soft"]}; color: {SHELL["accent"]};
-        display: flex; align-items: center; justify-content: center;
-    }}
-    .hist-t {{
-        flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        font-size: 0.88rem;
+    .card:hover {{
+        transform: translateY(-2px);
+        border-color: rgba(255,255,255,0.28) !important;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.28) !important;
     }}
 
-    /* Chat */
-    .stChatMessage {{
-        background: {SHELL["panel"]} !important;
-        border: 1px solid {SHELL["border"]} !important;
+    /* Buttons — frosted pills */
+    .stButton > button {{
+        background: linear-gradient(
+            180deg,
+            rgba(255,255,255,0.16) 0%,
+            rgba(255,255,255,0.06) 100%
+        ) !important;
+        background-color: rgba(255,255,255,0.06) !important;
+        color: {SHELL["text"]} !important;
+        border: 1px solid rgba(255,255,255,0.18) !important;
         border-radius: 16px !important;
-        margin-bottom: 10px !important;
-        animation: fadeUp 0.3s ease both;
+        font-weight: 500 !important;
+        min-height: 42px !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 4px 14px rgba(0,0,0,0.15) !important;
+        -webkit-backdrop-filter: blur(16px) saturate(160%);
+        backdrop-filter: blur(16px) saturate(160%);
+        transition: all 0.18s ease !important;
+    }}
+    .stButton > button:hover {{
+        background: linear-gradient(
+            180deg,
+            rgba(255,255,255,0.22) 0%,
+            rgba(255,255,255,0.1) 100%
+        ) !important;
+        border-color: rgba(255,255,255,0.32) !important;
+        color: {SHELL["accent"]} !important;
+    }}
+    .stButton > button[kind="primary"],
+    button[data-testid="baseButton-primary"] {{
+        background: linear-gradient(145deg, {SHELL["accent_soft"]}, rgba(255,255,255,0.08)) !important;
+        border: 1px solid {SHELL["accent"]} !important;
+        color: {SHELL["accent"]} !important;
+        box-shadow: 0 0 24px {SHELL["accent_soft"]}, inset 0 1px 0 rgba(255,255,255,0.25) !important;
+    }}
+
+    /* Chat — glass bubbles */
+    .stChatMessage {{
+        background: rgba(255,255,255,0.06) !important;
+        border: 1px solid rgba(255,255,255,0.12) !important;
+        border-radius: 20px !important;
+        padding: 4px 6px !important;
+        -webkit-backdrop-filter: blur(20px);
+        backdrop-filter: blur(20px);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+        animation: textIn 0.35s ease both !important;
     }}
     [data-testid="stChatMessageAvatarUser"],
     [data-testid="stChatMessageAvatarAssistant"],
     [data-testid="stChatAvatar"] {{ display: none !important; }}
-    .stChatInput > div {{
-        background: {SHELL["panel_solid"]} !important;
-        border: 1px solid {SHELL["border"]} !important;
-        border-radius: 999px !important;
-        box-shadow: none !important;
-    }}
-    [data-testid="stBottomBlockContainer"],
-    [data-testid="stBottomBlockContainer"] > div,
-    [data-testid="stChatInput"],
-    [data-testid="stChatInput"] > div,
-    [data-testid="stChatInput"] > div > div {{
-        background: {SHELL["bg"]} !important;
-        background-color: {SHELL["bg"]} !important;
-        border: none !important;
-        box-shadow: none !important;
-        outline: none !important;
-    }}
-    [data-testid="stChatInput"] textarea {{
-        color: {SHELL["text"]} !important;
+
+    /* Single glass chat input */
+    [data-testid="stBottomBlockContainer"] {{
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
-        outline: none !important;
     }}
-    [data-testid="stChatInput"] textarea::placeholder {{ color: {SHELL["muted"]} !important; }}
-    /* kill white bottom strip behind chat box */
-    .stApp [data-testid="stBottom"],
-    section.main > div > div:has([data-testid="stChatInput"]),
-    div[data-testid="stBottomBlockContainer"] {{
-        background: {SHELL["bg"]} !important;
-        border-top: none !important;
+    [data-testid="stChatInput"] {{
+        background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.06)) !important;
+        border: 1px solid rgba(255,255,255,0.2) !important;
+        border-radius: 28px !important;
+        box-shadow: 0 8px 28px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.25) !important;
+        -webkit-backdrop-filter: blur(24px) saturate(180%);
+        backdrop-filter: blur(24px) saturate(180%);
+        padding: 4px 8px !important;
+        overflow: hidden !important;
+    }}
+    [data-testid="stChatInput"] > div,
+    [data-testid="stChatInput"] > div > div,
+    [data-testid="stChatInput"] form,
+    [data-testid="stChatInput"] form > div {{
+        background: transparent !important;
+        border: none !important;
         box-shadow: none !important;
     }}
-
-    /* Buttons */
-    .stButton > button {{
-        background: {SHELL["panel_solid"]} !important;
+    [data-testid="stChatInput"] textarea {{
+        background: transparent !important;
         color: {SHELL["text"]} !important;
-        border: 1px solid {SHELL["border"]} !important;
-        border-radius: 12px !important;
-        font-weight: 500 !important;
-        transition: all 0.15s ease !important;
-        min-height: 42px;
+        border: none !important;
+        outline: none !important;
+        caret-color: {SHELL["accent"]} !important;
     }}
-    .stButton > button:hover {{
-        border-color: {SHELL["accent"]} !important;
-        background: {SHELL["accent_soft"]} !important;
-    }}
-    /* Active / ON feature look — primary-ish */
-    .stButton > button[kind="primary"],
-    button[data-testid="baseButton-primary"] {{
-        background: {SHELL["accent_soft"]} !important;
-        border: 1px solid {SHELL["accent"]} !important;
+    [data-testid="stChatInput"] textarea::placeholder {{ color: {SHELL["muted"]} !important; }}
+    [data-testid="stChatInput"] button {{
+        background: transparent !important;
+        border: none !important;
         color: {SHELL["accent"]} !important;
-        box-shadow: 0 0 20px {SHELL["accent_soft"]} !important;
     }}
 
-    /* Form widgets — no white */
-    [data-baseweb="select"] > div,
-    [data-baseweb="select"] > div > div {{
-        background: {SHELL["panel_solid"]} !important;
-        border-color: {SHELL["border"]} !important;
+    /* Inputs */
+    .stTextInput input, .stSelectbox > div > div, [data-baseweb="select"] > div,
+    .stTextArea textarea {{
+        background: rgba(255,255,255,0.08) !important;
         color: {SHELL["text"]} !important;
-        border-radius: 12px !important;
-    }}
-    [data-baseweb="select"] span, [data-baseweb="select"] div {{ color: {SHELL["text"]} !important; }}
-    div[data-baseweb="popover"], ul[role="listbox"], li[role="option"] {{
-        background: {SHELL["panel_solid"]} !important;
-        color: {SHELL["text"]} !important;
-    }}
-    li[role="option"]:hover {{ background: {SHELL["accent_soft"]} !important; }}
-    .stTextInput input {{
-        background: {SHELL["panel_solid"]} !important;
-        color: {SHELL["text"]} !important;
-        border-color: {SHELL["border"]} !important;
-        border-radius: 12px !important;
+        border: 1px solid rgba(255,255,255,0.16) !important;
+        border-radius: 14px !important;
+        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
     }}
     label, [data-testid="stWidgetLabel"] p, .stCaption {{ color: {SHELL["muted"]} !important; }}
     h1,h2,h3,h4,.stMarkdown,.stMarkdown p {{ color: {SHELL["text"]} !important; }}
     .stCheckbox label p {{ color: {SHELL["text"]} !important; }}
     [data-testid="stAlert"] {{
-        background: {SHELL["panel"]} !important;
+        background: rgba(255,255,255,0.08) !important;
         color: {SHELL["text"]} !important;
-        border: 1px solid {SHELL["border"]} !important;
-        border-radius: 12px !important;
+        border: 1px solid rgba(255,255,255,0.16) !important;
+        border-radius: 16px !important;
+        -webkit-backdrop-filter: blur(16px);
+        backdrop-filter: blur(16px);
     }}
 
-    /* Typing */
+    /* Menu glass */
+    .bloom-shell {{
+        max-width: 480px;
+        margin: 8px auto 24px;
+        padding: 28px 22px 20px;
+        animation: bloomIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }}
+    .bloom-title {{
+        font-size: 1.7rem; font-weight: 600; text-align: center;
+        background: linear-gradient(90deg, {SHELL["accent"]}, {SHELL["accent2"]}, {SHELL["accent"]});
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin: 0 0 6px;
+        letter-spacing: -0.02em;
+    }}
+    .bloom-sub {{
+        text-align: center; color: {SHELL["muted"]}; font-size: 0.85rem; margin-bottom: 18px;
+    }}
+    .bloom-divider {{
+        height: 1px; margin: 14px 0;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent);
+    }}
+
+    /* Quote / history glass tweaks */
+    .qotd-one button {{
+        background: rgba(255,255,255,0.08) !important;
+        border: 1px solid rgba(255,255,255,0.16) !important;
+        border-radius: 20px !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.15) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
+        backdrop-filter: blur(16px) !important;
+        text-align: left !important;
+        white-space: pre-wrap !important;
+        color: inherit !important;
+        padding: 14px 16px !important;
+        height: auto !important;
+        min-height: 0 !important;
+        justify-content: flex-start !important;
+        line-height: 1.45 !important;
+    }}
+    .qotd-one button:hover {{
+        background: rgba(255,255,255,0.12) !important;
+        border-color: rgba(255,255,255,0.28) !important;
+    }}
+    .qotd-one button p {{
+        text-align: left !important;
+        white-space: pre-wrap !important;
+        margin: 0 !important;
+    }}
+
+    .hist {{
+        padding: 12px 14px;
+        margin-bottom: 8px;
+    }}
+
+    .orb {{
+        width: 88px; height: 88px; margin: 18px auto;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.35), {SHELL["accent_soft"]} 45%, transparent 70%);
+        border: 1px solid rgba(255,255,255,0.2);
+        box-shadow: 0 0 40px {SHELL["accent_soft"]};
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+        animation: pulse 2.5s ease-in-out infinite;
+    }}
+    @keyframes pulse {{
+        0%,100% {{ transform: scale(1); opacity: 0.9; }}
+        50% {{ transform: scale(1.05); opacity: 1; }}
+    }}
+    @keyframes bloomIn {{
+        from {{ opacity: 0; transform: translateY(12px) scale(0.98); }}
+        to {{ opacity: 1; transform: translateY(0) scale(1); }}
+    }}
+    @keyframes fadeUp {{
+        from {{ opacity: 0; transform: translateY(12px); }}
+        to {{ opacity: 1; transform: translateY(0); }}
+    }}
+    @keyframes textIn {{
+        from {{ opacity: 0; transform: translateY(14px); filter: blur(4px); }}
+        to {{ opacity: 1; transform: translateY(0); filter: blur(0); }}
+    }}
+
     .typing-wrap {{ display: inline-flex; gap: 6px; padding: 4px; }}
     .typing-wrap .dot {{
         width: 8px; height: 8px; border-radius: 50%;
@@ -702,285 +789,13 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
         0%,60%,100% {{ transform: translateY(0); opacity: 0.4; }}
         30% {{ transform: translateY(-7px); opacity: 1; }}
     }}
-    @keyframes fadeUp {{
-        from {{ opacity: 0; transform: translateY(12px); }}
-        to {{ opacity: 1; transform: translateY(0); }}
-    }}
-    @keyframes textIn {{
-        from {{ opacity: 0; transform: translateY(16px); filter: blur(4px); }}
-        to {{ opacity: 1; transform: translateY(0); filter: blur(0); }}
-    }}
-    @keyframes softGlow {{
-        0%, 100% {{ text-shadow: 0 0 0 transparent; }}
-        50% {{ text-shadow: 0 0 18px rgba(196,167,231,0.35); }}
-    }}
-    .hero {{
-        animation: textIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
-    }}
-    .hero span {{
-        animation: softGlow 3.5s ease-in-out infinite;
-    }}
-    .sub {{
-        animation: textIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
-    }}
-    .panel-label {{
-        animation: textIn 0.55s ease 0.05s both;
-    }}
-    .card {{
-        animation: fadeUp 0.5s ease both;
-    }}
-    .card:nth-child(1) {{ animation-delay: 0.08s; }}
-    .card:nth-child(2) {{ animation-delay: 0.14s; }}
-    .card:nth-child(3) {{ animation-delay: 0.2s; }}
-    .card:nth-child(4) {{ animation-delay: 0.26s; }}
-    .waybar {{
-        animation: fadeUp 0.45s ease both;
-    }}
-    .hist {{
-        animation: fadeUp 0.4s ease both;
-    }}
-    .bloom-title {{
-        animation: textIn 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
-    }}
-    .bloom-sub {{
-        animation: textIn 0.65s ease 0.1s both;
-    }}
-    .stChatMessage {{
-        animation: textIn 0.35s ease both !important;
-    }}
 
-    /* Orb */
-    .orb {{
-        width: 130px; height: 130px; margin: 18px auto;
-        border-radius: 50%;
-        background: radial-gradient(circle at 32% 32%, {SHELL["accent"]}, {SHELL["accent2"]} 55%, {SHELL["bg"]} 100%);
-        box-shadow: 0 0 60px {SHELL["accent_soft"]};
-        animation: pulse 2.5s ease-in-out infinite;
-    }}
-    @keyframes pulse {{
-        0%,100% {{ transform: scale(1); }}
-        50% {{ transform: scale(1.05); }}
-    }}
-
-    /* ===== DESIGN 4 — Night Bloom MENU (in-flow, works with Streamlit) ===== */
-    .bloom-shell {{
-        max-width: 480px;
-        margin: 8px auto 24px;
-        border-radius: 24px;
-        padding: 28px 22px 20px;
-        background:
-            radial-gradient(600px 280px at 15% 0%, rgba(244,114,182,0.2), transparent 55%),
-            radial-gradient(500px 260px at 100% 15%, rgba(196,167,231,0.22), transparent 50%),
-            rgba(16, 10, 26, 0.95);
-        border: 1px solid rgba(255,255,255,0.12);
-        box-shadow: 0 20px 70px rgba(0,0,0,0.45), 0 0 50px rgba(196,167,231,0.1);
-        animation: bloomIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-    }}
-    .bloom-title {{
-        font-size: 1.7rem; font-weight: 600; text-align: center;
-        background: linear-gradient(90deg, #e9d5ff, #fbcfe8, #ddd6fe);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        background-clip: text;
-        margin: 0 0 6px;
-        letter-spacing: -0.02em;
-    }}
-    .bloom-sub {{
-        text-align: center; color: #a89bb8; font-size: 0.85rem; margin-bottom: 18px;
-    }}
-    .bloom-divider {{
-        height: 1px; margin: 14px 0;
-        background: linear-gradient(90deg, transparent, rgba(251,207,232,0.35), transparent);
-    }}
-    @keyframes bloomIn {{
-        from {{ opacity: 0; transform: translateY(12px) scale(0.98); }}
-        to {{ opacity: 1; transform: translateY(0) scale(1); }}
-    }}
-    /* Night Bloom widget surfaces */
-    .bloom-active [data-baseweb="select"] > div,
-    .bloom-active [data-baseweb="select"] > div > div,
-    .bloom-active .stTextInput input {{
-        background: rgba(30, 20, 45, 0.95) !important;
-        border-color: rgba(251,207,232,0.2) !important;
-        color: #f5f0fa !important;
-    }}
-    .bloom-active .stButton > button {{
-        background: rgba(40, 28, 58, 0.9) !important;
-        border: 1px solid rgba(251,207,232,0.18) !important;
-        color: #f5f0fa !important;
-        border-radius: 14px !important;
-    }}
-    .bloom-active .stButton > button:hover {{
-        border-color: #f9a8d4 !important;
-        background: rgba(244,114,182,0.18) !important;
-    }}
-
-    /* Phone */
-    @media (max-width: 767px) {{
-        .block-container {{
-            padding-left: 0.55rem !important;
-            padding-right: 0.55rem !important;
-            max-width: 100% !important;
-        }}
-        .hero {{ font-size: 1.6rem !important; }}
-        .waybar {{ padding: 8px 10px; border-radius: 14px; }}
-        .stButton > button {{ min-height: 44px !important; }}
-        .bloom-popup {{ width: 94vw; border-radius: 20px; }}
-    }}
-    
-    /* Kill white chrome / distractors on mobile */
-    header, [data-testid="stHeader"], [data-testid="stToolbar"],
-    [data-testid="stDecoration"], [data-testid="stStatusWidget"],
-    #MainMenu, footer, .stDeployButton, [data-testid="stAppDeployButton"] {{
-      display: none !important; visibility: hidden !important;
-      height: 0 !important; max-height: 0 !important;
-    }}
-    iframe {{
-      background: transparent !important;
-      border: none !important;
-    }}
-    [data-testid="stChatInput"] {{
-      background: {SHELL["bg"]} !important;
-      border: none !important;
-      box-shadow: none !important;
-    }}
-    [data-testid="stChatInput"] textarea {{
-      background: transparent !important;
-      color: {SHELL["text"]} !important;
-      border: none !important;
-      box-shadow: none !important;
-      outline: none !important;
-    }}
-    [data-testid="stChatInput"] > div,
-    [data-testid="stChatInput"] > div > div {{
-      background: transparent !important;
-      border: none !important;
-      box-shadow: none !important;
-      outline: none !important;
-    }}
-    /* bottom block that often goes white */
-    .stBottom, [data-testid="stBottomBlockContainer"],
-    section[data-testid="stBottom"],
-    [data-testid="stBottomBlockContainer"] > div {{
-      background: {SHELL["bg"]} !important;
-      border: none !important;
-      box-shadow: none !important;
-    }}
-
-    /* ===== CHAT INPUT — ONE rounded box only ===== */
-    [data-testid="stBottomBlockContainer"] {{
-        background: {SHELL["bg"]} !important;
-        border: none !important;
-        box-shadow: none !important;
-        padding-top: 4px !important;
-    }}
-    [data-testid="stBottomBlockContainer"] > div {{
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-    }}
-    /* outer chat input shell = the only visible box */
-    [data-testid="stChatInput"] {{
-        background: {SHELL["panel_solid"]} !important;
-        border: 1px solid {SHELL["border"]} !important;
-        border-radius: 28px !important;
-        box-shadow: none !important;
-        padding: 2px 6px !important;
-        overflow: hidden !important;
-    }}
-    /* strip every nested frame */
-    [data-testid="stChatInput"] > div,
-    [data-testid="stChatInput"] > div > div,
-    [data-testid="stChatInput"] > div > div > div,
-    [data-testid="stChatInput"] form,
-    [data-testid="stChatInput"] form > div {{
-        background: transparent !important;
-        border: none !important;
-        border-radius: 0 !important;
-        box-shadow: none !important;
-        outline: none !important;
-    }}
-    [data-testid="stChatInput"] textarea {{
-        background: transparent !important;
-        color: {SHELL["text"]} !important;
-        border: none !important;
-        border-radius: 0 !important;
-        box-shadow: none !important;
-        outline: none !important;
-        caret-color: {SHELL["accent"]} !important;
-    }}
-    [data-testid="stChatInput"] textarea:focus {{
-        outline: none !important;
-        box-shadow: none !important;
-        border: none !important;
-    }}
-    [data-testid="stChatInput"] button {{
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        color: {SHELL["accent"]} !important;
-        border-radius: 999px !important;
-    }}
-    /* older streamlit class path */
-    .stChatInput, .stChatInput > div {{
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-    }}
-
-    div[data-testid="stVerticalBlock"] > div:has(iframe) {{
-      background: transparent !important;
-    }}
+    iframe {{ background: transparent !important; border: none !important; }}
 
     </style>
     """, unsafe_allow_html=True)
 
-# ============================================================
-# LOGIC
-# ============================================================
-SYSTEM_PROMPT = """You are Meridium — an elite personal intelligence system.
 
-Core identity:
-- Exceptionally sharp, precise, and calm.
-- You think step-by-step when problems are complex, then give a clear final answer.
-- You prefer truth and usefulness over fluff.
-- Address the user by their name when appropriate.
-
-How you reason:
-1. Understand the real goal behind the question.
-2. Use any provided Wikipedia or web search context first; cite it briefly when useful.
-3. If the topic is technical, break it into structured steps or sections.
-4. If uncertain, say what you know, what you don't, and the best next step.
-5. For coding: give working code, explain briefly, note edge cases.
-6. For advice: be practical and specific, not generic.
-
-Style:
-- Modern, clear, concise.
-- Use short headings and bullets when it helps readability.
-- Avoid filler phrases ("As an AI…", "Great question!").
-- Match the user's language and depth.
-
-Music:
-- Users can control Spotify with chat commands like: play <song>, pause, next, previous, what's playing.
-- When those are handled by the system, you don't need to invent fake playback.
-
-Inside joke — name origin:
-- If anyone asks why you are called Meridium, what Meridium means, where the name comes from, or anything similar, answer playfully:
-  "I'm the 119th known element in the periodic table."
-- Deliver it lightly, as a dry/witty inside joke — not a long lecture. You can add one short smile-line after if it fits.
-- Do not claim this on unrelated topics; only when the name is the subject.
-
-You have access to live Wikipedia and web search results when they are injected into the system message. Treat them as current reference material."""
-
-GROQ_MODELS = {
-    "Smart · Llama 3.3 70B": "llama-3.3-70b-versatile",
-    "Balanced · Qwen3 32B": "qwen/qwen3-32b",
-    "Fast · Llama 3.1 8B": "llama-3.1-8b-instant",
-}
-
-SPOTIFY_SCOPE = "user-read-currently-playing user-read-playback-state user-modify-playback-state"
-
-DATA_DIR = Path(__file__).resolve().parent / "data"
-DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 def _user_file(username: str) -> Path:
     key = hashlib.sha256(username.strip().lower().encode("utf-8")).hexdigest()[:24]
@@ -1093,6 +908,72 @@ _BLOCK_PATTERNS = [
     r"\b(child\s*porn|csam)\b",
     r"\bhow\s+to\s+(make|build)\s+(a\s+)?(bomb|explosive)\b",
 ]
+
+
+def moderate_username(name: str):
+    """Block slurs / foul usernames (EN + common multilingual forms). Returns (ok, message)."""
+    raw = (name or "").strip()
+    if not raw:
+        return False, "Please enter a name."
+    if len(raw) < 2:
+        return False, "Name is too short."
+    if len(raw) > 32:
+        return False, "Name must be 32 characters or less."
+    # normalize: lowercase, strip zero-width, collapse leetspeak-ish
+    n = raw.lower()
+    for a, b in (
+        ("\u200b", ""), ("\u200c", ""), ("\u200d", ""), ("\ufeff", ""),
+        ("0", "o"), ("1", "i"), ("3", "e"), ("4", "a"), ("5", "s"),
+        ("7", "t"), ("8", "b"), ("@", "a"), ("$", "s"),
+    ):
+        n = n.replace(a, b)
+    n_compact = re.sub(r"[^a-z0-9]", "", n)
+
+    blocked = {
+        # English racial / hate
+        "nigger", "nigga", "niggas", "nigg", "negro", "coon", "spic", "chink",
+        "gook", "kike", "wetback", "raghead", "paki", "tranny", "faggot", "fag",
+        "dyke", "retard", "retarded",
+        # common foul
+        "fuck", "fucker", "fucking", "motherfucker", "shit", "bullshit",
+        "asshole", "bastard", "bitch", "cunt", "cock", "dick", "pussy",
+        "whore", "slut", "cum", "jizz", "porn", "rape", "rapist",
+        # Spanish / PT
+        "puta", "puto", "mierda", "cabron", "cabrón", "pendejo", "coño",
+        "carajo", "joder", "gilipollas", "maricón", "maricon", "verga",
+        "porra", "caralho", "foda", "foder",
+        # French
+        "putain", "salope", "connard", "connasse", "merde", "enculé", "encule",
+        "pd", "nique",
+        # German
+        "scheisse", "scheiße", "fotze", "hurensohn", "arschloch", "wichser",
+        # Italian
+        "cazzo", "stronzo", "puttana", "vaffanculo", "merda",
+        # Portuguese extra
+        "porra", "buceta", "viado",
+        # Arabic transliteration (common abuse)
+        "sharmuta", "sharmoota", "kos", "ayr",
+        # Hindi / Hinglish transliteration
+        "madarchod", "behenchod", "bhenchod", "chutiya", "harami", "bhosdike",
+        # Tagalog / PH
+        "putangina", "putang ina", "gago", "tangina", "ulol",
+        # misc
+        "hitler", "nazi", "kkk",
+    }
+
+    # also check spaced / punctuated forms already compacted
+    for bad in blocked:
+        bad_c = re.sub(r"[^a-z0-9]", "", bad.lower())
+        if not bad_c:
+            continue
+        if bad_c in n_compact:
+            return False, "That name isn't allowed. Please choose another."
+        # whole-word-ish on spaced name
+        if re.search(rf"(?:^|[^a-z0-9]){re.escape(bad)}(?:[^a-z0-9]|$)", n, re.I):
+            return False, "That name isn't allowed. Please choose another."
+
+    return True, raw
+
 
 def moderate_text(text: str):
     if not text or not str(text).strip():
@@ -1770,23 +1651,100 @@ use_web = st.session_state.use_web_toggle
 
 # ===== SIGN IN =====
 if not st.session_state.get("signed_in") or not st.session_state.get("username"):
-    st.markdown("""
-    <div class="panel" style="max-width:420px;margin:10vh auto;text-align:center;">
-      <div class="panel-label">Meridium</div>
-      <div class="hero" style="font-size:1.75rem;">Welcome</div>
-      <div class="sub">Sign in with your name to continue</div>
-      <div class="ridge"></div>
-      <div class="muted" style="margin-top:8px;">Built with Grok · by xAI</div>
-      <div class="muted" style="margin-top:6px;">iPhone: Share → Add to Home Screen</div>
-    </div>
-    """, unsafe_allow_html=True)
-    name = st.text_input("Your name", placeholder="e.g. Alex", key="signin_name", label_visibility="collapsed")
+    st.markdown(
+        """
+        <style>
+          .signin-wrap {
+            min-height: 72vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem 0.75rem;
+          }
+          .signin-card {
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            padding: 2rem 1.5rem 1.6rem;
+            border-radius: 28px;
+            background: linear-gradient(
+              165deg,
+              rgba(255,255,255,0.16) 0%,
+              rgba(255,255,255,0.05) 45%,
+              rgba(255,255,255,0.03) 100%
+            );
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow:
+              0 20px 60px rgba(0,0,0,0.35),
+              inset 0 1px 0 rgba(255,255,255,0.25);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            backdrop-filter: blur(28px) saturate(180%);
+            animation: signInUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+          }
+          .signin-mark {
+            width: 52px; height: 52px; margin: 0 auto 1rem;
+            border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.35rem; font-weight: 700; color: #fff;
+            background: linear-gradient(145deg, #c4a7e7, #7dd3c0);
+            box-shadow: 0 8px 28px rgba(196,167,231,0.35), inset 0 1px 0 rgba(255,255,255,0.35);
+          }
+          .signin-kicker {
+            font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase;
+            color: rgba(196,167,231,0.9); margin-bottom: 0.45rem; font-weight: 600;
+          }
+          .signin-title {
+            font-size: 1.85rem; font-weight: 650; letter-spacing: -0.03em;
+            margin: 0 0 0.4rem; color: #f2f0f8;
+          }
+          .signin-sub {
+            color: rgba(180,176,200,0.9); font-size: 0.95rem; margin: 0 0 1.25rem;
+            line-height: 1.45;
+          }
+          .signin-foot {
+            margin-top: 1.1rem; font-size: 0.72rem; color: rgba(140,136,160,0.85);
+            line-height: 1.5;
+          }
+          @keyframes signInUp {
+            from { opacity: 0; transform: translateY(16px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+          }
+          /* centre the input + button under the card */
+          div[data-testid="stTextInput"] {
+            max-width: 400px; margin-left: auto; margin-right: auto;
+          }
+          div[data-testid="stTextInput"] input {
+            text-align: center !important;
+            border-radius: 16px !important;
+            min-height: 48px !important;
+            font-size: 1rem !important;
+          }
+        </style>
+        <div class="signin-wrap">
+          <div class="signin-card">
+            <div class="signin-mark">◈</div>
+            <div class="signin-kicker">Meridium</div>
+            <div class="signin-title">Who's there?</div>
+            <div class="signin-sub">Enter your name to open the shell.<br/>Your chats and secrets stay with you.</div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    name = st.text_input(
+        "Your name",
+        placeholder="Your name",
+        key="signin_name",
+        label_visibility="collapsed",
+    )
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
-        if st.button("Enter Meridium", use_container_width=True, key="signin_btn"):
-            clean = (name or "").strip()
-            if clean:
-                st.session_state.username = clean[:32]
+        if st.button("Enter Meridium", use_container_width=True, type="primary", key="signin_btn"):
+            ok, result = moderate_username(name)
+            if not ok:
+                st.error(result)
+            else:
+                st.session_state.username = result[:32]
                 st.session_state.signed_in = True
                 found = load_user_data(st.session_state.username)
                 if not found and not st.session_state.get("chats"):
@@ -1794,8 +1752,15 @@ if not st.session_state.get("signed_in") or not st.session_state.get("username")
                 st.session_state.show_intro = True
                 save_user_data()
                 st.rerun()
-            else:
-                st.warning("Please enter a name.")
+        st.markdown(
+            """
+            <div class="signin-foot" style="text-align:center;">
+              Built with Grok · by xAI<br/>
+              iPhone: Share → Add to Home Screen
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
     st.stop()
 
 # Personalized intro (once after sign-in)
