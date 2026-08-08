@@ -1716,6 +1716,23 @@ def render_spotify_panel(key_prefix="sp"):
                 else:
                     st.text(lyric_data.get("plain") or "")
                     st.caption("Plain lyrics (not timed)")
+
+            # Fullscreen lyrics (Spotify-style) — available whenever we have lyrics
+            if lyric_data and (lyric_data.get("synced") or lyric_data.get("plain")):
+                if st.button("⛶ Fullscreen lyrics", key=f"{key_prefix}_lyrics_fs", use_container_width=True):
+                    st.session_state._lyrics_fs_track = {
+                        "name": track.get("name") or "Unknown",
+                        "artists": track.get("artists") or "",
+                        "art": track.get("art"),
+                        "uri": track.get("uri"),
+                        "progress_ms": int(track.get("progress_ms") or 0),
+                        "duration_ms": int(track.get("duration_ms") or 0),
+                        "playing": bool(track.get("playing")),
+                    }
+                    st.session_state._lyrics_fs_data = lyric_data
+                    st.session_state._lyrics_fs_return = st.session_state.get("view") or "music"
+                    st.session_state.view = "lyrics_full"
+                    st.rerun()
             else:
                 st.caption("No synced lyrics found.")
                 if st.button("Estimate lyrics with AI", key=f"{key_prefix}_ai_lyrics"):
@@ -2552,7 +2569,7 @@ if st.session_state.view == "note":
     render_note()
 
 # ===== DESIGN 1 WAYBAR + NAV (hidden in lab) =====
-if st.session_state.view not in ("lab", "note", "voss_file"):
+if st.session_state.view not in ("lab", "note", "voss_file", "lyrics_full"):
     st.markdown(f"""
 <div class="waybar">
   <div class="waybar-left">
@@ -2598,6 +2615,303 @@ if st.session_state.view not in ("lab", "note", "voss_file"):
                 st.rerun()
         else:
             st.caption("")
+
+# ===== FULLSCREEN LYRICS (Spotify-style) =====
+if st.session_state.view == "lyrics_full":
+    import html as _html
+    import json as _json
+
+    # Keep progress fresh while fullscreen
+    sp_fs = get_spotify()
+    track_fs = None
+    if sp_fs:
+        try:
+            track_fs = current_track(sp_fs)
+        except Exception:
+            track_fs = None
+
+    saved = st.session_state.get("_lyrics_fs_track") or {}
+    lyric_data = st.session_state.get("_lyrics_fs_data") or {}
+
+    if track_fs:
+        # Prefer live Spotify state
+        t_name = track_fs.get("name") or saved.get("name") or "Unknown"
+        t_artists = track_fs.get("artists") or saved.get("artists") or ""
+        t_art = track_fs.get("art") or saved.get("art")
+        progress = int(track_fs.get("progress_ms") or 0)
+        playing = bool(track_fs.get("playing"))
+        # Refresh lyrics if track changed
+        live_key = f"lyrics::{track_fs.get('uri') or t_name}"
+        if st.session_state.get("_lyrics_key") != live_key:
+            st.session_state._lyrics_key = live_key
+            st.session_state._lyrics_data = fetch_synced_lyrics(
+                t_name,
+                track_fs.get("artist_primary") or (t_artists or "").split(",")[0].strip(),
+                track_fs.get("album") or "",
+                track_fs.get("duration_ms") or 0,
+            )
+            lyric_data = st.session_state.get("_lyrics_data") or lyric_data
+            st.session_state._lyrics_fs_data = lyric_data
+        else:
+            lyric_data = st.session_state.get("_lyrics_data") or lyric_data
+        st.session_state._lyrics_fs_track = {
+            "name": t_name,
+            "artists": t_artists,
+            "art": t_art,
+            "uri": track_fs.get("uri"),
+            "progress_ms": progress,
+            "duration_ms": int(track_fs.get("duration_ms") or 0),
+            "playing": playing,
+        }
+    else:
+        t_name = saved.get("name") or "Unknown"
+        t_artists = saved.get("artists") or ""
+        t_art = saved.get("art")
+        progress = int(saved.get("progress_ms") or 0)
+        playing = bool(saved.get("playing"))
+
+    # Exit control (Streamlit button above the immersive layer)
+    if st.button("✕ Exit fullscreen", key="lyrics_fs_exit"):
+        ret = st.session_state.get("_lyrics_fs_return") or "music"
+        st.session_state.view = ret
+        st.rerun()
+
+    # Build lyric lines
+    lines_payload = []
+    if lyric_data and lyric_data.get("synced"):
+        parsed = parse_lrc(lyric_data["synced"])
+        lines_payload = [
+            {"ms": int(ms), "text": _html.escape(str(text))}
+            for ms, text in parsed
+        ]
+    elif lyric_data and lyric_data.get("plain"):
+        for i, line in enumerate((lyric_data.get("plain") or "").splitlines()):
+            line = line.strip()
+            if line:
+                lines_payload.append({"ms": i * 3000, "text": _html.escape(line)})
+
+    payload = _json.dumps(lines_payload)
+    prog_js = max(0, int(progress) + 150)
+    play_js = "true" if playing else "false"
+    name_js = _json.dumps(t_name)
+    artists_js = _json.dumps(t_artists)
+    art_js = _json.dumps(t_art or "")
+
+    st.markdown(
+        """
+        <style>
+          .stApp, [data-testid="stAppViewContainer"], section.main,
+          [data-testid="stAppViewBlockContainer"], .block-container {
+            background: #0a0a0e !important;
+            max-width: 100% !important;
+            padding: 0 !important;
+          }
+          [data-testid="stHeader"], #MainMenu, footer,
+          [data-testid="stToolbar"], header { display:none !important; }
+          div[data-testid="stButton"] button {
+            position: relative;
+            z-index: 50;
+            background: rgba(255,255,255,0.08) !important;
+            color: #e8e6f0 !important;
+            border: 1px solid rgba(255,255,255,0.15) !important;
+            border-radius: 999px !important;
+          }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.components.v1.html(
+        f"""
+        <style>
+          html, body {{
+            margin: 0; padding: 0; overflow: hidden;
+            background: #0a0a0e;
+            font-family: Inter, system-ui, sans-serif;
+            height: 100%;
+          }}
+          #fs-root {{
+            position: fixed; inset: 0;
+            background:
+              radial-gradient(900px 500px at 20% 0%, rgba(196,167,231,0.14), transparent 55%),
+              radial-gradient(700px 400px at 100% 100%, rgba(96,165,250,0.10), transparent 50%),
+              #0a0a0e;
+            color: #f0eef8;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+          }}
+          #fs-meta {{
+            position: fixed;
+            left: 28px;
+            bottom: 28px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            z-index: 5;
+            max-width: min(420px, 70vw);
+          }}
+          #fs-meta img {{
+            width: 72px; height: 72px;
+            border-radius: 10px;
+            object-fit: cover;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+            background: rgba(255,255,255,0.06);
+          }}
+          #fs-meta .txt {{ min-width: 0; }}
+          #fs-meta .name {{
+            font-weight: 650;
+            font-size: 1.05rem;
+            letter-spacing: -0.02em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }}
+          #fs-meta .artists {{
+            opacity: 0.7;
+            font-size: 0.88rem;
+            margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }}
+          #fs-lrc-wrap {{
+            width: min(820px, 92vw);
+            height: min(70vh, 640px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            text-align: center;
+            padding: 24px 12px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            mask-image: linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent);
+            -webkit-mask-image: linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent);
+          }}
+          #fs-lrc-wrap::-webkit-scrollbar {{ display: none; width: 0; height: 0; }}
+          .fs-line {{
+            padding: 10px 16px;
+            margin: 4px 0;
+            font-size: clamp(1.25rem, 3.6vw, 2rem);
+            line-height: 1.35;
+            letter-spacing: -0.02em;
+            opacity: 0.28;
+            transform: scale(0.96);
+            transition: all 0.2s ease;
+            border-radius: 14px;
+          }}
+          .fs-line.active {{
+            opacity: 1;
+            font-weight: 700;
+            transform: scale(1.04);
+            color: #fff;
+            text-shadow: 0 0 24px rgba(196,167,231,0.35);
+          }}
+          .fs-line.near {{
+            opacity: 0.55;
+            transform: scale(0.99);
+          }}
+          #fs-status {{
+            position: fixed;
+            right: 28px;
+            bottom: 32px;
+            font-size: 12px;
+            opacity: 0.5;
+            letter-spacing: 0.04em;
+          }}
+        </style>
+        <div id="fs-root">
+          <div id="fs-lrc-wrap"><div id="fs-lrc"></div></div>
+          <div id="fs-meta">
+            <img id="fs-art" alt="" style="display:none"/>
+            <div class="txt">
+              <div class="name" id="fs-name"></div>
+              <div class="artists" id="fs-artists"></div>
+            </div>
+          </div>
+          <div id="fs-status"></div>
+        </div>
+        <script>
+        (function(){{
+          const lines = {payload};
+          let baseProgress = {prog_js};
+          const baseWall = Date.now();
+          let isPlaying = {play_js};
+          const name = {name_js};
+          const artists = {artists_js};
+          const art = {art_js};
+
+          const root = document.getElementById('fs-lrc');
+          const wrap = document.getElementById('fs-lrc-wrap');
+          const status = document.getElementById('fs-status');
+          const nameEl = document.getElementById('fs-name');
+          const artEl = document.getElementById('fs-art');
+          const artstsEl = document.getElementById('fs-artists');
+          if (nameEl) nameEl.textContent = name || '';
+          if (artstsEl) artstsEl.textContent = artists || '';
+          if (artEl && art) {{
+            artEl.src = art;
+            artEl.style.display = 'block';
+          }}
+          if (!root) return;
+          if (!lines.length) {{
+            root.innerHTML = '<div class="fs-line active" style="opacity:0.7">No lyrics for this track</div>';
+            return;
+          }}
+          root.innerHTML = lines.map((L, i) =>
+            '<div class="fs-line" data-i="'+i+'">'+ L.text +'</div>'
+          ).join('');
+
+          let lastActive = -1;
+          function currentMs(){{
+            if (!isPlaying) return baseProgress;
+            return baseProgress + (Date.now() - baseWall);
+          }}
+          function tick(){{
+            const now = currentMs();
+            let active = 0;
+            for (let i = 0; i < lines.length; i++){{
+              if (lines[i].ms <= now) active = i;
+              else break;
+            }}
+            if (active !== lastActive){{
+              lastActive = active;
+              const nodes = root.querySelectorAll('.fs-line');
+              nodes.forEach((n, i) => {{
+                n.classList.remove('active', 'near');
+                if (i === active) n.classList.add('active');
+                else if (Math.abs(i - active) === 1) n.classList.add('near');
+              }});
+              const el = root.querySelector('.fs-line[data-i="'+active+'"]');
+              if (el && wrap){{
+                const top = el.offsetTop - wrap.clientHeight/2 + el.clientHeight/2;
+                wrap.scrollTo({{ top: Math.max(0, top), behavior: 'smooth' }});
+              }}
+            }}
+            if (status){{
+              const sec = Math.floor(now/1000);
+              const m = Math.floor(sec/60), s = sec%60;
+              status.textContent = (isPlaying ? '● ' : '❚❚ ') + m + ':' + String(s).padStart(2,'0');
+            }}
+          }}
+          tick();
+          setInterval(tick, 120);
+        }})();
+        </script>
+        """,
+        height=720,
+        scrolling=False,
+    )
+
+    # Keep progress in sync
+    if playing:
+        try:
+            from streamlit_autorefresh import st_autorefresh
+            st_autorefresh(interval=3500, key="lyrics_fs_sync")
+        except Exception:
+            pass
+
+    st.stop()
 
 # MUSIC — dedicated player + Meridium playlist
 if st.session_state.view == "music":
