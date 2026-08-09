@@ -3374,9 +3374,43 @@ def render_equalizer_panel() -> None:
 
     with st.expander("Equalizer", expanded=False):
         st.caption(
-            "Real browser EQ (Web Audio). Affects audio playing **in this tab**. "
-            "Spotify on your phone/desktop app has its own sound path — use that app EQ or system EQ for those devices."
+            "Meridium’s browser EQ only affects audio **in this tab**. "
+            "For Spotify playback on your phone or desktop app, use **Spotify’s own equalizer** (below)."
         )
+
+        # Spotify has no public deep-link straight into EQ — open app + show path
+        s1, s2 = st.columns(2)
+        with s1:
+            st.link_button(
+                "Open Spotify app",
+                "spotify:",
+                use_container_width=True,
+                help="Opens the Spotify desktop/mobile app if installed",
+            )
+        with s2:
+            st.link_button(
+                "Open Spotify Web",
+                "https://open.spotify.com",
+                use_container_width=True,
+            )
+
+        with st.expander("How to open Spotify’s equalizer", expanded=False):
+            st.markdown(
+                """
+**Desktop (Windows / Mac)**  
+Profile picture → **Settings** → **Playback** → **Equalizer** → turn on
+
+**iPhone / iPad**  
+Profile → **Settings and privacy** → **Playback** → **Equalizer**
+
+**Android**  
+Profile → **Settings** → **Equalizer**  
+*(often opens your phone’s system EQ)*
+
+> Spotify does not provide a direct link into the EQ screen — those steps are the official path.
+> EQ only applies on the device that is **actually playing** sound (not on a Connect target).
+                """
+            )
 
         top = st.columns([2, 1, 1])
         with top[0]:
