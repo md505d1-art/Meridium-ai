@@ -2524,6 +2524,11 @@ if st.session_state.popup:
             st.session_state.view = "chat"
             st.session_state.popup = False
             st.rerun()
+        if st.button("🎬  Cinema", use_container_width=True, key="pop_cinema"):
+            st.session_state.cinema_watching = None
+            st.session_state.view = "cinema"
+            st.session_state.popup = False
+            st.rerun()
         if lab_is_unlocked():
             if st.button("Open the lab", use_container_width=True, key="pop_lab"):
                 st.session_state.view = "lab"
@@ -2536,6 +2541,11 @@ if st.session_state.popup:
             st.rerun()
         if st.button("♫  Music", use_container_width=True, key="pop_music"):
             st.session_state.view = "music"
+            st.session_state.popup = False
+            st.rerun()
+        if st.button("📚  Library", use_container_width=True, key="pop_library"):
+            st.session_state.library_reading = None
+            st.session_state.view = "library"
             st.session_state.popup = False
             st.rerun()
         if st.button("✕  Close menu", use_container_width=True, key="pop_close"):
@@ -4000,6 +4010,319 @@ def paginate_text(text: str, page_size: int = 2200) -> list:
     return pages or [""]
 
 
+# ============================================================
+# CINEMA — public embeds / free videos (YouTube + direct)
+# ============================================================
+CINEMA_CATALOG = [
+    {
+        "id": "nosferatu",
+        "title": "Nosferatu (1922)",
+        "creator": "F. W. Murnau",
+        "note": "Public domain classic · horror",
+        "kind": "youtube",
+        "youtube_id": "9NZOwK4YxEU",
+        "year": "1922",
+        "tags": ["film", "silent", "horror"],
+    },
+    {
+        "id": "night_living_dead",
+        "title": "Night of the Living Dead (1968)",
+        "creator": "George A. Romero",
+        "note": "Public domain · full feature",
+        "kind": "youtube",
+        "youtube_id": "0WWzgGyqng8",
+        "year": "1968",
+        "tags": ["film", "horror"],
+    },
+    {
+        "id": "voyage_moon",
+        "title": "A Trip to the Moon (1902)",
+        "creator": "Georges Méliès",
+        "note": "Public domain · early cinema",
+        "kind": "youtube",
+        "youtube_id": "xFVJXw5Xb7c",
+        "year": "1902",
+        "tags": ["film", "silent", "short"],
+    },
+    {
+        "id": "charade",
+        "title": "Charade (1963)",
+        "creator": "Stanley Donen",
+        "note": "Public domain in the US · full feature",
+        "kind": "youtube",
+        "youtube_id": "1z5J7p0vJmE",
+        "year": "1963",
+        "tags": ["film", "mystery"],
+    },
+    {
+        "id": "big_buck_bunny",
+        "title": "Big Buck Bunny",
+        "creator": "Blender Foundation",
+        "note": "Open movie · Creative Commons",
+        "kind": "direct",
+        "url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+        "year": "2008",
+        "tags": ["short", "animation"],
+    },
+    {
+        "id": "elephants_dream",
+        "title": "Elephants Dream",
+        "creator": "Blender Foundation",
+        "note": "Open movie · Creative Commons",
+        "kind": "direct",
+        "url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+        "year": "2006",
+        "tags": ["short", "animation"],
+    },
+    {
+        "id": "sintel",
+        "title": "Sintel",
+        "creator": "Blender Foundation",
+        "note": "Open movie · Creative Commons",
+        "kind": "youtube",
+        "youtube_id": "eRsGyueVLvQ",
+        "year": "2010",
+        "tags": ["short", "animation"],
+    },
+    # —— simple, actually (@simpleactuallyus) — official YouTube embeds ——
+    {
+        "id": "sa_sleep_less",
+        "title": "How to Sleep LESS hours and wake up FRESH (Science-Backed)",
+        "creator": "simple, actually",
+        "note": "YouTube · @simpleactuallyus",
+        "kind": "youtube",
+        "youtube_id": "5lVfIV3JlXw",
+        "year": "2024",
+        "tags": ["simple actually", "productivity", "sleep"],
+    },
+    {
+        "id": "sa_lotus",
+        "title": "How To Force Your Brain To Do Hard Things (Lotus Method)",
+        "creator": "simple, actually",
+        "note": "YouTube · @simpleactuallyus",
+        "kind": "youtube",
+        "youtube_id": "GpsWTFciswE",
+        "year": "2024",
+        "tags": ["simple actually", "productivity", "focus"],
+    },
+    {
+        "id": "sa_cs",
+        "title": "How to study computer science so FAST that it feels ILLEGAL",
+        "creator": "simple, actually",
+        "note": "YouTube · @simpleactuallyus",
+        "kind": "youtube",
+        "youtube_id": "TbZj_hlJitA",
+        "year": "2025",
+        "tags": ["simple actually", "study", "productivity"],
+    },
+    {
+        "id": "sa_chem",
+        "title": "How to study CHEMISTRY so FAST that it feels ILLEGAL",
+        "creator": "simple, actually",
+        "note": "YouTube · @simpleactuallyus",
+        "kind": "youtube",
+        "youtube_id": "0oHMoSSelo0",
+        "year": "2024",
+        "tags": ["simple actually", "study", "productivity"],
+    },
+    {
+        "id": "sa_bio",
+        "title": "How to study BIOLOGY so FAST that it feels ILLEGAL",
+        "creator": "simple, actually",
+        "note": "YouTube · @simpleactuallyus",
+        "kind": "youtube",
+        "youtube_id": "-qU1mQ0ilxo",
+        "year": "2024",
+        "tags": ["simple actually", "study", "productivity"],
+    },
+    {
+        "id": "sa_stoic",
+        "title": "How To Never Get Angry Or Bothered By Anyone (STOICISM)",
+        "creator": "simple, actually",
+        "note": "YouTube · @simpleactuallyus",
+        "kind": "youtube",
+        "youtube_id": "OgJQkabvdA4",
+        "year": "2025",
+        "tags": ["simple actually", "mindset", "productivity"],
+    },
+]
+
+
+def _youtube_id_from_url(url: str) -> str:
+    """Extract a YouTube video id from common URL shapes."""
+    u = (url or "").strip()
+    if not u:
+        return ""
+    # Already an id
+    if re.fullmatch(r"[\w-]{11}", u):
+        return u
+    m = re.search(r"(?:v=|/embed/|/shorts/|youtu\.be/)([\w-]{11})", u)
+    return m.group(1) if m else ""
+
+
+def render_cinema_player(item: dict) -> None:
+    """Play a catalog item: YouTube embed or direct MP4/WebM."""
+    kind = (item.get("kind") or "").lower()
+    title = item.get("title") or "Untitled"
+    st.markdown(f"### {title}")
+    meta_bits = []
+    if item.get("creator"):
+        meta_bits.append(item["creator"])
+    if item.get("year"):
+        meta_bits.append(str(item["year"]))
+    if item.get("note"):
+        meta_bits.append(item["note"])
+    if meta_bits:
+        st.caption(" · ".join(meta_bits))
+
+    if kind == "youtube":
+        yid = item.get("youtube_id") or _youtube_id_from_url(item.get("url") or "")
+        if not yid:
+            st.warning("Missing YouTube id for this title.")
+            return
+        # Responsive 16:9 embed
+        st.components.v1.html(
+            f"""
+            <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;
+                        border-radius:14px;background:#000;box-shadow:0 12px 32px rgba(0,0,0,0.4);">
+              <iframe
+                src="https://www.youtube.com/embed/{yid}?rel=0"
+                title="{title.replace('"', '')}"
+                style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen
+                loading="lazy"
+              ></iframe>
+            </div>
+            """,
+            height=420,
+            scrolling=False,
+        )
+        st.caption(f"[Open on YouTube](https://www.youtube.com/watch?v={yid})")
+    elif kind == "direct":
+        url = (item.get("url") or "").strip()
+        if not url:
+            st.warning("Missing video URL.")
+            return
+        try:
+            st.video(url)
+        except Exception as e:
+            st.error(f"Could not play video: {e}")
+            st.markdown(f"[Open video link]({url})")
+    else:
+        st.info("Unknown media type for this entry.")
+
+
+# ===== CINEMA =====
+if st.session_state.view == "cinema":
+    st.markdown(
+        """
+        <div class="panel">
+          <div class="panel-label">Cinema</div>
+          <div class="hero" style="font-size:1.4rem;">Free screen</div>
+          <div class="sub">Public-domain films · open shorts · YouTube embeds (incl. simple, actually)</div>
+          <div class="ridge"></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    if st.button("← Home", key="cinema_back_home"):
+        st.session_state.view = "home"
+        st.session_state.cinema_watching = None
+        st.rerun()
+
+    watching_id = st.session_state.get("cinema_watching")
+    current = next((x for x in CINEMA_CATALOG if x.get("id") == watching_id), None)
+    custom_item = st.session_state.get("_cinema_custom")
+    is_custom = (
+        isinstance(watching_id, str)
+        and watching_id.startswith("custom::")
+        and isinstance(custom_item, dict)
+    )
+
+    if current or is_custom:
+        play = custom_item if is_custom else current
+        render_cinema_player(play)
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("← Back to shelf", key="cinema_back_shelf", use_container_width=True):
+                st.session_state.cinema_watching = None
+                st.rerun()
+        with c2:
+            if current and not is_custom:
+                ids = [x["id"] for x in CINEMA_CATALOG]
+                try:
+                    ni = ids.index(current["id"]) + 1
+                except ValueError:
+                    ni = len(ids)
+                if ni < len(ids):
+                    if st.button("Next →", key="cinema_next", use_container_width=True):
+                        st.session_state.cinema_watching = ids[ni]
+                        st.rerun()
+                else:
+                    st.caption("End of shelf")
+        st.caption(
+            "Only free / public-domain / openly licensed titles are listed on the shelf. "
+            "YouTube embeds use Google's player — Meridium does not host those files."
+        )
+    else:
+        with st.expander("Paste a YouTube link", expanded=False):
+            custom = st.text_input(
+                "YouTube URL or video id",
+                placeholder="https://www.youtube.com/watch?v=…",
+                key="cinema_custom_url",
+            )
+            if st.button("Play link", key="cinema_play_custom", use_container_width=True):
+                yid = _youtube_id_from_url(custom)
+                if yid:
+                    st.session_state.cinema_watching = f"custom::{yid}"
+                    st.session_state._cinema_custom = {
+                        "id": f"custom::{yid}",
+                        "title": "Custom YouTube",
+                        "creator": "",
+                        "note": "Pasted link",
+                        "kind": "youtube",
+                        "youtube_id": yid,
+                    }
+                    st.rerun()
+                else:
+                    st.warning("Could not read a YouTube id from that link.")
+
+        st.caption("Choose a title — public domain & open works only on the shelf.")
+        all_tags = sorted({t for it in CINEMA_CATALOG for t in (it.get("tags") or [])})
+        tag = st.selectbox("Filter", ["All"] + all_tags, key="cinema_tag_filter")
+        shelf = [
+            it for it in CINEMA_CATALOG
+            if tag == "All" or tag in (it.get("tags") or [])
+        ]
+        for item in shelf:
+            kind_label = "YouTube" if item.get("kind") == "youtube" else "Direct"
+            bc1, bc2 = st.columns([4, 1])
+            with bc1:
+                st.markdown(
+                    f"**{item.get('title', 'Untitled')}**  \n"
+                    f"<span style='opacity:0.7;font-size:0.85rem'>"
+                    f"{item.get('creator', '')}"
+                    f"{(' · ' + item['note']) if item.get('note') else ''}"
+                    f" · {kind_label}"
+                    f"</span>",
+                    unsafe_allow_html=True,
+                )
+            with bc2:
+                if st.button("Watch", key=f"cinema_watch_{item.get('id')}", use_container_width=True):
+                    st.session_state.cinema_watching = item.get("id")
+                    st.rerun()
+
+        st.markdown("---")
+        st.caption(
+            "Shelf sources: public-domain cinema, Creative Commons open movies, "
+            "and official YouTube embeds (e.g. [simple, actually](https://www.youtube.com/@simpleactuallyus)). "
+            "Add more entries in `CINEMA_CATALOG` inside app.py. "
+            "Paste any public YouTube link above to play it once."
+        )
+    st.stop()
+
+
 # ===== LIBRARY =====
 if st.session_state.view == "library":
     st.markdown(
@@ -4173,6 +4496,10 @@ if st.session_state.view == "home":
             st.session_state.library_reading = None
             st.session_state.library_page = 0
             st.session_state.view = "library"
+            st.rerun()
+        if st.button("🎬  Cinema", use_container_width=True, key="bm_cinema"):
+            st.session_state.cinema_watching = None
+            st.session_state.view = "cinema"
             st.rerun()
         if lab_is_unlocked():
             if st.button("🔬  Lab", use_container_width=True, key="bm_lab"):
