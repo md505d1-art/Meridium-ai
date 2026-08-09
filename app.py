@@ -1523,10 +1523,55 @@ def render_spotify_panel(key_prefix="sp"):
 
     with left:
         art = track.get("art")
-        if art:
-            st.image(art, width=200)
-        st.markdown(f"### {track['name']}")
-        st.caption(track["artists"] + (f" · {track['device']}" if track.get("device") else ""))
+        _aname = _html.escape(str(track.get("name") or "Unknown"))
+        _aarts = _html.escape(str(track.get("artists") or ""))
+        _adev = _html.escape(str(track.get("device") or ""))
+        _art_tag = (
+            f'<img src="{_html.escape(art)}" alt="" '
+            f'style="width:200px;height:200px;object-fit:cover;border-radius:14px;'
+            f'box-shadow:0 12px 32px rgba(0,0,0,0.35);display:block;margin:0 auto 12px"/>'
+            if art else ""
+        )
+        st.markdown(
+            f"""
+            <style>
+              @keyframes merArtIn {{
+                from {{ opacity: 0; transform: scale(0.9) translateY(12px); filter: blur(5px); }}
+                to {{ opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }}
+              }}
+              @keyframes merTextIn {{
+                from {{ opacity: 0; transform: translateY(10px); }}
+                to {{ opacity: 1; transform: translateY(0); }}
+              }}
+              .mer-track-block {{
+                text-align: center;
+                margin-bottom: 0.6rem;
+              }}
+              .mer-track-block img {{
+                animation: merArtIn 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+              }}
+              .mer-track-block .mer-t-name {{
+                font-size: 1.2rem;
+                font-weight: 650;
+                letter-spacing: -0.02em;
+                margin-top: 0.35rem;
+                animation: merTextIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+              }}
+              .mer-track-block .mer-t-arts {{
+                opacity: 0.7;
+                font-size: 0.88rem;
+                margin-top: 0.2rem;
+                animation: merTextIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.14s both;
+              }}
+            </style>
+            <div class="mer-track-block">
+              {_art_tag}
+              <div class="mer-t-name">{_aname}</div>
+              <div class="mer-t-arts">{_aarts}{(' · ' + _adev) if _adev else ''}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         p1, p2, p3, p4 = st.columns(4)
         with p1:
             if st.button("⏮", key=f"{key_prefix}_prev", use_container_width=True):
@@ -1605,9 +1650,14 @@ def render_spotify_panel(key_prefix="sp"):
                                 height: 0 !important;
                                 display: none !important;
                               }}
+                              @keyframes merLrcIn {{
+                                from {{ opacity: 0; filter: blur(5px); transform: translateY(10px); }}
+                                to {{ opacity: 1; filter: blur(0); transform: translateY(0); }}
+                              }}
                               #mer-lrc-wrap {{
                                 scrollbar-width: none !important;
                                 -ms-overflow-style: none !important;
+                                animation: merLrcIn 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
                               }}
                               #mer-lrc-wrap::-webkit-scrollbar {{
                                 width: 0 !important;
