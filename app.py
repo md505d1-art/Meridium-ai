@@ -3704,20 +3704,26 @@ if st.session_state.view == "library":
         full_text = load_library_book_text(current_book)
         pages = paginate_text(full_text, page_size=2200)
         total_pages = max(1, len(pages))
-        if "library_page" not in st.session_state:
-            st.session_state.library_page = 0
-        # Reset page when switching books
-        if st.session_state.get("_library_page_book") != current_book.get("id"):
-            st.session_state.library_page = 0
-            st.session_state._library_page_book = current_book.get("id")
-        page = max(0, min(int(st.session_state.library_page), total_pages - 1))
-        st.session_state.library_page = page
 
-        # Page navigation
+        # Per-book page index in session (avoids widget fights)
+        book_id = current_book.get("id") or "book"
+        page_key = f"lib_page_{book_id}"
+        if page_key not in st.session_state:
+            st.session_state[page_key] = 0
+        if st.session_state.get("_library_page_book") != book_id:
+            st.session_state[page_key] = 0
+            st.session_state._library_page_book = book_id
+
+        page = int(st.session_state.get(page_key) or 0)
+        page = max(0, min(page, total_pages - 1))
+        st.session_state[page_key] = page
+        st.session_state.library_page = page  # keep legacy key in sync
+
+        # Page navigation (top)
         n1, n2, n3 = st.columns([1, 2, 1])
         with n1:
-            if st.button("← Prev page", key="lib_prev", use_container_width=True, disabled=(page <= 0)):
-                st.session_state.library_page = page - 1
+            if st.button("← Prev page", key=f"lib_prev_{book_id}", use_container_width=True, disabled=(page <= 0)):
+                st.session_state[page_key] = page - 1
                 st.rerun()
         with n2:
             st.markdown(
@@ -3727,25 +3733,30 @@ if st.session_state.view == "library":
                 unsafe_allow_html=True,
             )
         with n3:
-            if st.button("Next page →", key="lib_next", use_container_width=True, disabled=(page >= total_pages - 1)):
-                st.session_state.library_page = page + 1
+            if st.button("Next page →", key=f"lib_next_{book_id}", use_container_width=True, disabled=(page >= total_pages - 1)):
+                st.session_state[page_key] = page + 1
                 st.rerun()
 
-        # Jump to page
-        jump = st.number_input(
-            "Go to page",
-            min_value=1,
-            max_value=total_pages,
-            value=page + 1,
-            step=1,
-            key="lib_page_jump",
-        )
-        if int(jump) - 1 != page:
-            st.session_state.library_page = int(jump) - 1
-            st.rerun()
+        # Jump only when user submits the form (does not fight Next/Prev)
+        with st.form(key=f"lib_jump_form_{book_id}", clear_on_submit=False):
+            j1, j2 = st.columns([3, 1])
+            with j1:
+                jump_to = st.number_input(
+                    "Go to page",
+                    min_value=1,
+                    max_value=total_pages,
+                    value=page + 1,
+                    step=1,
+                    key=f"lib_jump_val_{book_id}",
+                )
+            with j2:
+                st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+                jump_clicked = st.form_submit_button("Go", use_container_width=True)
+            if jump_clicked:
+                st.session_state[page_key] = max(0, min(int(jump_to) - 1, total_pages - 1))
+                st.rerun()
 
         body = pages[page]
-        # Escape minimal HTML risk
         import html as _html_lib
         safe = _html_lib.escape(body)
         st.markdown(
@@ -3754,20 +3765,21 @@ if st.session_state.view == "library":
             unsafe_allow_html=True,
         )
 
-        # Bottom nav too
+        # Bottom nav
         b1, b2, b3 = st.columns([1, 2, 1])
         with b1:
-            if st.button("← Prev", key="lib_prev_b", use_container_width=True, disabled=(page <= 0)):
-                st.session_state.library_page = page - 1
+            if st.button("← Prev", key=f"lib_prev_b_{book_id}", use_container_width=True, disabled=(page <= 0)):
+                st.session_state[page_key] = page - 1
                 st.rerun()
         with b2:
-            if st.button("← Back to shelf", key="lib_back_shelf", use_container_width=True):
+            if st.button("← Back to shelf", key=f"lib_back_shelf_{book_id}", use_container_width=True):
                 st.session_state.library_reading = None
+                st.session_state[page_key] = 0
                 st.session_state.library_page = 0
                 st.rerun()
         with b3:
-            if st.button("Next →", key="lib_next_b", use_container_width=True, disabled=(page >= total_pages - 1)):
-                st.session_state.library_page = page + 1
+            if st.button("Next →", key=f"lib_next_b_{book_id}", use_container_width=True, disabled=(page >= total_pages - 1)):
+                st.session_state[page_key] = page + 1
                 st.rerun()
 
         if current_book.get("gutenberg"):
