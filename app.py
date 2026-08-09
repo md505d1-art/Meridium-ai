@@ -4011,139 +4011,149 @@ def paginate_text(text: str, page_size: int = 2200) -> list:
 
 
 # ============================================================
-# CINEMA — public embeds / free videos (YouTube + direct)
+# CINEMA — Movies (direct playable) + YouTube (by channel)
+# category: "movies" | "youtube"
+# channel: grouping key for YouTube shelves
 # ============================================================
 CINEMA_CATALOG = [
-    {
-        "id": "nosferatu",
-        "title": "Nosferatu (1922)",
-        "creator": "F. W. Murnau",
-        "note": "Public domain classic · horror",
-        "kind": "youtube",
-        "youtube_id": "9NZOwK4YxEU",
-        "year": "1922",
-        "tags": ["film", "silent", "horror"],
-    },
-    {
-        "id": "night_living_dead",
-        "title": "Night of the Living Dead (1968)",
-        "creator": "George A. Romero",
-        "note": "Public domain · full feature",
-        "kind": "youtube",
-        "youtube_id": "0WWzgGyqng8",
-        "year": "1968",
-        "tags": ["film", "horror"],
-    },
-    {
-        "id": "voyage_moon",
-        "title": "A Trip to the Moon (1902)",
-        "creator": "Georges Méliès",
-        "note": "Public domain · early cinema",
-        "kind": "youtube",
-        "youtube_id": "xFVJXw5Xb7c",
-        "year": "1902",
-        "tags": ["film", "silent", "short"],
-    },
-    {
-        "id": "charade",
-        "title": "Charade (1963)",
-        "creator": "Stanley Donen",
-        "note": "Public domain in the US · full feature",
-        "kind": "youtube",
-        "youtube_id": "1z5J7p0vJmE",
-        "year": "1963",
-        "tags": ["film", "mystery"],
-    },
+    # —— Movies (in-app MP4 — these play inside Meridium) ——
     {
         "id": "big_buck_bunny",
         "title": "Big Buck Bunny",
         "creator": "Blender Foundation",
-        "note": "Open movie · Creative Commons",
+        "channel": "Blender Foundation",
+        "category": "movies",
+        "note": "Open movie · Creative Commons · plays in-app",
         "kind": "direct",
         "url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
         "year": "2008",
-        "tags": ["short", "animation"],
+        "tags": ["animation", "open"],
     },
     {
         "id": "elephants_dream",
         "title": "Elephants Dream",
         "creator": "Blender Foundation",
-        "note": "Open movie · Creative Commons",
+        "channel": "Blender Foundation",
+        "category": "movies",
+        "note": "Open movie · Creative Commons · plays in-app",
         "kind": "direct",
         "url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
         "year": "2006",
-        "tags": ["short", "animation"],
+        "tags": ["animation", "open"],
     },
     {
-        "id": "sintel",
-        "title": "Sintel",
+        "id": "sintel_trailer",
+        "title": "Sintel (trailer)",
         "creator": "Blender Foundation",
-        "note": "Open movie · Creative Commons",
-        "kind": "youtube",
-        "youtube_id": "eRsGyueVLvQ",
+        "channel": "Blender Foundation",
+        "category": "movies",
+        "note": "Open movie trailer · Creative Commons · plays in-app",
+        "kind": "direct",
+        "url": "https://download.blender.org/durian/trailer/sintel_trailer-480p.mp4",
         "year": "2010",
-        "tags": ["short", "animation"],
+        "tags": ["animation", "open"],
     },
-    # —— simple, actually (@simpleactuallyus) — official YouTube embeds ——
     {
-        "id": "sa_sleep_less",
-        "title": "How to Sleep LESS hours and wake up FRESH (Science-Backed)",
-        "creator": "simple, actually",
-        "note": "YouTube · @simpleactuallyus",
-        "kind": "youtube",
-        "youtube_id": "5lVfIV3JlXw",
-        "year": "2024",
-        "tags": ["simple actually", "productivity", "sleep"],
+        "id": "tears_of_steel",
+        "title": "Tears of Steel (trailer)",
+        "creator": "Blender Foundation",
+        "channel": "Blender Foundation",
+        "category": "movies",
+        "note": "Open movie trailer · Creative Commons · plays in-app",
+        "kind": "direct",
+        "url": "https://download.blender.org/mango/trailer/tears_of_steel_trailer_720p.mov",
+        "year": "2012",
+        "tags": ["animation", "open"],
     },
+    {
+        "id": "for_bigger_blazes",
+        "title": "For Bigger Blazes",
+        "creator": "Google sample",
+        "channel": "Sample films",
+        "category": "movies",
+        "note": "Sample clip · plays in-app",
+        "kind": "direct",
+        "url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+        "year": "2015",
+        "tags": ["sample"],
+    },
+    {
+        "id": "for_bigger_escape",
+        "title": "For Bigger Escape",
+        "creator": "Google sample",
+        "channel": "Sample films",
+        "category": "movies",
+        "note": "Sample clip · plays in-app",
+        "kind": "direct",
+        "url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+        "year": "2015",
+        "tags": ["sample"],
+    },
+    # —— YouTube · simple, actually (@simpleactuallyus) ——
     {
         "id": "sa_lotus",
         "title": "How To Force Your Brain To Do Hard Things (Lotus Method)",
         "creator": "simple, actually",
-        "note": "YouTube · @simpleactuallyus",
+        "channel": "simple, actually",
+        "channel_url": "https://www.youtube.com/@simpleactuallyus",
+        "category": "youtube",
+        "note": "@simpleactuallyus",
         "kind": "youtube",
         "youtube_id": "GpsWTFciswE",
         "year": "2024",
-        "tags": ["simple actually", "productivity", "focus"],
+        "tags": ["productivity", "focus"],
     },
     {
         "id": "sa_cs",
         "title": "How to study computer science so FAST that it feels ILLEGAL",
         "creator": "simple, actually",
-        "note": "YouTube · @simpleactuallyus",
+        "channel": "simple, actually",
+        "channel_url": "https://www.youtube.com/@simpleactuallyus",
+        "category": "youtube",
+        "note": "@simpleactuallyus",
         "kind": "youtube",
         "youtube_id": "TbZj_hlJitA",
         "year": "2025",
-        "tags": ["simple actually", "study", "productivity"],
+        "tags": ["study", "productivity"],
     },
     {
         "id": "sa_chem",
         "title": "How to study CHEMISTRY so FAST that it feels ILLEGAL",
         "creator": "simple, actually",
-        "note": "YouTube · @simpleactuallyus",
+        "channel": "simple, actually",
+        "channel_url": "https://www.youtube.com/@simpleactuallyus",
+        "category": "youtube",
+        "note": "@simpleactuallyus",
         "kind": "youtube",
         "youtube_id": "0oHMoSSelo0",
         "year": "2024",
-        "tags": ["simple actually", "study", "productivity"],
+        "tags": ["study", "productivity"],
     },
     {
         "id": "sa_bio",
         "title": "How to study BIOLOGY so FAST that it feels ILLEGAL",
         "creator": "simple, actually",
-        "note": "YouTube · @simpleactuallyus",
+        "channel": "simple, actually",
+        "channel_url": "https://www.youtube.com/@simpleactuallyus",
+        "category": "youtube",
+        "note": "@simpleactuallyus",
         "kind": "youtube",
         "youtube_id": "-qU1mQ0ilxo",
         "year": "2024",
-        "tags": ["simple actually", "study", "productivity"],
+        "tags": ["study", "productivity"],
     },
     {
         "id": "sa_stoic",
         "title": "How To Never Get Angry Or Bothered By Anyone (STOICISM)",
         "creator": "simple, actually",
-        "note": "YouTube · @simpleactuallyus",
+        "channel": "simple, actually",
+        "channel_url": "https://www.youtube.com/@simpleactuallyus",
+        "category": "youtube",
+        "note": "@simpleactuallyus",
         "kind": "youtube",
         "youtube_id": "OgJQkabvdA4",
         "year": "2025",
-        "tags": ["simple actually", "mindset", "productivity"],
+        "tags": ["mindset", "productivity"],
     },
 ]
 
@@ -4233,7 +4243,7 @@ if st.session_state.view == "cinema":
         <div class="panel">
           <div class="panel-label">Cinema</div>
           <div class="hero" style="font-size:1.4rem;">Free screen</div>
-          <div class="sub">Public-domain films · open shorts · YouTube embeds (incl. simple, actually)</div>
+          <div class="sub">Movies (in-app) · YouTube by channel</div>
           <div class="ridge"></div>
         </div>
         """,
@@ -4301,37 +4311,94 @@ if st.session_state.view == "cinema":
                 else:
                     st.warning("Could not read a YouTube id from that link.")
 
-        st.caption("Choose a title — public domain & open works only on the shelf.")
-        all_tags = sorted({t for it in CINEMA_CATALOG for t in (it.get("tags") or [])})
-        tag = st.selectbox("Filter", ["All"] + all_tags, key="cinema_tag_filter")
-        shelf = [
-            it for it in CINEMA_CATALOG
-            if tag == "All" or tag in (it.get("tags") or [])
-        ]
-        for item in shelf:
-            kind_label = "YouTube" if item.get("kind") == "youtube" else "Direct"
-            bc1, bc2 = st.columns([4, 1])
-            with bc1:
-                st.markdown(
-                    f"**{item.get('title', 'Untitled')}**  \n"
-                    f"<span style='opacity:0.7;font-size:0.85rem'>"
-                    f"{item.get('creator', '')}"
-                    f"{(' · ' + item['note']) if item.get('note') else ''}"
-                    f" · {kind_label}"
-                    f"</span>",
-                    unsafe_allow_html=True,
-                )
-            with bc2:
-                if st.button("Watch", key=f"cinema_watch_{item.get('id')}", use_container_width=True):
-                    st.session_state.cinema_watching = item.get("id")
-                    st.rerun()
+        st.caption("Browse by category — Movies play in-app · YouTube opens via embed or YouTube button.")
+
+        cat = st.radio(
+            "Category",
+            ["All", "Movies", "YouTube"],
+            horizontal=True,
+            key="cinema_category",
+        )
+
+        shelf = list(CINEMA_CATALOG)
+        if cat == "Movies":
+            shelf = [it for it in shelf if (it.get("category") or "") == "movies"]
+        elif cat == "YouTube":
+            shelf = [it for it in shelf if (it.get("category") or "") == "youtube"]
+
+        # Channel filter (YouTube shelf / All)
+        channels = sorted({
+            (it.get("channel") or it.get("creator") or "Unknown")
+            for it in shelf
+            if (it.get("category") or "") == "youtube" or cat == "All"
+        })
+        if cat in ("YouTube", "All") and channels:
+            ch_opts = ["All channels"] + channels
+            ch = st.selectbox("Channel", ch_opts, key="cinema_channel_filter")
+            if ch != "All channels":
+                shelf = [
+                    it for it in shelf
+                    if (it.get("channel") or it.get("creator") or "Unknown") == ch
+                ]
+
+        # Group display by category → channel
+        movies = [it for it in shelf if (it.get("category") or "") == "movies"]
+        yts = [it for it in shelf if (it.get("category") or "") == "youtube"]
+
+        def _render_shelf_items(items: list, key_prefix: str):
+            for item in items:
+                kind_label = "YouTube" if item.get("kind") == "youtube" else "In-app"
+                channel = item.get("channel") or item.get("creator") or ""
+                bc1, bc2 = st.columns([4, 1])
+                with bc1:
+                    st.markdown(
+                        f"**{item.get('title', 'Untitled')}**  \n"
+                        f"<span style='opacity:0.7;font-size:0.85rem'>"
+                        f"{channel}"
+                        f"{(' · ' + item['note']) if item.get('note') else ''}"
+                        f" · {kind_label}"
+                        f"</span>",
+                        unsafe_allow_html=True,
+                    )
+                with bc2:
+                    if st.button(
+                        "Watch",
+                        key=f"cinema_watch_{key_prefix}_{item.get('id')}",
+                        use_container_width=True,
+                    ):
+                        st.session_state.cinema_watching = item.get("id")
+                        st.rerun()
+
+        if movies and cat in ("All", "Movies"):
+            st.markdown("#### 🎬 Movies")
+            st.caption("Open / sample films — play inside Meridium")
+            _render_shelf_items(movies, "m")
+
+        if yts and cat in ("All", "YouTube"):
+            st.markdown("#### ▶ YouTube")
+            # Sub-group by channel
+            by_ch = {}
+            for it in yts:
+                k = it.get("channel") or it.get("creator") or "Unknown"
+                by_ch.setdefault(k, []).append(it)
+            for ch_name, items in sorted(by_ch.items(), key=lambda x: x[0].lower()):
+                url = next((i.get("channel_url") for i in items if i.get("channel_url")), None)
+                header = f"**{ch_name}**"
+                if url:
+                    st.markdown(f"{header} · [channel]({url})")
+                else:
+                    st.markdown(header)
+                _render_shelf_items(items, f"y_{ch_name}")
+
+        if not movies and not yts:
+            st.info("Nothing in this filter yet.")
 
         st.markdown("---")
         st.caption(
-            "Shelf sources: public-domain cinema, Creative Commons open movies, "
-            "and official YouTube embeds (e.g. [simple, actually](https://www.youtube.com/@simpleactuallyus)). "
-            "Add more entries in `CINEMA_CATALOG` inside app.py. "
-            "Paste any public YouTube link above to play it once."
+            "**Movies** use direct video files (reliable in-app). "
+            "**YouTube** uses official embeds + Open on YouTube when embedding is blocked. "
+            "Add entries to `CINEMA_CATALOG` with `category`: `movies` or `youtube`, "
+            "and `channel` for YouTube grouping."
         )
     st.stop()
 
