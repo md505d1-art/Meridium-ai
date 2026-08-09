@@ -1073,7 +1073,66 @@ defaults = {
     "unlocked_themes": [],
     "meridium_playlist": [],
     "music_status": "",
+    "stabilize_at": None,
+    "qotd_opens": 0,
+    "lab_found": [],
+    "_currently_in_lab": False,
+    "_lab_session_visit": False,
+    "voss_cutscene_stage": 0,
 }
+
+# Keys that belong to a specific user and must not leak across sign-in/switch-user
+_USER_SCOPED_KEYS = (
+    "font", "theme", "popup", "chats", "current_chat_id",
+    "show_widgets", "show_spotify", "show_intro",
+    "use_wiki_toggle", "use_web_toggle",
+    "provider", "model_name", "api_key_val",
+    "arg_unlocked", "anomaly_warned", "glitches_found",
+    "voss_file_unlocked", "lab_visits", "arg_stabilized",
+    "unlocked_themes", "meridium_playlist", "music_status",
+    "stabilize_at", "qotd_opens", "lab_found",
+    "_currently_in_lab", "_lab_session_visit", "voss_cutscene_stage",
+    "view", "library_reading", "library_page",
+    "_theme_unlock_msg", "_glitch_flash", "_egg_flash",
+    "_title_egg_done", "_last_speak", "_lyrics_key", "_lyrics_data",
+    "_lyrics_ai", "_prev_cover_url", "voice_log",
+)
+
+
+def reset_user_session(keep_auth: bool = False) -> None:
+    """Wipe user-scoped progress so a new sign-in starts clean.
+    Call on Switch user, and before load_user_data on every sign-in.
+    """
+    for k in _USER_SCOPED_KEYS:
+        if k in defaults:
+            val = defaults[k]
+            # copy mutable defaults
+            if isinstance(val, list):
+                st.session_state[k] = list(val)
+            elif isinstance(val, dict):
+                st.session_state[k] = dict(val)
+            else:
+                st.session_state[k] = val
+        elif k in st.session_state:
+            del st.session_state[k]
+    if not keep_auth:
+        st.session_state.username = ""
+        st.session_state.signed_in = False
+    # Fresh empty chat shell
+    st.session_state.chats = {}
+    st.session_state.current_chat_id = None
+    st.session_state.view = "home"
+    st.session_state.arg_unlocked = False
+    st.session_state.unlocked_themes = []
+    st.session_state.glitches_found = []
+    st.session_state.voss_file_unlocked = False
+    st.session_state.lab_visits = 0
+    st.session_state.lab_found = []
+    st.session_state.arg_stabilized = False
+    st.session_state.theme = "Caelestia"
+    st.session_state.font = "Inter"
+
+
 for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
@@ -2326,10 +2385,25 @@ if not st.session_state.get("signed_in") or not st.session_state.get("username")
             if not ok:
                 st.error(result)
             else:
+                # Always clear previous user's progress before loading this account
+                reset_user_session(keep_auth=False)
                 st.session_state.username = result[:32]
                 st.session_state.signed_in = True
                 found = load_user_data(st.session_state.username)
-                if not found and not st.session_state.get("chats"):
+                if not found:
+                    # Brand-new user — force locked ARG + default shell
+                    st.session_state.arg_unlocked = False
+                    st.session_state.unlocked_themes = []
+                    st.session_state.glitches_found = []
+                    st.session_state.voss_file_unlocked = False
+                    st.session_state.lab_visits = 0
+                    st.session_state.lab_found = []
+                    st.session_state.arg_stabilized = False
+                    st.session_state.theme = "Caelestia"
+                    st.session_state.font = "Inter"
+                    st.session_state.view = "home"
+                    create_new_chat()
+                elif not st.session_state.get("chats"):
                     create_new_chat()
                 st.session_state.show_intro = True
                 save_user_data()
@@ -2468,8 +2542,7 @@ if st.session_state.popup:
             st.session_state.popup = False
             st.rerun()
         if st.button("↩  Switch user", use_container_width=True, key="pop_signout"):
-            st.session_state.signed_in = False
-            st.session_state.username = ""
+            reset_user_session(keep_auth=False)
             st.session_state.show_intro = False
             st.session_state.popup = False
             st.rerun()
