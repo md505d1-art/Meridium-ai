@@ -1631,61 +1631,8 @@ def render_spotify_panel(key_prefix="sp"):
                 st.session_state._lyrics_key = None
                 st.rerun()
 
-    if compact:
-        # Main menu / chat: centered cover only — no lyrics column that collapses art
-        _render_cover_block()
-        _render_controls()
-        return True
-
-    # Full music page layout: banner + art LEFT · lyrics RIGHT
-    _tname = _aname
-    _tarts = _aarts
-    _status = status_label
-    st.markdown(
-        f"""
-        <style>
-          @keyframes npIn {{
-            from {{ opacity: 0; transform: translateY(12px) scale(0.98); filter: blur(4px); }}
-            to {{ opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }}
-          }}
-          @keyframes npPulse {{
-            0%,100% {{ opacity: 0.92; }}
-            50% {{ opacity: 1; }}
-          }}
-          .np-banner {{
-            text-align: center;
-            padding: 0.7rem 1rem;
-            margin-bottom: 0.75rem;
-            border-radius: 14px;
-            border: 1px solid rgba(255,255,255,0.12);
-            background: rgba(255,255,255,0.04);
-            animation: npIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both,
-                       npPulse 2.8s ease-in-out 0.55s infinite;
-          }}
-          .np-label {{
-            font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase;
-            opacity: 0.7; margin-bottom: 0.2rem;
-          }}
-          .np-title {{
-            font-size: 1.1rem; font-weight: 650; letter-spacing: -0.02em;
-          }}
-        </style>
-        <div class="np-banner">
-          <div class="np-label">{_status}</div>
-          <div class="np-title">Now playing: {_tname}</div>
-          <div style="opacity:0.7;font-size:0.85rem;margin-top:0.2rem;">{_tarts}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    left, right = st.columns([1.05, 1.35], gap="medium")
-
-    with left:
-        _render_cover_block()
-        _render_controls()
-
-    with right:
+    def _render_lyrics(lrc_height: int = 340, component_height: int = 380):
+        """Synced / plain lyrics + fullscreen + AI estimate. Shared by compact & full."""
         st.markdown("#### Lyrics")
         try:
             cache_key = f"lyrics::{track.get('uri') or track['name']}"
@@ -1756,7 +1703,7 @@ def render_spotify_panel(key_prefix="sp"):
                             <div id="mer-lrc-wrap" style="
                               font-family: Inter, system-ui, sans-serif;
                               color: #e8e6f0;
-                              height: 340px;
+                              height: {lrc_height}px;
                               overflow-y: auto;
                               overflow-x: hidden;
                               padding: 10px 6px;
@@ -1845,7 +1792,7 @@ def render_spotify_panel(key_prefix="sp"):
                             }})();
                             </script>
                             """,
-                            height=380,
+                            height=component_height,
                             scrolling=False,
                         )
                     else:
@@ -1883,6 +1830,61 @@ def render_spotify_panel(key_prefix="sp"):
                     st.text(st.session_state._lyrics_ai)
         except Exception:
             st.caption("Lyrics unavailable right now.")
+
+    if compact:
+        # Home / chat: stack cover → controls → lyrics (no side-by-side crush)
+        _render_cover_block()
+        _render_controls()
+        _render_lyrics(lrc_height=260, component_height=300)
+    else:
+        # Music page: banner + art LEFT · lyrics RIGHT
+        _tname = _aname
+        _tarts = _aarts
+        _status = status_label
+        st.markdown(
+            f"""
+            <style>
+              @keyframes npIn {{
+                from {{ opacity: 0; transform: translateY(12px) scale(0.98); filter: blur(4px); }}
+                to {{ opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }}
+              }}
+              @keyframes npPulse {{
+                0%,100% {{ opacity: 0.92; }}
+                50% {{ opacity: 1; }}
+              }}
+              .np-banner {{
+                text-align: center;
+                padding: 0.7rem 1rem;
+                margin-bottom: 0.75rem;
+                border-radius: 14px;
+                border: 1px solid rgba(255,255,255,0.12);
+                background: rgba(255,255,255,0.04);
+                animation: npIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both,
+                           npPulse 2.8s ease-in-out 0.55s infinite;
+              }}
+              .np-label {{
+                font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase;
+                opacity: 0.7; margin-bottom: 0.2rem;
+              }}
+              .np-title {{
+                font-size: 1.1rem; font-weight: 650; letter-spacing: -0.02em;
+              }}
+            </style>
+            <div class="np-banner">
+              <div class="np-label">{_status}</div>
+              <div class="np-title">Now playing: {_tname}</div>
+              <div style="opacity:0.7;font-size:0.85rem;margin-top:0.2rem;">{_tarts}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        left, right = st.columns([1.05, 1.35], gap="medium")
+        with left:
+            _render_cover_block()
+            _render_controls()
+        with right:
+            _render_lyrics(lrc_height=340, component_height=380)
 
     if track.get("playing"):
         try:
