@@ -224,7 +224,8 @@ SECRET_THEMES = {
 try:
     from theme_unlocks import unlock_and_persist
 except Exception:
-    def unlock_and_persist(theme_name: str, reason: str = "", apply: bool = True) -> bool:
+    def unlock_and_persist(theme_name: str, reason: str = "", apply: bool = False) -> bool:
+        """Unlock a secret theme. Never auto-switches theme unless apply=True."""
         unlocked = list(st.session_state.get("unlocked_themes") or [])
         newly = theme_name not in unlocked
         if newly:
@@ -232,8 +233,10 @@ except Exception:
             st.session_state.unlocked_themes = unlocked
             st.session_state["_theme_unlock_msg"] = (
                 f"Theme unlocked: **{theme_name}**" + (f" — {reason}" if reason else "")
+                + " · pick it in Menu when you want"
             )
-        if apply:
+        # Only change active theme if explicitly requested
+        if apply and newly:
             st.session_state.theme = theme_name
         try:
             save_user_data()
@@ -254,15 +257,15 @@ def find_glitch(gid: str, label: str = "") -> bool:
     if set(found) >= {"home", "lab", "pixel"}:
         st.session_state.voss_file_unlocked = True
         try:
-            unlock_theme("Voss Residual", "Dr. Voss's file recovered", apply=True)
+            unlock_theme("Voss Residual", "Dr. Voss's file recovered", apply=False)
         except Exception:
             u = list(st.session_state.get("unlocked_themes") or [])
             if "Voss Residual" not in u:
                 u.append("Voss Residual")
                 st.session_state.unlocked_themes = u
-            st.session_state.theme = "Voss Residual"
         st.session_state["_glitch_flash"] = (
-            "All three markers secured. Dr. Voss left you a file. Theme: Voss Residual."
+            "All three markers secured. Dr. Voss left you a file. "
+            "Theme unlocked: Voss Residual (choose it in Menu)."
         )
         st.session_state.voss_cutscene_stage = 0
         st.session_state.view = "voss_file"
@@ -441,16 +444,10 @@ def glitches_unlocked() -> bool:
 
 
 def lab_is_unlocked() -> bool:
-    if st.session_state.get("arg_unlocked"):
-        return True
-    unlocked = st.session_state.get("unlocked_themes") or []
-    if "Containment Red" in unlocked or "Voss Static" in unlocked:
-        st.session_state.arg_unlocked = True
-        return True
-    if st.session_state.get("_lab_session_visit"):
-        st.session_state.arg_unlocked = True
-        return True
-    return False
+    """Lab is locked until the ARG puzzle sets arg_unlocked (chat entry phrases).
+    Themes and session flags must NOT grant access — new users stay locked out.
+    """
+    return bool(st.session_state.get("arg_unlocked"))
 
 
 def available_themes() -> list:
@@ -473,9 +470,17 @@ def theme_shell(theme_name: str) -> dict:
     return THEMES["Caelestia"]
 
 
-def unlock_theme(theme_name: str, reason: str = "", apply: bool = True) -> bool:
-    """Unlock a secret theme once. Returns True if newly unlocked."""
-    return unlock_and_persist(theme_name, reason, apply=apply)
+def unlock_theme(theme_name: str, reason: str = "", apply: bool = False) -> bool:
+    """Unlock a secret theme once. Does not switch the active theme unless apply=True.
+    Also reverts any external unlock helper that forces a theme switch.
+    """
+    prev_theme = st.session_state.get("theme")
+    newly = unlock_and_persist(theme_name, reason, apply=apply)
+    if not apply:
+        # Some theme_unlocks modules force-apply; keep the user's current palette
+        if prev_theme and st.session_state.get("theme") != prev_theme:
+            st.session_state.theme = prev_theme
+    return newly
 
 
 
@@ -553,30 +558,42 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
     .bookmark-rail {{
         background: {SHELL["panel_solid"]} !important;
         border: 1px solid {SHELL["border"]} !important;
-        border-radius: 16px !important;
-        padding: 14px 12px 12px !important;
+        border-radius: 18px !important;
+        padding: 16px 12px 14px !important;
         margin-bottom: 14px;
-        animation: fadeUp 0.4s ease both;
+        box-shadow: 0 10px 32px rgba(0,0,0,0.28) !important;
+        animation: railIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
         position: sticky;
         top: 0.5rem;
     }}
     .bookmark-rail .panel-label {{
-        margin-bottom: 10px !important;
-        padding: 0 4px;
+        margin-bottom: 12px !important;
+        padding: 0 6px;
+        letter-spacing: 0.16em !important;
     }}
     .bookmark-rail div[data-testid="stButton"] button {{
         text-align: left !important;
         justify-content: flex-start !important;
         padding-left: 12px !important;
         font-size: 0.88rem !important;
-        min-height: 38px !important;
-        border-radius: 10px !important;
+        min-height: 40px !important;
+        border-radius: 11px !important;
+        margin-bottom: 4px !important;
+        transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease !important;
+    }}
+    .bookmark-rail div[data-testid="stButton"] button:hover {{
+        transform: translateX(4px);
     }}
 
     .panel {{
-        padding: 18px 18px 16px;
+        padding: 20px 20px 16px;
         margin-bottom: 14px;
-        animation: fadeUp 0.45s ease both;
+        animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+        transition: border-color 0.2s ease, box-shadow 0.25s ease;
+    }}
+    .panel:hover {{
+        border-color: {SHELL["accent"]}33 !important;
+        box-shadow: 0 12px 36px rgba(0,0,0,0.32) !important;
     }}
     .panel-label {{
         color: {SHELL["muted"]};
@@ -589,17 +606,32 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
     .hero {{
         font-size: 1.85rem; font-weight: 650; letter-spacing: -0.03em;
         margin: 0 0 6px; color: {SHELL["text"]};
-        animation: textIn 0.65s ease both;
+        animation: textIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
     }}
     .hero span {{ color: {SHELL["accent"]}; }}
     .sub {{
         color: {SHELL["muted"]}; margin-bottom: 10px; font-size: 0.95rem;
-        animation: textIn 0.65s ease 0.08s both;
+        animation: textIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
     }}
     .ridge {{
         height: 1px; margin: 10px 0 4px;
         background: linear-gradient(90deg, transparent, {SHELL["accent"]}, transparent);
         opacity: 0.55;
+        animation: ridgeGlow 3.2s ease-in-out infinite;
+    }}
+
+    .home-status {{
+        display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;
+        animation: textIn 0.65s ease 0.18s both;
+    }}
+    .home-pill {{
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 5px 11px; border-radius: 999px;
+        background: {SHELL["accent_soft"]};
+        border: 1px solid {SHELL["border"]};
+        color: {SHELL["accent"]};
+        font-size: 0.72rem; font-weight: 500;
+        letter-spacing: 0.02em;
     }}
 
     .card {{
@@ -618,12 +650,17 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
         border-radius: 12px !important;
         font-weight: 500 !important;
         min-height: 42px !important;
-        transition: all 0.15s ease !important;
+        transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1) !important;
     }}
     .stButton > button:hover {{
         border-color: {SHELL["accent"]} !important;
         background: {SHELL["accent_soft"]} !important;
         color: {SHELL["accent"]} !important;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px {SHELL["accent_soft"]} !important;
+    }}
+    .stButton > button:active {{
+        transform: translateY(0) scale(0.98);
     }}
     .stButton > button[kind="primary"],
     button[data-testid="baseButton-primary"] {{
@@ -769,12 +806,24 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
         50% {{ transform: scale(1.05); }}
     }}
     @keyframes fadeUp {{
-        from {{ opacity: 0; transform: translateY(12px); }}
+        from {{ opacity: 0; transform: translateY(14px); }}
         to {{ opacity: 1; transform: translateY(0); }}
     }}
     @keyframes textIn {{
-        from {{ opacity: 0; transform: translateY(12px); }}
-        to {{ opacity: 1; transform: translateY(0); }}
+        from {{ opacity: 0; transform: translateY(12px); filter: blur(4px); }}
+        to {{ opacity: 1; transform: translateY(0); filter: blur(0); }}
+    }}
+    @keyframes railIn {{
+        from {{ opacity: 0; transform: translateX(-16px); }}
+        to {{ opacity: 1; transform: translateX(0); }}
+    }}
+    @keyframes ridgeGlow {{
+        0%, 100% {{ opacity: 0.35; }}
+        50% {{ opacity: 0.85; }}
+    }}
+    @keyframes softFloat {{
+        0%, 100% {{ transform: translateY(0); }}
+        50% {{ transform: translateY(-4px); }}
     }}
 
     .typing-wrap {{ display: inline-flex; gap: 6px; padding: 4px; }}
@@ -2172,7 +2221,8 @@ def quote_of_the_day():
 _pending = st.session_state.pop("_pending_theme_unlocks", None) or []
 for _item in _pending:
     if isinstance(_item, (list, tuple)) and len(_item) >= 1:
-        unlock_theme(_item[0], _item[1] if len(_item) > 1 else "", apply=True)
+        # Never auto-apply from other modules — unlock only
+        unlock_theme(_item[0], _item[1] if len(_item) > 1 else "", apply=False)
 
 inject_css(st.session_state.font, st.session_state.get("theme", "Caelestia"), st.session_state.popup)
 if st.session_state.get("_theme_unlock_msg"):
@@ -2703,8 +2753,13 @@ if st.session_state.get("view") == "voss_file":
     st.stop()
 
 
-# LAB first — full black, no waybar/nav chrome
+# LAB first — full black, no waybar/nav chrome (gated behind ARG puzzle)
 if st.session_state.view == "lab":
+    if not lab_is_unlocked():
+        # New users / incomplete puzzle cannot open the lab
+        st.session_state.view = "home"
+        st.warning("The lab is sealed. Finish the observation puzzle in chat to unlock it.")
+        st.rerun()
     if not st.session_state.get("_currently_in_lab"):
         st.session_state._currently_in_lab = True
         st.session_state.lab_visits = int(st.session_state.get("lab_visits") or 0) + 1
@@ -2712,17 +2767,18 @@ if st.session_state.view == "lab":
             save_user_data()
         except Exception:
             pass
+    # arg_unlocked already required by lab_is_unlocked — keep it true
     st.session_state.arg_unlocked = True
     try:
         save_user_data()
     except Exception:
         pass
     mark_lab_visit()
-    unlock_theme("Containment Red", "you entered the observation log")
+    unlock_theme("Containment Red", "you entered the observation log", apply=False)
     # All 6 fragments?
     found = st.session_state.get("lab_found") or set()
     if isinstance(found, (list, set)) and len(set(found)) >= 6:
-        unlock_theme("Voss Static", "all fragments recovered")
+        unlock_theme("Voss Static", "all fragments recovered", apply=False)
     render_lab()
 if st.session_state.view == "note":
     render_note()
@@ -4098,14 +4154,20 @@ if st.session_state.view == "home":
         if st.session_state.get("_egg_flash"):
             st.info(st.session_state.pop("_egg_flash"))
 
+        _wiki_pill = "Wiki on" if st.session_state.use_wiki_toggle else "Wiki off"
+        _web_pill = "Web on" if st.session_state.use_web_toggle else "Web off"
+        _theme_pill = st.session_state.get("theme") or "Caelestia"
         st.markdown(f"""
         <div class="panel">
           <div class="panel-label">Shell</div>
           <div class="hero">{greet_line(st.session_state.username)}</div>
           <div class="sub">{owner_subline(st.session_state.username)}</div>
           <div class="ridge"></div>
-          <div class="muted" style="margin-top:6px;">
-            {st.session_state.provider} · {st.session_state.model_name}
+          <div class="home-status">
+            <span class="home-pill">{_theme_pill}</span>
+            <span class="home-pill">{st.session_state.provider}</span>
+            <span class="home-pill">{_wiki_pill}</span>
+            <span class="home-pill">{_web_pill}</span>
           </div>
         </div>
         """, unsafe_allow_html=True)
@@ -4412,7 +4474,7 @@ if prompt := st.chat_input("Ask Meridium anything…"):
 
     # ARG — TV Girl theme (pink + blue)
     if prompt.strip().lower() in {"not allowed", "notallowed"}:
-        newly = unlock_theme("TV Girl", "forever will be allowed", apply=True)
+        newly = unlock_theme("TV Girl", "forever will be allowed", apply=False)
         soft = "Forever will be allowed"
         with st.chat_message("assistant"):
             st.markdown(soft)
