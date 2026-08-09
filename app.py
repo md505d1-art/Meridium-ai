@@ -1455,15 +1455,14 @@ def estimate_lyrics_ai(track_name: str, artist: str) -> str:
 def render_spotify_panel(key_prefix="sp"):
     """Show connect / now playing / controls / lyrics. Returns True if connected.
 
-    Compact mode (home / chat): single-column cover + controls only so the album
-    art is not crushed inside a nested half-width column.
-    Full mode (music page): art LEFT · lyrics RIGHT.
+    Compact mode (home only): stacked cover → controls → lyrics.
+    Full mode (chat + music): art/controls LEFT · lyrics RIGHT.
     """
-    # home / chat sit in a narrow column — use compact cover layout (no lyrics split)
-    # music page uses full art + lyrics columns
-    compact = key_prefix in ("home", "chat") or (
-        not str(key_prefix).startswith("music")
-        and st.session_state.get("view") in ("home", "chat")
+    # Home only stays stacked (half-width column). Chat uses the split layout.
+    compact = key_prefix == "home" or (
+        key_prefix not in ("chat", "musicpage")
+        and not str(key_prefix).startswith("music")
+        and st.session_state.get("view") == "home"
     )
 
     cid, secret, _ = _spotify_creds()
