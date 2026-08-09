@@ -2830,35 +2830,61 @@ if st.session_state.view == "lyrics_full":
           #fs-cava {{
             position: absolute;
             left: 0; right: 0; bottom: 0;
-            height: 72px;
+            height: 120px;
             display: flex;
             align-items: flex-end;
             justify-content: center;
-            gap: 3px;
-            padding: 0 18px 10px;
+            gap: 2px;
+            padding: 0 10px 8px;
             box-sizing: border-box;
             z-index: 4;
             pointer-events: none;
-            background: linear-gradient(to top, rgba(10,10,14,0.92) 20%, transparent);
+            background: linear-gradient(to top, rgba(10,10,14,0.96) 25%, rgba(10,10,14,0.45) 65%, transparent);
+          }}
+          #fs-cava .bar-wrap {{
+            flex: 1;
+            max-width: 8px;
+            min-width: 2px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            position: relative;
           }}
           #fs-cava .bar {{
-            flex: 1;
-            max-width: 10px;
-            min-width: 3px;
+            width: 100%;
             height: 8%;
-            border-radius: 2px 2px 0 0;
-            background: linear-gradient(to top, #7c3aed, #c4a7e7 55%, #e9d5ff);
-            box-shadow: 0 0 8px rgba(196,167,231,0.25);
-            transition: height 0.05s linear;
+            border-radius: 1px 1px 0 0;
+            background: linear-gradient(
+              to top,
+              #4c1d95 0%,
+              #6d28d9 22%,
+              #8b5cf6 48%,
+              #c4b5fd 78%,
+              #f5f3ff 100%
+            );
+            box-shadow: 0 0 8px rgba(139,92,246,0.4);
+            will-change: height;
+            opacity: 0.95;
+          }}
+          #fs-cava .peak {{
+            position: absolute;
+            left: 0; right: 0;
+            height: 2px;
+            border-radius: 1px;
+            background: #fff;
+            box-shadow: 0 0 6px rgba(255,255,255,0.7);
+            bottom: 8%;
             opacity: 0.9;
           }}
           #fs-cava.paused .bar {{
-            opacity: 0.35;
-            transition: height 0.4s ease;
+            opacity: 0.38;
+            filter: saturate(0.55);
           }}
-          #fs-meta {{
-            bottom: 88px;
-          }}
+          #fs-cava.paused .peak {{ opacity: 0.2; }}
+          #fs-meta {{ bottom: 128px; }}
+          #fs-status {{ bottom: 128px !important; }}
         </style>
         <div id="fs-root">
           <div id="fs-lrc-wrap"><div id="fs-lrc"></div></div>
@@ -2908,51 +2934,100 @@ if st.session_state.view == "lyrics_full":
             artEl.style.display = 'block';
           }}
 
-          // --- CAVA-style bars (visual only; not real system audio) ---
-          const BAR_COUNT = 48;
+          // --- CAVA-style bars: gravity falloff, peak caps, band energy ---
+          const BAR_COUNT = 64;
           const levels = new Float32Array(BAR_COUNT);
           const targets = new Float32Array(BAR_COUNT);
+          const peaks = new Float32Array(BAR_COUNT);
+          const peakHold = new Float32Array(BAR_COUNT);
+          const barEls = [];
+          const peakEls = [];
+          const ATTACK = 0.52;
+          const GRAVITY = 0.085;
+          const PEAK_FALL = 0.01;
+          const PEAK_HOLD_MS = 300;
+
           if (cava) {{
             for (let i = 0; i < BAR_COUNT; i++) {{
+              const w = document.createElement('div');
+              w.className = 'bar-wrap';
               const b = document.createElement('div');
               b.className = 'bar';
-              cava.appendChild(b);
+              const p = document.createElement('div');
+              p.className = 'peak';
+              w.appendChild(b);
+              w.appendChild(p);
+              cava.appendChild(w);
+              barEls.push(b);
+              peakEls.push(p);
+              levels[i] = 0.05;
+              peaks[i] = 0.08;
             }}
           }}
-          function cavaFrame(t) {{
-            if (!cava) return;
-            const bars = cava.children;
+
+          function spectrumAt(tsec, i) {{
+            const f = i / (BAR_COUNT - 1);
+            const beat = Math.pow(Math.max(0, Math.sin(tsec * Math.PI * 4)), 2);
+            const swell = 0.55 + 0.45 * Math.sin(tsec * 0.65);
+            const bass = Math.exp(-Math.pow((f - 0.07) / 0.11, 2)) * (0.5 + 0.5 * beat);
+            const lowm = Math.exp(-Math.pow((f - 0.22) / 0.13, 2)) * (0.38 + 0.28 * Math.sin(tsec * 3.0 + i * 0.18));
+            const mid  = Math.exp(-Math.pow((f - 0.48) / 0.17, 2)) * (0.32 + 0.22 * Math.sin(tsec * 5.6 + i * 0.32));
+            const high = Math.exp(-Math.pow((f - 0.76) / 0.18, 2)) * (0.2 + 0.18 * Math.sin(tsec * 9.8 + i * 0.48));
+            const air  = Math.exp(-Math.pow((f - 0.93) / 0.09, 2)) * (0.1 + 0.14 * Math.random());
+            let v = (bass * 1.15 + lowm + mid + high + air) * swell;
+            v += (Math.random() - 0.5) * 0.07 * (0.35 + f);
+            if (Math.random() < 0.018) v += 0.4 * (1 - Math.abs(f - 0.5));
+            return Math.min(1, Math.max(0.02, v));
+          }}
+
+          let lastTs = performance.now();
+          function cavaFrame(now) {{
+            if (!cava || !barEls.length) return;
+            const dt = Math.min(0.05, (now - lastTs) / 1000);
+            lastTs = now;
+            const tsec = now * 0.001;
+            const step = dt * 60;
+
             if (!isPlaying) {{
               cava.classList.add('paused');
-              for (let i = 0; i < bars.length; i++) {{
-                levels[i] += (0.06 - levels[i]) * 0.08;
-                bars[i].style.height = Math.max(4, levels[i] * 100) + '%';
+              for (let i = 0; i < BAR_COUNT; i++) {{
+                targets[i] = 0.04 + 0.015 * Math.sin(tsec * 0.9 + i * 0.25);
+                levels[i] += (targets[i] - levels[i]) * 0.04 * step;
+                peaks[i] = Math.max(levels[i], peaks[i] - PEAK_FALL * 2 * step);
+                barEls[i].style.height = (Math.max(0.02, levels[i]) * 100) + '%';
+                peakEls[i].style.bottom = (peaks[i] * 100) + '%';
               }}
               return;
             }}
             cava.classList.remove('paused');
-            // Pseudo-spectrum: layered sines + noise (feels like cava)
-            const tsec = t * 0.001;
+
             for (let i = 0; i < BAR_COUNT; i++) {{
-              const f = i / BAR_COUNT;
-              // Bass heavier on the left, airy on the right
-              const bass = Math.sin(tsec * 2.2 + f * 3.1) * 0.35 + 0.4;
-              const mid  = Math.sin(tsec * 5.5 + f * 8.0) * 0.25 + 0.3;
-              const high = Math.sin(tsec * 11.0 + f * 14.0) * 0.15 + 0.15;
-              const noise = Math.random() * 0.12;
-              const envelope = Math.pow(1 - Math.abs(f - 0.15), 1.4) * 0.55
-                             + Math.pow(1 - Math.abs(f - 0.45), 1.2) * 0.35
-                             + Math.pow(f, 0.6) * 0.25;
-              targets[i] = Math.min(1, Math.max(0.04, (bass * 0.5 + mid * 0.35 + high * 0.25 + noise) * envelope * 1.35));
-              // Smooth toward target (cava-like gravity)
-              levels[i] += (targets[i] - levels[i]) * 0.35;
-              bars[i].style.height = (levels[i] * 100) + '%';
+              targets[i] = spectrumAt(tsec, i);
+            }}
+            // Neighbor blur (cava-like)
+            for (let i = 1; i < BAR_COUNT - 1; i++) {{
+              targets[i] = targets[i] * 0.55 + targets[i - 1] * 0.225 + targets[i + 1] * 0.225;
+            }}
+            for (let i = 0; i < BAR_COUNT; i++) {{
+              if (targets[i] > levels[i]) {{
+                levels[i] += (targets[i] - levels[i]) * ATTACK * Math.min(step, 2);
+              }} else {{
+                levels[i] = Math.max(targets[i], levels[i] - GRAVITY * (0.35 + levels[i]) * step);
+              }}
+              if (levels[i] > peaks[i]) {{
+                peaks[i] = levels[i];
+                peakHold[i] = now + PEAK_HOLD_MS;
+              }} else if (now > peakHold[i]) {{
+                peaks[i] = Math.max(levels[i], peaks[i] - PEAK_FALL * (1 + (now - peakHold[i]) * 0.008) * step);
+              }}
+              barEls[i].style.height = (levels[i] * 100) + '%';
+              peakEls[i].style.bottom = (peaks[i] * 100) + '%';
             }}
           }}
           (function cavaLoop(now) {{
-            cavaFrame(now || 0);
+            cavaFrame(now || performance.now());
             requestAnimationFrame(cavaLoop);
-          }})(0);
+          }})(performance.now());
 
           if (!root) return;
           if (!lines.length) {{
