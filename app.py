@@ -4370,21 +4370,64 @@ def render_cinema_player(item: dict) -> None:
 if st.session_state.view == "cinema":
     st.markdown(
         """
-        <div class="panel">
-          <div class="panel-label">Cinema</div>
-          <div class="hero" style="font-size:1.4rem;">Free screen</div>
-          <div class="sub">YouTube shelves · browse by channel</div>
-          <div class="ridge"></div>
+        <style>
+          .cin-hero {
+            text-align: center; padding: 8px 0 18px;
+          }
+          .cin-hero h1 {
+            font-size: 1.55rem; font-weight: 650; letter-spacing: -0.03em;
+            margin: 0 0 6px;
+          }
+          .cin-hero p {
+            margin: 0; opacity: 0.55; font-size: 0.9rem;
+          }
+          .cin-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.10);
+            border-radius: 16px;
+            padding: 18px 16px 14px;
+            margin-bottom: 10px;
+            transition: border-color 0.2s ease, transform 0.2s ease;
+            min-height: 110px;
+          }
+          .cin-card:hover {
+            border-color: rgba(196,167,231,0.45);
+            transform: translateY(-2px);
+          }
+          .cin-card .cin-kicker {
+            font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase;
+            opacity: 0.5; margin-bottom: 8px; font-weight: 600;
+          }
+          .cin-card .cin-title {
+            font-size: 1.05rem; font-weight: 600; margin: 0 0 6px;
+            line-height: 1.3;
+          }
+          .cin-card .cin-meta {
+            font-size: 0.8rem; opacity: 0.55; margin: 0;
+          }
+          .cin-vid {
+            background: rgba(255,255,255,0.035);
+            border: 1px solid rgba(255,255,255,0.09);
+            border-radius: 14px;
+            padding: 14px 14px 10px;
+            margin-bottom: 8px;
+            min-height: 96px;
+          }
+          .cin-vid .cin-title {
+            font-size: 0.92rem; font-weight: 550; margin: 0 0 6px;
+            line-height: 1.35;
+          }
+        </style>
+        <div class="cin-hero">
+          <h1>Cinema</h1>
+          <p>Channels · pick one, then a video</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    if st.button("← Home", key="cinema_back_home"):
-        st.session_state.view = "home"
-        st.session_state.cinema_watching = None
-        st.rerun()
 
     watching_id = st.session_state.get("cinema_watching")
+    selected_ch = st.session_state.get("cinema_channel")
     current = next((x for x in CINEMA_CATALOG if x.get("id") == watching_id), None)
     custom_item = st.session_state.get("_cinema_custom")
     is_custom = (
@@ -4393,17 +4436,27 @@ if st.session_state.view == "cinema":
         and isinstance(custom_item, dict)
     )
 
+    # ---- PLAYER ----
     if current or is_custom:
         play = custom_item if is_custom else current
-        render_cinema_player(play)
-        c1, c2 = st.columns(2)
-        with c1:
-            if st.button("← Back to shelf", key="cinema_back_shelf", use_container_width=True):
+        nav1, nav2, nav3 = st.columns([1, 1, 1])
+        with nav1:
+            if st.button("← Shelf", key="cinema_back_shelf", use_container_width=True):
                 st.session_state.cinema_watching = None
                 st.rerun()
-        with c2:
+        with nav2:
+            if st.button("Channels", key="cinema_back_channels", use_container_width=True):
+                st.session_state.cinema_watching = None
+                st.session_state.cinema_channel = None
+                st.rerun()
+        with nav3:
             if current and not is_custom:
-                ids = [x["id"] for x in CINEMA_CATALOG]
+                ch_name = current.get("channel") or current.get("creator")
+                same = [
+                    x for x in CINEMA_CATALOG
+                    if (x.get("channel") or x.get("creator")) == ch_name
+                ]
+                ids = [x["id"] for x in same]
                 try:
                     ni = ids.index(current["id"]) + 1
                 except ValueError:
@@ -4413,17 +4466,67 @@ if st.session_state.view == "cinema":
                         st.session_state.cinema_watching = ids[ni]
                         st.rerun()
                 else:
-                    st.caption("End of shelf")
-        st.caption(
-            "Only free / public-domain / openly licensed titles are listed on the shelf. "
-            "YouTube embeds use Google's player — Meridium does not host those files."
-        )
-    else:
+                    st.caption("Last in channel")
+        render_cinema_player(play)
+
+    # ---- VIDEOS IN CHANNEL ----
+    elif selected_ch:
+        ch_items = [
+            x for x in CINEMA_CATALOG
+            if (x.get("channel") or x.get("creator") or "Unknown") == selected_ch
+        ]
+        ch_url = next((x.get("channel_url") for x in ch_items if x.get("channel_url")), None)
+
+        top1, top2 = st.columns([1, 3])
+        with top1:
+            if st.button("← Channels", key="cinema_ch_back", use_container_width=True):
+                st.session_state.cinema_channel = None
+                st.rerun()
+        with top2:
+            if ch_url:
+                st.markdown(
+                    f"<div style='padding-top:8px;opacity:0.7;font-size:0.9rem;'>"
+                    f"<strong>{selected_ch}</strong> · "
+                    f"<a href='{ch_url}' target='_blank' rel='noopener'>YouTube</a>"
+                    f" · {len(ch_items)} videos</div>",
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(
+                    f"<div style='padding-top:8px;opacity:0.7;'><strong>{selected_ch}</strong>"
+                    f" · {len(ch_items)} videos</div>",
+                    unsafe_allow_html=True,
+                )
+
+        # compact 2-column video grid
+        for i in range(0, len(ch_items), 2):
+            cols = st.columns(2)
+            for j, col in enumerate(cols):
+                if i + j >= len(ch_items):
+                    break
+                item = ch_items[i + j]
+                title = item.get("title") or "Untitled"
+                short = title if len(title) <= 72 else title[:69] + "…"
+                with col:
+                    st.markdown(
+                        f"""
+                        <div class="cin-vid">
+                          <div class="cin-title">{short}</div>
+                          <p class="cin-meta">{item.get('note') or ''}</p>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                    if st.button("Play", key=f"cin_play_{item.get('id')}", use_container_width=True):
+                        st.session_state.cinema_watching = item.get("id")
+                        st.rerun()
+
         with st.expander("Paste a YouTube link", expanded=False):
             custom = st.text_input(
-                "YouTube URL or video id",
+                "URL or video id",
                 placeholder="https://www.youtube.com/watch?v=…",
                 key="cinema_custom_url",
+                label_visibility="collapsed",
             )
             if st.button("Play link", key="cinema_play_custom", use_container_width=True):
                 yid = _youtube_id_from_url(custom)
@@ -4441,70 +4544,70 @@ if st.session_state.view == "cinema":
                 else:
                     st.warning("Could not read a YouTube id from that link.")
 
-        st.caption("Pick a channel, then a video. Use **Open on YouTube** if the embed is blocked.")
+    # ---- CHANNEL GRID ----
+    else:
+        if st.button("← Home", key="cinema_back_home"):
+            st.session_state.view = "home"
+            st.session_state.cinema_watching = None
+            st.session_state.cinema_channel = None
+            st.rerun()
 
-        channels = sorted({
-            (it.get("channel") or it.get("creator") or "Unknown")
-            for it in CINEMA_CATALOG
-        })
-        ch = st.selectbox(
-            "Channel",
-            ["All channels"] + channels,
-            key="cinema_channel_filter",
-        )
-        shelf = list(CINEMA_CATALOG)
-        if ch != "All channels":
-            shelf = [
-                it for it in shelf
-                if (it.get("channel") or it.get("creator") or "Unknown") == ch
-            ]
-
-        def _render_shelf_items(items: list, key_prefix: str):
-            for item in items:
-                channel = item.get("channel") or item.get("creator") or ""
-                note = item.get("note") or ""
-                bc1, bc2 = st.columns([4, 1])
-                with bc1:
-                    st.markdown(
-                        f"**{item.get('title', 'Untitled')}**  \n"
-                        f"<span style='opacity:0.7;font-size:0.85rem'>"
-                        f"{channel}"
-                        f"{(' · ' + note) if note else ''}"
-                        f"</span>",
-                        unsafe_allow_html=True,
-                    )
-                with bc2:
-                    if st.button(
-                        "Watch",
-                        key=f"cinema_watch_{key_prefix}_{item.get('id')}",
-                        use_container_width=True,
-                    ):
-                        st.session_state.cinema_watching = item.get("id")
-                        st.rerun()
-
+        # build channel map
         by_ch = {}
-        for it in shelf:
+        for it in CINEMA_CATALOG:
             k = it.get("channel") or it.get("creator") or "Unknown"
             by_ch.setdefault(k, []).append(it)
+        ch_names = sorted(by_ch.keys(), key=lambda s: s.lower())
 
-        if not by_ch:
-            st.info("Nothing in this filter yet.")
-        else:
-            for ch_name, items in sorted(by_ch.items(), key=lambda x: x[0].lower()):
-                url = next((i.get("channel_url") for i in items if i.get("channel_url")), None)
-                if url:
-                    st.markdown(f"#### {ch_name} · [open channel]({url})")
+        for i in range(0, len(ch_names), 3):
+            cols = st.columns(3)
+            for j, col in enumerate(cols):
+                if i + j >= len(ch_names):
+                    break
+                name = ch_names[i + j]
+                items = by_ch[name]
+                handle = items[0].get("note") or ""
+                n = len(items)
+                with col:
+                    st.markdown(
+                        f"""
+                        <div class="cin-card">
+                          <div class="cin-kicker">Channel</div>
+                          <div class="cin-title">{name}</div>
+                          <p class="cin-meta">{handle} · {n} video{"s" if n != 1 else ""}</p>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                    if st.button("Open", key=f"cin_ch_{name}", use_container_width=True):
+                        st.session_state.cinema_channel = name
+                        st.rerun()
+
+        with st.expander("Paste a YouTube link", expanded=False):
+            custom = st.text_input(
+                "URL or video id",
+                placeholder="https://www.youtube.com/watch?v=…",
+                key="cinema_custom_url_home",
+                label_visibility="collapsed",
+            )
+            if st.button("Play link", key="cinema_play_custom_home", use_container_width=True):
+                yid = _youtube_id_from_url(custom)
+                if yid:
+                    st.session_state.cinema_watching = f"custom::{yid}"
+                    st.session_state._cinema_custom = {
+                        "id": f"custom::{yid}",
+                        "title": "Custom YouTube",
+                        "creator": "",
+                        "note": "Pasted link",
+                        "kind": "youtube",
+                        "youtube_id": yid,
+                    }
+                    st.rerun()
                 else:
-                    st.markdown(f"#### {ch_name}")
-                _render_shelf_items(items, f"y_{ch_name}")
-
-        st.markdown("---")
-        st.caption(
-            "Official YouTube embeds only. If a player says unavailable, use **Open on YouTube**. "
-            "Add more in `CINEMA_CATALOG` with `channel`, `channel_url`, and `youtube_id`."
-        )
+                    st.warning("Could not read a YouTube id from that link.")
 
     st.stop()
+
 
 
 # ===== LIBRARY =====
