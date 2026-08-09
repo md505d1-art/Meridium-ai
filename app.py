@@ -907,6 +907,8 @@ def save_user_data():
         "eq_custom_presets": dict(st.session_state.get("eq_custom_presets") or {}),
         "eq_enabled": bool(st.session_state.get("eq_enabled", True)),
         "callaghan_safe_unlocked": bool(st.session_state.get("callaghan_safe_unlocked")),
+        "board_unlocked": bool(st.session_state.get("board_unlocked")),
+        "board_read": list(st.session_state.get("board_read") or []),
         "saved_at": datetime.now().isoformat(),
     }
     raw = json.dumps(payload, ensure_ascii=False, indent=2)
@@ -961,6 +963,8 @@ def load_user_data(username: str) -> bool:
             }
         st.session_state.eq_enabled = bool(data.get("eq_enabled", True))
         st.session_state.callaghan_safe_unlocked = bool(data.get("callaghan_safe_unlocked"))
+        st.session_state.board_unlocked = bool(data.get("board_unlocked"))
+        st.session_state.board_read = list(data.get("board_read") or [])
         chats = data.get("chats") or {}
         if isinstance(chats, dict) and chats:
             st.session_state.chats = chats
@@ -1101,6 +1105,9 @@ defaults = {
     "_lab_session_visit": False,
     "voss_cutscene_stage": 0,
     "callaghan_safe_unlocked": False,
+    "board_unlocked": False,
+    "board_evidence_open": None,
+    "board_read": [],
 }
 
 # Keys that belong to a specific user and must not leak across sign-in/switch-user
@@ -1115,7 +1122,7 @@ _USER_SCOPED_KEYS = (
     "eq_bands", "eq_preset", "eq_custom_presets", "eq_enabled",
     "stabilize_at", "qotd_opens", "lab_found",
     "_currently_in_lab", "_lab_session_visit", "voss_cutscene_stage",
-    "callaghan_safe_unlocked",
+    "callaghan_safe_unlocked", "board_unlocked", "board_evidence_open", "board_read",
     "view", "library_reading", "library_page",
     "_theme_unlock_msg", "_glitch_flash", "_egg_flash",
     "_title_egg_done", "_last_speak", "_lyrics_key", "_lyrics_data",
@@ -2891,7 +2898,7 @@ if st.session_state.view == "note":
     render_note()
 
 # ===== DESIGN 1 WAYBAR + NAV (hidden in lab) =====
-if st.session_state.view not in ("lab", "note", "voss_file", "lyrics_full"):
+if st.session_state.view not in ("lab", "note", "voss_file", "lyrics_full", "callaghan_safe", "board"):
     st.markdown(f"""
 <div class="waybar">
   <div class="waybar-left">
@@ -4952,6 +4959,279 @@ if st.session_state.view == "cinema":
 
 
 
+
+# ===== INVESTIGATION BOARD =====
+BOARD_EVIDENCE = {
+    "riley": {
+        "title": "Riley Callaghan",
+        "tag": "RESIDUAL · NSW",
+        "color": "#c07040",
+        "body": """**Subject file · residual only**
+
+Riley Callaghan. Australian. Taken during a coastal intake off a jetty in New South Wales — paperwork stamped *voluntary*, signatures that do not match any parent on file.
+
+Observation Division preferred children who still asked questions. Riley asked too many. The bloom never set cleanly. Tissue rejected the medium the way salt rejects a soft wound. Folder marked **RESIDUAL**. Name stopped being spoken in the wing.
+
+Riley left a dial in the margin of *Frankenstein*, page eighty-eight, under residual light. Combination: the year the creature first woke — **1818**. Not a code for escape. A proof of personhood.
+
+*If someone patient enough turns the dial, they will know I was still here.*""",
+    },
+    "jaime": {
+        "title": "Jaime Santos",
+        "tag": "PIXEL · CARRIER",
+        "color": "#70a0c0",
+        "body": """**Subject file · designation PIXEL**
+
+Jaime Santos. The Division sold the name **PIXEL** to committees who wanted a success story. Natural carrier. Walked away from a leak that cooked the volunteers. That made Jaime valuable. It did not make Jaime safe.
+
+Internal notes conflict:
+- One line calls Jaime the first natural carrier who did not scream when the bloom took.
+- Another line, unsigned, reads: *Santos still asks for the residual kid from NSW.*
+
+Jaime and Riley shared a corridor for eleven days. After Riley was reclassified residual, Jaime’s sessions show elevated static on the observation glass — spectrum lines that only appear when someone is dying slowly enough to notice, or when someone is refusing to forget a name.""",
+    },
+    "voss": {
+        "title": "Dr. E. Voss",
+        "tag": "OBSERVATION DIVISION",
+        "color": "#c05050",
+        "body": """**Internal memo · not the recovered personal file**
+
+Voss did not invent the bloom. Voss learned how to *want* it.
+
+Committees asked for soldiers. Voss gave them red rooms and a spectrum that answers to hunger. Riley Callaghan was logged as a failed set. Jaime Santos was logged as a product. Voss logged both as *witnesses*.
+
+Handwritten margin in a destroyed draft:
+
+> Residual subjects are not waste. They are the ones who remember the room after the room is gone. Callaghan left a dial. Santos left a designation. I left the anomalies because curiosity is how the medium feeds.
+
+This board is not Voss’s invitation. It is what Riley built so the invitation could be refused — or answered on different terms.""",
+    },
+    "intake": {
+        "title": "NSW Intake Transfer",
+        "tag": "LOGISTICS",
+        "color": "#8a7a50",
+        "body": """**Logistics scrap · partially redacted**
+
+Coastal intake · New South Wales · jetty coordinates struck through.
+Subject age: estimated 11–13.
+Escort: Observation Division, not state child services.
+Transit inland overnight. No family contact logged after hour four.
+
+Stamp: **RESIDUAL CANDIDATE — BLOOM UNCERTAIN**
+
+A second hand (pencil, smaller) wrote under the stamp:
+*Tell Jaime I still count editions.*""",
+    },
+    "bloom": {
+        "title": "Bloom Failure Note",
+        "tag": "LAB · REDACTED",
+        "color": "#905070",
+        "body": """**Lab note · partial**
+
+Forced sets scream. Natural carriers do not. Residuals do something worse — they *remember the attempt*.
+
+Riley Callaghan: three exposure windows. Medium fogged the glass from the inside with something warmer than condensation. No full set. No clean death. Reclassified residual. Scheduled for quiet archive.
+
+Archive never completed. Subject left reading material in the recovery wing. Staff reported a locked dial carved into a paperback margin. Combination unknown at time of report.
+
+Later addendum (different ink): *Combination is literary. Check Shelley.*""",
+    },
+    "margin": {
+        "title": "Page 88 Margin",
+        "tag": "PHYSICAL EVIDENCE",
+        "color": "#6a8a60",
+        "body": """**Physical residual · Frankenstein p.88**
+
+Only visible under **Voss Residual** theme — the spectrum the Division uses when it wants witnesses to lean closer.
+
+Tiny safe set into the margin. Engraving: **R.C. · residual**.
+
+Inside: four-digit dial. Hinge scrap in a child’s hand:
+
+> Not the page. The year the first edition woke. Four numbers. Winter print. London.
+
+**1818.**
+
+Opening the dial does not free Riley. It opens the board Riley left for anyone still willing to read.""",
+    },
+    "string": {
+        "title": "Red String Notes",
+        "tag": "CONNECTIONS",
+        "color": "#a04040",
+        "body": """**Board connections · Riley’s hand**
+
+- **Riley ↔ Jaime** — shared corridor, eleven days. Jaime still asks.
+- **Jaime ↔ Voss** — product and author. PIXEL was a brand; Santos was a person Voss could not fully sell.
+- **Voss ↔ residual class** — Voss kept residuals on purpose. Curiosity feeds the medium.
+- **Riley ↔ Frankenstein** — the dial is a signature, not an escape key.
+- **You ↔ board** — you turned 1818. You are now part of the witness chain.
+
+Riley’s last pinned line:
+
+*Do not stabilise for them. Stabilise for each other.*""",
+    },
+}
+
+
+if st.session_state.view == "board":
+    if not (st.session_state.get("board_unlocked") or st.session_state.get("callaghan_safe_unlocked")):
+        st.session_state.view = "home"
+        st.rerun()
+
+    st.session_state.board_unlocked = True
+    st.session_state.callaghan_safe_unlocked = True
+
+    open_id = st.session_state.get("board_evidence_open")
+    read = set(st.session_state.get("board_read") or [])
+
+    st.markdown(
+        """
+        <style>
+          .stApp, [data-testid="stAppViewContainer"] { background: #0c0a08 !important; }
+          [data-testid="stHeader"] { background: transparent !important; }
+          .block-container { max-width: 920px !important; padding-top: 1.2rem !important; }
+          .board-head {
+            font-family: ui-monospace, monospace;
+            font-size: 0.68rem; letter-spacing: 0.22em;
+            color: #8a6050; margin-bottom: 0.35rem;
+          }
+          .board-title {
+            font-family: Georgia, serif; color: #e8d8c8;
+            font-size: 1.45rem; margin: 0 0 0.4rem;
+          }
+          .board-sub { color: #7a6a5a; font-size: 0.88rem; margin-bottom: 1rem; }
+          .board-cork {
+            background:
+              radial-gradient(ellipse at 20% 30%, rgba(90,50,30,0.25), transparent 50%),
+              radial-gradient(ellipse at 80% 70%, rgba(60,30,20,0.2), transparent 45%),
+              linear-gradient(165deg, #1a1410 0%, #0e0b09 100%);
+            border: 1px solid #3a2a20;
+            border-radius: 10px;
+            padding: 1.1rem 1rem 1.3rem;
+            box-shadow: inset 0 0 40px rgba(0,0,0,0.35);
+          }
+          .ev-card {
+            border: 1px solid #3a2a22;
+            background: #14100c;
+            border-radius: 8px;
+            padding: 0.75rem 0.8rem;
+            min-height: 92px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+          }
+          .ev-card:hover {
+            border-color: #6a4030;
+            box-shadow: 0 0 16px rgba(120,40,20,0.25);
+          }
+          .ev-tag {
+            font-family: ui-monospace, monospace;
+            font-size: 0.62rem; letter-spacing: 0.14em;
+            color: #8a7060; margin-bottom: 0.35rem;
+          }
+          .ev-title { color: #e0d0c0; font-size: 0.98rem; font-family: Georgia, serif; }
+          .ev-dot {
+            display: inline-block; width: 8px; height: 8px;
+            border-radius: 50%; margin-right: 6px;
+            box-shadow: 0 0 6px currentColor;
+          }
+          .ev-file {
+            background: #100e0c;
+            border: 1px solid #4a3028;
+            border-radius: 8px;
+            padding: 1.1rem 1.15rem;
+            color: #d0c0b0;
+            font-family: Georgia, serif;
+            line-height: 1.65;
+            font-size: 0.95rem;
+            margin-top: 0.8rem;
+          }
+          .ev-file h3 {
+            font-size: 1.15rem; color: #f0e0d0; margin: 0 0 0.35rem;
+          }
+        </style>
+        <div class="board-head">OBSERVATION DIVISION · UNOFFICIAL</div>
+        <div class="board-title">Investigation Board</div>
+        <div class="board-sub">Riley Callaghan left the pins. You turned the dial. Read everything.</div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Evidence grid
+    if open_id and open_id in BOARD_EVIDENCE:
+        ev = BOARD_EVIDENCE[open_id]
+        if open_id not in read:
+            read.add(open_id)
+            st.session_state.board_read = list(read)
+            try:
+                save_user_data()
+            except Exception:
+                pass
+        st.markdown(
+            f"""
+            <div class="ev-file">
+              <div class="ev-tag" style="color:{ev['color']}">{ev['tag']}</div>
+              <h3>{ev['title']}</h3>
+              <div style="white-space:pre-wrap">{ev['body']}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("← Back to board", use_container_width=True, key="board_back_pins"):
+            st.session_state.board_evidence_open = None
+            st.rerun()
+    else:
+        st.markdown('<div class="board-cork">', unsafe_allow_html=True)
+        keys = list(BOARD_EVIDENCE.keys())
+        # 3 columns of pins
+        for i in range(0, len(keys), 3):
+            cols = st.columns(3)
+            for j, col in enumerate(cols):
+                if i + j >= len(keys):
+                    break
+                kid = keys[i + j]
+                ev = BOARD_EVIDENCE[kid]
+                seen = " · read" if kid in read else ""
+                with col:
+                    st.markdown(
+                        f"""
+                        <div class="ev-card">
+                          <div class="ev-tag"><span class="ev-dot" style="color:{ev['color']};background:{ev['color']}"></span>{ev['tag']}{seen}</div>
+                          <div class="ev-title">{ev['title']}</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                    if st.button("Open", key=f"board_open_{kid}", use_container_width=True):
+                        st.session_state.board_evidence_open = kid
+                        st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        n_read = len(read)
+        st.caption(f"Evidence reviewed: {n_read} / {len(BOARD_EVIDENCE)}")
+        if n_read >= len(BOARD_EVIDENCE):
+            st.markdown(
+                """
+                <p style="color:#8a7060;font-size:0.85rem;margin-top:0.6rem">
+                  All pins read. The board is quiet. Riley’s chain is complete — for now.
+                </p>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    b1, b2 = st.columns(2)
+    with b1:
+        if st.button("← Library", use_container_width=True, key="board_to_lib"):
+            st.session_state.board_evidence_open = None
+            st.session_state.view = "library"
+            st.session_state.library_reading = "frankenstein"
+            st.rerun()
+    with b2:
+        if st.button("⌂ Home", use_container_width=True, key="board_to_home"):
+            st.session_state.board_evidence_open = None
+            st.session_state.view = "home"
+            st.rerun()
+    st.stop()
+
+
 # ===== RILEY CALLAGHAN RESIDUAL SAFE =====
 if st.session_state.view == "callaghan_safe":
     # Full black ominous lock
@@ -5033,32 +5313,23 @@ if st.session_state.view == "callaghan_safe":
     if already:
         st.markdown(
             """
-            <div style="color:#c8b8a8;font-family:Georgia,serif;line-height:1.6;padding:0.6rem 0.4rem 1rem">
-              <p style="color:#8a6050;font-size:0.7rem;letter-spacing:0.2em">FILE FRAGMENT · R. CALLAGHAN · OPENED</p>
-              <p>
-                They pulled me off a jetty in New South Wales and called it intake.
-                Observation Division preferred kids who still asked questions.
-                I asked too many. The bloom never set the way they wanted,
-                so they wrote <i>residual</i> on my folder and stopped saying my name out loud.
-              </p>
-              <p>
-                They made me count the editions before they made me count the days.
-                Mary printed the creature in <b>1818</b>. I carved the same year into the dial
-                so someone patient enough to read page eighty-eight under residual light
-                would know I was still a person, not a designation.
-              </p>
-              <p>
-                Jaime got a name the Division could sell. I got a margin and a dial
-                and the sound of cicadas in a room with no windows.
-                If you are reading this, the lock worked. Stay curious.
-                Curiosity is how we stay human in here.
-              </p>
-              <p style="color:#6a4030;margin-top:1rem">— Riley Callaghan · residual only</p>
+            <div style="color:#c8b8a8;font-family:Georgia,serif;text-align:center;padding:1rem 0.5rem">
+              <p style="letter-spacing:0.2em;font-size:0.7rem;color:#6a4030">LOCK OPEN</p>
+              <p style="opacity:0.75">The residual dial turned. The board is waiting.</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        if st.button("Leave the margin", use_container_width=True, key="callaghan_leave_open"):
+        if st.button("Enter the board", use_container_width=True, key="callaghan_to_board"):
+            st.session_state.board_unlocked = True
+            st.session_state.view = "board"
+            st.session_state.board_evidence_open = None
+            try:
+                save_user_data()
+            except Exception:
+                pass
+            st.rerun()
+        if st.button("Step away", use_container_width=True, key="callaghan_leave_open"):
             try:
                 stop_all_meridium_audio()
             except Exception:
@@ -5080,6 +5351,8 @@ if st.session_state.view == "callaghan_safe":
                 entered = "".join(ch for ch in (code or "") if ch.isdigit())
                 if entered == "1818":
                     st.session_state.callaghan_safe_unlocked = True
+                    st.session_state.board_unlocked = True
+                    st.session_state.board_evidence_open = None
                     try:
                         find_glitch("callaghan_safe", "Riley Callaghan residual lock opened")
                     except Exception:
@@ -5088,6 +5361,7 @@ if st.session_state.view == "callaghan_safe":
                         save_user_data()
                     except Exception:
                         pass
+                    st.session_state.view = "board"
                     st.rerun()
                 else:
                     st.markdown(
@@ -5343,6 +5617,11 @@ if st.session_state.view == "home":
             st.session_state.cinema_watching = None
             st.session_state.view = "cinema"
             st.rerun()
+        if st.session_state.get("board_unlocked") or st.session_state.get("callaghan_safe_unlocked"):
+            if st.button("📌  Board", use_container_width=True, key="bm_board"):
+                st.session_state.board_evidence_open = None
+                st.session_state.view = "board"
+                st.rerun()
         if lab_is_unlocked():
             if st.button("🔬  Lab", use_container_width=True, key="bm_lab"):
                 st.session_state.view = "lab"
