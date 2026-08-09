@@ -3324,50 +3324,65 @@ if st.session_state.view == "music":
     st.markdown("""
     <style>
       @keyframes musicFadeUp {
-        from { opacity: 0; transform: translateY(14px); }
+        from { opacity: 0; transform: translateY(10px); }
         to { opacity: 1; transform: translateY(0); }
       }
-      @keyframes equalizer {
-        0%,100% { height: 6px; }
-        50% { height: 18px; }
-      }
       .music-hero {
-        text-align: center;
-        max-width: 440px;
-        margin: 0 auto 14px;
-        padding: 18px 16px;
-        animation: musicFadeUp 0.5s ease both;
+        text-align: center; padding: 6px 0 14px;
+        animation: musicFadeUp 0.45s ease both;
       }
-      .music-eq {
-        display: flex; gap: 4px; justify-content: center; align-items: flex-end;
-        height: 22px; margin-bottom: 10px;
+      .music-hero h1 {
+        font-size: 1.5rem; font-weight: 650; letter-spacing: -0.03em; margin: 0 0 4px;
       }
-      .music-eq span {
-        width: 4px; border-radius: 2px; background: #c4a7e7;
-        animation: equalizer 0.9s ease-in-out infinite;
+      .music-hero p { margin: 0; opacity: 0.5; font-size: 0.88rem; }
+      .pl-row {
+        display: flex; align-items: center; gap: 12px;
+        padding: 10px 12px; margin-bottom: 6px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.07);
       }
-      .music-eq span:nth-child(2) { animation-delay: 0.15s; }
-      .music-eq span:nth-child(3) { animation-delay: 0.3s; }
-      .music-eq span:nth-child(4) { animation-delay: 0.45s; }
-      .music-eq span:nth-child(5) { animation-delay: 0.2s; }
+      .pl-row.is-playing {
+        background: rgba(80,200,120,0.10);
+        border-color: rgba(80,200,120,0.35);
+      }
+      .pl-num {
+        font-size: 0.75rem; opacity: 0.45; min-width: 28px; text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .pl-body { flex: 1; min-width: 0; }
+      .pl-title {
+        font-size: 0.92rem; font-weight: 560; margin: 0;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .pl-sub {
+        font-size: 0.78rem; opacity: 0.55; margin: 2px 0 0;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .pl-badge {
+        font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase;
+        color: #5dce8a; font-weight: 650; margin-left: 6px;
+      }
+      .hit-row {
+        padding: 8px 10px; margin-bottom: 4px; border-radius: 10px;
+        background: rgba(255,255,255,0.025);
+        border: 1px solid rgba(255,255,255,0.06);
+      }
     </style>
-    <div class="panel music-hero">
-      <div class="music-eq"><span></span><span></span><span></span><span></span><span></span></div>
-      <div class="panel-label">Music</div>
-      <div class="hero" style="font-size:1.35rem;">Now playing</div>
-      <div class="ridge"></div>
+    <div class="music-hero">
+      <h1>Music</h1>
+      <p>Player · search · playlist</p>
     </div>
     """, unsafe_allow_html=True)
+
     render_spotify_panel("musicpage")
 
-    st.markdown("---")
-
     MAX_PLAYLIST = 500
+    PAGE_SIZE = 12  # compact pages — less clutter
     sp = get_spotify()
     playlist = list(st.session_state.get("meridium_playlist") or [])
 
     def _sanitize_spotify_query(q: str) -> str:
-        """Strip Spotify search operators so 'Artist - Song' works."""
         q = (q or "").strip()
         q = re.sub(r"\s+-\s+", " ", q)
         q = re.sub(r"[\"():]", " ", q)
@@ -3385,7 +3400,6 @@ if st.session_state.view == "music":
         }
 
     def _add_hit_to_playlist(hit: dict) -> str:
-        """Add a search hit. Returns status message."""
         pl = list(st.session_state.get("meridium_playlist") or [])
         if len(pl) >= MAX_PLAYLIST:
             return f"Playlist is full ({MAX_PLAYLIST} tracks)."
@@ -3405,7 +3419,7 @@ if st.session_state.view == "music":
         save_user_data()
         return f"Added: {hit['name']}"
 
-    def _spotify_search_tracks(query: str, limit: int = 10):
+    def _spotify_search_tracks(query: str, limit: int = 8):
         if not sp or not query:
             return []
         clean = _sanitize_spotify_query(query)
@@ -3425,37 +3439,164 @@ if st.session_state.view == "music":
                 st.session_state._pl_search_error = str(e2)
                 return []
 
-    # Two separate menus: Search | Playlist
+    def _is_track_uri(u: str) -> bool:
+        u = (u or "").strip()
+        return u.startswith("spotify:track:") and len(u) > len("spotify:track:")
+
+    def _resolve_and_persist_uris(items: list, max_resolve: int = 60) -> list:
+        """
+        Build a list of valid track URIs for `items`.
+        Persist any newly found URIs back into meridium_playlist so page 2+ keeps working.
+        """
+        pl = list(st.session_state.get("meridium_playlist") or [])
+        # Map index in full playlist by identity
+        dirty = False
+        uris = []
+        resolved = 0
+        for item in items:
+            u = (item.get("uri") or "").strip()
+            if _is_track_uri(u):
+                uris.append(u)
+                continue
+            if not sp or resolved >= max_resolve:
+                continue
+            q = _sanitize_spotify_query(
+                item.get("title") or f"{item.get('name','')} {item.get('artists','')}"
+            )
+            if len(q) < 2:
+                continue
+            try:
+                results = sp.search(q=q, type="track", limit=1)
+                tracks = (results.get("tracks") or {}).get("items") or []
+                if not tracks:
+                    continue
+                found = tracks[0].get("uri")
+                if not _is_track_uri(found):
+                    continue
+                uris.append(found)
+                resolved += 1
+                # persist into matching playlist entry
+                for p in pl:
+                    if p is item or (
+                        (p.get("name") or "") == (item.get("name") or "")
+                        and (p.get("artists") or "") == (item.get("artists") or "")
+                        and not _is_track_uri(p.get("uri") or "")
+                    ):
+                        p["uri"] = found
+                        if not p.get("name"):
+                            p["name"] = tracks[0].get("name") or p.get("name")
+                        dirty = True
+                        break
+                item["uri"] = found
+            except Exception:
+                continue
+        if dirty:
+            st.session_state.meridium_playlist = pl
+            try:
+                save_user_data()
+            except Exception:
+                pass
+        return uris
+
+    def _apply_repeat_mode():
+        if not sp:
+            return
+        mode = st.session_state.get("pl_repeat") or "off"
+        state = {"off": "off", "all": "context", "one": "track"}.get(mode, "off")
+        try:
+            sp.repeat(state)
+        except Exception:
+            pass
+
+    def _play_playlist_from(start_index: int = 0) -> str:
+        """
+        Play from start_index. Queue the next window of tracks (Spotify accepts a
+        finite URI list). Missing URIs are resolved + saved so later pages work.
+        """
+        if not sp:
+            return "Connect Spotify first."
+        items = list(st.session_state.get("meridium_playlist") or [])
+        if not items:
+            return "Playlist is empty."
+        start_index = max(0, min(int(start_index), len(items) - 1))
+
+        ordered = items[start_index:]
+        if st.session_state.get("pl_repeat") == "all" and start_index > 0:
+            ordered = ordered + items[:start_index]
+
+        # Spotify start_playback URI list is more reliable with a moderate window
+        WINDOW = 50
+        window = ordered[:WINDOW]
+        uris = _resolve_and_persist_uris(window, max_resolve=WINDOW)
+        # drop any non-track / duplicates while keeping order
+        seen = set()
+        clean = []
+        for u in uris:
+            if u and u not in seen and _is_track_uri(u):
+                seen.add(u)
+                clean.append(u)
+        uris = clean
+        if not uris:
+            return (
+                "Couldn't resolve track URIs for this page. "
+                "Re-add the song via Search, or check Spotify connection."
+            )
+        try:
+            # Explicit offset 0 on the URI list — critical when starting mid-playlist
+            sp.start_playback(uris=uris, offset={"position": 0})
+            time.sleep(0.3)
+            _apply_repeat_mode()
+            first = window[0] if window else {}
+            first_name = first.get("name") or first.get("title") or "track"
+            extra = f" · {len(uris)} queued from #{start_index + 1}"
+            mode = st.session_state.get("pl_repeat") or "off"
+            if mode == "all":
+                extra += " · repeat all"
+            elif mode == "one":
+                extra += " · repeat one"
+            return f"▶ Playing **{first_name}**{extra}"
+        except Exception as e:
+            err = str(e)
+            low = err.lower()
+            if "premium" in low:
+                return "Spotify Premium is required for playlist playback control."
+            if "no_active_device" in low or "active device" in low:
+                return "No active Spotify device. Open Spotify and play something once, then try again."
+            # Fallback: play only the first resolved URI
+            try:
+                sp.start_playback(uris=[uris[0]])
+                time.sleep(0.2)
+                _apply_repeat_mode()
+                return f"▶ Playing single track (queue fallback): {uris[0]}"
+            except Exception as e2:
+                return f"Playback failed: {e2}"
+
     tab_search, tab_playlist = st.tabs([
-        "🔍 Search Spotify",
-        f"♫ Playlist ({len(playlist)})",
+        "Search",
+        f"Playlist · {len(playlist)}",
     ])
 
-    # ========== TAB: SEARCH ==========
+    # ========== SEARCH ==========
     with tab_search:
-        st.markdown("#### Search Spotify")
-        st.caption("Type a song or artist · press **Enter** to add the top result · or tap ＋ on any match.")
-
         if not sp:
-            st.info("Connect Spotify on this page (above) to search and add tracks.")
+            st.info("Connect Spotify above to search and add tracks.")
         else:
             with st.form("pl_search_form", clear_on_submit=False):
                 search_q = st.text_input(
-                    "Search Spotify",
-                    placeholder="e.g. Alex G · Zaliya think about you",
+                    "Search",
+                    placeholder="Song or artist",
                     key="pl_search",
                     label_visibility="collapsed",
                 )
-                submitted = st.form_submit_button("Search / Add top result", use_container_width=True)
+                submitted = st.form_submit_button("Search", use_container_width=True)
 
             search_q = (search_q or "").strip()
-
             if search_q and len(search_q) >= 2:
                 cache_key = f"pl_search::{_sanitize_spotify_query(search_q).lower()}"
                 need_search = submitted or st.session_state.get("_pl_search_key") != cache_key
                 if need_search:
                     st.session_state._pl_search_error = None
-                    hits = _spotify_search_tracks(search_q, limit=10)
+                    hits = _spotify_search_tracks(search_q, limit=8)
                     st.session_state._pl_search_key = cache_key
                     st.session_state._pl_search_results = hits
 
@@ -3464,225 +3605,103 @@ if st.session_state.view == "music":
                     st.caption(f"Search error: {err}")
 
                 hits = st.session_state.get("_pl_search_results") or []
+                if submitted and hits:
+                    msg = _add_hit_to_playlist(hits[0])
+                    st.toast(msg)
+                    st.rerun()
+                elif submitted and not hits:
+                    st.warning("No match. Try a simpler name.")
 
-                if submitted:
-                    if hits:
-                        msg = _add_hit_to_playlist(hits[0])
-                        st.toast(msg)
-                        st.rerun()
-                    else:
-                        st.warning("No Spotify match. Try a simpler name.")
-
-                if not hits:
-                    st.caption("No Spotify matches. Try a different spelling.")
-                else:
-                    st.markdown("**Results**")
+                if hits:
                     for hi, hit in enumerate(hits):
-                        bc1, bc2 = st.columns([5, 1])
-                        with bc1:
+                        c1, c2 = st.columns([5, 1])
+                        with c1:
                             st.markdown(
-                                f"**{hit['name']}**  \n"
-                                f"<span style='opacity:0.7;font-size:0.85rem'>{hit['artists']}</span>",
+                                f"<div class='hit-row'><div class='pl-title'>{hit['name']}</div>"
+                                f"<div class='pl-sub'>{hit['artists']}</div></div>",
                                 unsafe_allow_html=True,
                             )
-                        with bc2:
-                            if st.button("＋", key=f"pl_hit_{hi}", help="Add to playlist", use_container_width=True):
+                        with c2:
+                            if st.button("＋", key=f"pl_hit_{hi}", help="Add", use_container_width=True):
                                 msg = _add_hit_to_playlist(hit)
                                 st.toast(msg)
                                 st.rerun()
             else:
-                st.caption("Start typing to search Spotify.")
+                st.caption("Search Spotify and add tracks to your Meridium playlist.")
 
-    # ========== TAB: PLAYLIST ==========
+    # ========== PLAYLIST ==========
     with tab_playlist:
-        st.markdown("#### Meridium playlist")
-        st.caption(
-            f"Up to {MAX_PLAYLIST} tracks · **{len(playlist)}** saved · "
-            "songs play in order — when one ends, the next starts."
-        )
-
         playlist = list(st.session_state.get("meridium_playlist") or [])
-
-        # Repeat mode: off | all | one  (synced to Spotify when possible)
         if "pl_repeat" not in st.session_state:
-            st.session_state.pl_repeat = "off"  # off | all | one
-
-        def _resolve_playlist_uris(items, max_resolve=40):
-            """Return list of Spotify URIs for playlist items; resolve missing via search."""
-            uris = []
-            resolved = 0
-            for item in items:
-                u = item.get("uri")
-                if u:
-                    uris.append(u)
-                    continue
-                if not sp or resolved >= max_resolve:
-                    continue
-                q = _sanitize_spotify_query(item.get("title") or item.get("name") or "")
-                if not q:
-                    continue
-                try:
-                    results = sp.search(q=q, type="track", limit=1)
-                    tracks = (results.get("tracks") or {}).get("items") or []
-                    if tracks:
-                        uris.append(tracks[0]["uri"])
-                        resolved += 1
-                except Exception:
-                    pass
-            return uris
-
-        def _apply_repeat_mode():
-            """Push Meridium repeat preference to Spotify device."""
-            if not sp:
-                return
-            mode = st.session_state.get("pl_repeat") or "off"
-            state = {"off": "off", "all": "context", "one": "track"}.get(mode, "off")
-            try:
-                sp.repeat(state)
-            except Exception:
-                pass
-
-        def _play_playlist_from(start_index: int = 0) -> str:
-            """
-            Start sequential playback from start_index through the rest of the list.
-            If repeat=all, wrap so the queue loops the full playlist.
-            Spotify advances automatically when each track ends.
-            """
-            if not sp:
-                return "Connect Spotify first."
-            items = list(st.session_state.get("meridium_playlist") or [])
-            if not items:
-                return "Playlist is empty."
-            start_index = max(0, min(start_index, len(items) - 1))
-            # Build ordered queue from start_index → end (then wrap if repeat all)
-            ordered = items[start_index:]
-            if st.session_state.get("pl_repeat") == "all" and start_index > 0:
-                ordered = ordered + items[:start_index]
-            # Spotify start_playback uris limit is generous but keep under ~80
-            uris = _resolve_playlist_uris(ordered, max_resolve=50)
-            uris = uris[:80]
-            if not uris:
-                return "Couldn't resolve any tracks on Spotify."
-            try:
-                sp.start_playback(uris=uris)
-                time.sleep(0.25)
-                _apply_repeat_mode()
-                first_name = ordered[0].get("name") or ordered[0].get("title") or "track"
-                extra = f" · {len(uris)} in queue"
-                if st.session_state.get("pl_repeat") == "all":
-                    extra += " · repeat all"
-                elif st.session_state.get("pl_repeat") == "one":
-                    extra += " · repeat one"
-                return f"▶ Playing **{first_name}**{extra}"
-            except Exception as e:
-                err = str(e)
-                if "premium" in err.lower():
-                    return "Spotify Premium is required for playlist playback control."
-                if "NO_ACTIVE_DEVICE" in err or "active device" in err.lower():
-                    return "No active Spotify device. Open Spotify and play something once, then try again."
-                return f"Playback failed: {e}"
+            st.session_state.pl_repeat = "off"
 
         if not playlist:
-            st.info("Playlist is empty. Switch to **Search Spotify** to add tracks.")
+            st.info("Playlist is empty — use **Search** to add tracks.")
         else:
-            t1, t2, t3, t4 = st.columns([2, 2, 2, 2])
-            with t1:
-                if sp and st.button("▶ Play", use_container_width=True, key="pl_play_first", help="Play from the top — continues in order"):
+            a1, a2, a3, a4 = st.columns(4)
+            with a1:
+                if sp and st.button("▶ Play", use_container_width=True, key="pl_play_first"):
                     msg = _play_playlist_from(0)
-                    if msg.startswith("▶"):
-                        st.success(msg)
-                    else:
-                        st.warning(msg)
-                    time.sleep(0.2)
+                    (st.success if msg.startswith("▶") else st.warning)(msg)
+                    time.sleep(0.15)
                     st.rerun()
-            with t2:
-                # Cycle repeat: off → all → one → off
+            with a2:
                 mode = st.session_state.get("pl_repeat") or "off"
-                repeat_label = {
-                    "off": "Repeat: Off",
-                    "all": "Repeat: All",
-                    "one": "Repeat: One",
-                }.get(mode, "Repeat: Off")
-                if st.button(f"🔁 {repeat_label}", use_container_width=True, key="pl_repeat_btn",
-                             type="primary" if mode != "off" else "secondary"):
+                labels = {"off": "Repeat off", "all": "Repeat all", "one": "Repeat one"}
+                if st.button(
+                    f"🔁 {labels.get(mode, 'Repeat off')}",
+                    use_container_width=True,
+                    key="pl_repeat_btn",
+                    type="primary" if mode != "off" else "secondary",
+                ):
                     order = ["off", "all", "one"]
                     st.session_state.pl_repeat = order[(order.index(mode) + 1) % len(order)]
                     _apply_repeat_mode()
                     st.rerun()
-            with t3:
-                if sp and st.button("▶ From here", use_container_width=True, key="pl_play_page",
-                                    help="Play from the first track on this page onward"):
-                    page_start = int(st.session_state.get("pl_page") or 0) * 25
-                    msg = _play_playlist_from(page_start)
-                    if msg.startswith("▶"):
-                        st.success(msg)
-                    else:
-                        st.warning(msg)
+            with a3:
+                page_now = int(st.session_state.get("pl_page") or 0)
+                if sp and st.button("▶ Page", use_container_width=True, key="pl_play_page",
+                                    help="Play from the first track on this page"):
+                    msg = _play_playlist_from(page_now * PAGE_SIZE)
+                    (st.success if msg.startswith("▶") else st.warning)(msg)
                     st.rerun()
-            with t4:
-                if st.button("🗑 Clear all", use_container_width=True, key="pl_clear"):
+            with a4:
+                if st.button("Clear", use_container_width=True, key="pl_clear"):
                     st.session_state.meridium_playlist = []
                     st.session_state.pl_page = 0
                     save_user_data()
                     st.rerun()
 
-            mode = st.session_state.get("pl_repeat") or "off"
-            if mode == "all":
-                st.caption("🔁 Repeat **all** — when the last song ends, the playlist starts again.")
-            elif mode == "one":
-                st.caption("🔁 Repeat **one** — the current song loops.")
-            else:
-                st.caption("Repeat is off — playback stops after the last queued track.")
-
-            # Show ALL songs with pagination (every track accessible)
-            PAGE_SIZE = 25
             total = len(playlist)
             pages = max(1, (total + PAGE_SIZE - 1) // PAGE_SIZE)
             if "pl_page" not in st.session_state:
                 st.session_state.pl_page = 0
-            st.session_state.pl_page = max(0, min(st.session_state.pl_page, pages - 1))
-            page = st.session_state.pl_page
+            st.session_state.pl_page = max(0, min(int(st.session_state.pl_page), pages - 1))
+            page = int(st.session_state.pl_page)
             start = page * PAGE_SIZE
             end = min(start + PAGE_SIZE, total)
 
+            # Pagination — compact
             if pages > 1:
-                nav1, nav2, nav3, nav4 = st.columns([1, 1, 2, 1])
-                with nav1:
-                    if st.button("← Prev", use_container_width=True, key="pl_prev", disabled=(page <= 0)):
+                n1, n2, n3 = st.columns([1, 2, 1])
+                with n1:
+                    if st.button("←", use_container_width=True, key="pl_prev", disabled=page <= 0):
                         st.session_state.pl_page = page - 1
                         st.rerun()
-                with nav2:
-                    if st.button("Next →", use_container_width=True, key="pl_next", disabled=(page >= pages - 1)):
-                        st.session_state.pl_page = page + 1
-                        st.rerun()
-                with nav3:
+                with n2:
                     st.markdown(
-                        f"<div style='text-align:center;padding-top:8px'>"
-                        f"Page **{page+1}** / {pages} · tracks {start+1}–{end} of **{total}**"
-                        f"</div>",
+                        f"<div style='text-align:center;padding-top:6px;opacity:0.65;font-size:0.85rem'>"
+                        f"{start+1}–{end} of {total} · page {page+1}/{pages}</div>",
                         unsafe_allow_html=True,
                     )
-                with nav4:
-                    jump = st.number_input(
-                        "Go to page",
-                        min_value=1,
-                        max_value=pages,
-                        value=page + 1,
-                        step=1,
-                        key="pl_page_jump",
-                        label_visibility="collapsed",
-                    )
-                    if int(jump) - 1 != page:
-                        st.session_state.pl_page = int(jump) - 1
+                with n3:
+                    if st.button("→", use_container_width=True, key="pl_next", disabled=page >= pages - 1):
+                        st.session_state.pl_page = page + 1
                         st.rerun()
-            else:
-                st.caption(f"Showing all **{total}** tracks")
 
-            # Now-playing indicator (green title when this track is active on Spotify)
+            # Now-playing match
             now = None
-            now_uri = ""
-            now_name = ""
-            now_artists = ""
+            now_uri = now_name = now_artists = ""
             if sp:
                 try:
                     now = current_track(sp)
@@ -3692,10 +3711,9 @@ if st.session_state.view == "music":
                 now_uri = (now.get("uri") or "").strip()
                 now_name = (now.get("name") or "").strip().lower()
                 now_artists = (now.get("artist_primary") or now.get("artists") or "").strip().lower()
-                # Gentle refresh so the green highlight advances with the queue
                 try:
                     from streamlit_autorefresh import st_autorefresh
-                    st_autorefresh(interval=3500, key="pl_now_playing_refresh")
+                    st_autorefresh(interval=4000, key="pl_now_playing_refresh")
                 except Exception:
                     pass
 
@@ -3703,8 +3721,7 @@ if st.session_state.view == "music":
                 s = (s or "").lower().strip()
                 s = re.sub(r"\s+-\s+", " ", s)
                 s = re.sub(r"[^\w\s]", " ", s)
-                s = re.sub(r"\s+", " ", s).strip()
-                return s
+                return re.sub(r"\s+", " ", s).strip()
 
             def _is_now_playing(item: dict) -> bool:
                 if not now:
@@ -3712,24 +3729,17 @@ if st.session_state.view == "music":
                 uri = (item.get("uri") or "").strip()
                 if now_uri and uri and uri == now_uri:
                     return True
-                # Compare normalized names (handles "Song - Artist" titles)
                 item_name = _norm(item.get("name") or "")
                 item_title = _norm(item.get("title") or "")
                 item_arts = _norm(item.get("artists") or "")
-                nn = _norm(now_name)
-                na = _norm(now_artists)
+                nn, na = _norm(now_name), _norm(now_artists)
                 if not nn:
                     return False
-                # Direct name hits
                 if item_name and (item_name == nn or nn in item_name or item_name in nn):
                     if not item_arts or not na or na in item_arts or item_arts in na:
                         return True
-                if item_title:
-                    if item_title == nn or nn in item_title:
-                        return True
-                    # "name artist" contained in title
-                    if na and nn in item_title and (na.split()[0] in item_title if na else True):
-                        return True
+                if item_title and (item_title == nn or nn in item_title):
+                    return True
                 return False
 
             for i in range(start, end):
@@ -3737,57 +3747,46 @@ if st.session_state.view == "music":
                 title = item.get("name") or item.get("title") or "Track"
                 artists = item.get("artists") or ""
                 playing_now = _is_now_playing(item)
-                c1, c2, c3 = st.columns([5, 1, 1])
-                with c1:
-                    if playing_now:
-                        # Green = currently playing on Spotify (class beats theme CSS)
-                        if artists:
-                            st.markdown(
-                                f"<div class='mer-now-playing'>"
-                                f"<strong>{i+1}. {title}</strong>"
-                                f"<span class='mer-now-badge'>● now playing</span>"
-                                f"<br/><span class='mer-now-sub'>{artists}</span>"
-                                f"</div>",
-                                unsafe_allow_html=True,
-                            )
-                        else:
-                            st.markdown(
-                                f"<div class='mer-now-playing'>"
-                                f"<strong>{i+1}. {title}</strong>"
-                                f"<span class='mer-now-badge'>● now playing</span>"
-                                f"</div>",
-                                unsafe_allow_html=True,
-                            )
-                    else:
-                        if artists:
-                            st.markdown(
-                                f"**{i+1}.** {title}  \n"
-                                f"<span style='opacity:0.65;font-size:0.82rem'>{artists}</span>",
-                                unsafe_allow_html=True,
-                            )
-                        else:
-                            st.markdown(f"**{i+1}.** {title}")
-                with c2:
-                    if sp and st.button("▶", key=f"pl_play_{i}", help="Play from this track onward (in order)", use_container_width=True):
+                has_uri = _is_track_uri(item.get("uri") or "")
+                cls = "pl-row is-playing" if playing_now else "pl-row"
+                badge = '<span class="pl-badge">playing</span>' if playing_now else ""
+                uri_hint = "" if has_uri else " · needs resolve"
+                st.markdown(
+                    f"""
+                    <div class="{cls}">
+                      <div class="pl-num">{i+1}</div>
+                      <div class="pl-body">
+                        <div class="pl-title">{title}{badge}</div>
+                        <div class="pl-sub">{artists}{uri_hint}</div>
+                      </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                b1, b2 = st.columns([1, 1])
+                with b1:
+                    if sp and st.button(
+                        "Play",
+                        key=f"pl_play_{i}_{page}",
+                        use_container_width=True,
+                        help="Play from this track",
+                    ):
                         msg = _play_playlist_from(i)
-                        if msg.startswith("▶"):
-                            st.toast(msg.replace("**", ""))
-                        else:
-                            st.toast(msg)
+                        st.toast(msg.replace("**", ""))
                         st.rerun()
-                with c3:
-                    if st.button("✕", key=f"pl_del_{i}", help="Remove", use_container_width=True):
+                with b2:
+                    if st.button("Remove", key=f"pl_del_{i}_{page}", use_container_width=True):
                         pl = list(playlist)
                         pl.pop(i)
                         st.session_state.meridium_playlist = pl
-                        new_total = len(pl)
-                        new_pages = max(1, (new_total + PAGE_SIZE - 1) // PAGE_SIZE)
+                        new_pages = max(1, (len(pl) + PAGE_SIZE - 1) // PAGE_SIZE)
                         if st.session_state.pl_page >= new_pages:
                             st.session_state.pl_page = max(0, new_pages - 1)
                         save_user_data()
                         st.rerun()
 
     st.stop()
+
 
 # LISTEN — voice assistant (process only on Send)
 if st.session_state.view == "listen":
