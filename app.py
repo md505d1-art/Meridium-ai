@@ -4162,8 +4162,10 @@ def _youtube_id_from_url(url: str) -> str:
 
 def render_cinema_player(item: dict) -> None:
     """Play a catalog item: YouTube embed or direct MP4/WebM."""
+    import html as _html
     kind = (item.get("kind") or "").lower()
     title = item.get("title") or "Untitled"
+    safe_title = _html.escape(title)
     st.markdown(f"### {title}")
     meta_bits = []
     if item.get("creator"):
@@ -4177,20 +4179,32 @@ def render_cinema_player(item: dict) -> None:
 
     if kind == "youtube":
         yid = item.get("youtube_id") or _youtube_id_from_url(item.get("url") or "")
+        yid = (yid or "").strip()
         if not yid:
             st.warning("Missing YouTube id for this title.")
             return
-        # Responsive 16:9 embed
+        watch_url = f"https://www.youtube.com/watch?v={yid}"
+        # Reliable path: many channels disable iframe embeds ("Video unavailable")
+        st.link_button("▶  Open on YouTube", watch_url, use_container_width=True)
+        st.caption(
+            "If the embedded player says **unavailable**, use the button above. "
+            "Some channels turn off embedding — YouTube itself still works."
+        )
+        embed_src = (
+            f"https://www.youtube-nocookie.com/embed/{yid}"
+            f"?rel=0&modestbranding=1&playsinline=1"
+        )
         st.components.v1.html(
             f"""
-            <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;
-                        border-radius:14px;background:#000;box-shadow:0 12px 32px rgba(0,0,0,0.4);">
+            <div style="position:relative;width:100%;padding-bottom:56.25%;height:0;overflow:hidden;
+                        border-radius:14px;background:#0a0a0e;box-shadow:0 12px 32px rgba(0,0,0,0.45);">
               <iframe
-                src="https://www.youtube.com/embed/{yid}?rel=0"
-                title="{title.replace('"', '')}"
+                src="{embed_src}"
+                title="{safe_title}"
                 style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowfullscreen
+                referrerpolicy="strict-origin-when-cross-origin"
                 loading="lazy"
               ></iframe>
             </div>
@@ -4198,7 +4212,6 @@ def render_cinema_player(item: dict) -> None:
             height=420,
             scrolling=False,
         )
-        st.caption(f"[Open on YouTube](https://www.youtube.com/watch?v={yid})")
     elif kind == "direct":
         url = (item.get("url") or "").strip()
         if not url:
@@ -4208,7 +4221,7 @@ def render_cinema_player(item: dict) -> None:
             st.video(url)
         except Exception as e:
             st.error(f"Could not play video: {e}")
-            st.markdown(f"[Open video link]({url})")
+            st.link_button("Open video link", url, use_container_width=True)
     else:
         st.info("Unknown media type for this entry.")
 
