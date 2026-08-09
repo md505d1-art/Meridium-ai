@@ -4011,85 +4011,10 @@ def paginate_text(text: str, page_size: int = 2200) -> list:
 
 
 # ============================================================
-# CINEMA — Movies (direct playable) + YouTube (by channel)
-# category: "movies" | "youtube"
-# channel: grouping key for YouTube shelves
+# CINEMA — YouTube only, grouped by channel
 # ============================================================
 CINEMA_CATALOG = [
-    # —— Movies (in-app MP4 — these play inside Meridium) ——
-    {
-        "id": "big_buck_bunny",
-        "title": "Big Buck Bunny",
-        "creator": "Blender Foundation",
-        "channel": "Blender Foundation",
-        "category": "movies",
-        "note": "Open movie · Creative Commons · plays in-app",
-        "kind": "direct",
-        "url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-        "year": "2008",
-        "tags": ["animation", "open"],
-    },
-    {
-        "id": "elephants_dream",
-        "title": "Elephants Dream",
-        "creator": "Blender Foundation",
-        "channel": "Blender Foundation",
-        "category": "movies",
-        "note": "Open movie · Creative Commons · plays in-app",
-        "kind": "direct",
-        "url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-        "year": "2006",
-        "tags": ["animation", "open"],
-    },
-    {
-        "id": "sintel_trailer",
-        "title": "Sintel (trailer)",
-        "creator": "Blender Foundation",
-        "channel": "Blender Foundation",
-        "category": "movies",
-        "note": "Open movie trailer · Creative Commons · plays in-app",
-        "kind": "direct",
-        "url": "https://download.blender.org/durian/trailer/sintel_trailer-480p.mp4",
-        "year": "2010",
-        "tags": ["animation", "open"],
-    },
-    {
-        "id": "tears_of_steel",
-        "title": "Tears of Steel (trailer)",
-        "creator": "Blender Foundation",
-        "channel": "Blender Foundation",
-        "category": "movies",
-        "note": "Open movie trailer · Creative Commons · plays in-app",
-        "kind": "direct",
-        "url": "https://download.blender.org/mango/trailer/tears_of_steel_trailer_720p.mov",
-        "year": "2012",
-        "tags": ["animation", "open"],
-    },
-    {
-        "id": "for_bigger_blazes",
-        "title": "For Bigger Blazes",
-        "creator": "Google sample",
-        "channel": "Sample films",
-        "category": "movies",
-        "note": "Sample clip · plays in-app",
-        "kind": "direct",
-        "url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-        "year": "2015",
-        "tags": ["sample"],
-    },
-    {
-        "id": "for_bigger_escape",
-        "title": "For Bigger Escape",
-        "creator": "Google sample",
-        "channel": "Sample films",
-        "category": "movies",
-        "note": "Sample clip · plays in-app",
-        "kind": "direct",
-        "url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-        "year": "2015",
-        "tags": ["sample"],
-    },
-    # —— YouTube · simple, actually (@simpleactuallyus) ——
+    # —— simple, actually ——
     {
         "id": "sa_lotus",
         "title": "How To Force Your Brain To Do Hard Things (Lotus Method)",
@@ -4100,8 +4025,7 @@ CINEMA_CATALOG = [
         "note": "@simpleactuallyus",
         "kind": "youtube",
         "youtube_id": "GpsWTFciswE",
-        "year": "2024",
-        "tags": ["productivity", "focus"],
+        "tags": ["productivity"],
     },
     {
         "id": "sa_cs",
@@ -4113,8 +4037,7 @@ CINEMA_CATALOG = [
         "note": "@simpleactuallyus",
         "kind": "youtube",
         "youtube_id": "TbZj_hlJitA",
-        "year": "2025",
-        "tags": ["study", "productivity"],
+        "tags": ["study"],
     },
     {
         "id": "sa_chem",
@@ -4126,36 +4049,243 @@ CINEMA_CATALOG = [
         "note": "@simpleactuallyus",
         "kind": "youtube",
         "youtube_id": "0oHMoSSelo0",
-        "year": "2024",
-        "tags": ["study", "productivity"],
+        "tags": ["study"],
+    },
+    # —— riskambition ——
+    {
+        "id": "ra_peak",
+        "title": "how to reach peak performance in anything you do.",
+        "creator": "riskambition",
+        "channel": "riskambition",
+        "channel_url": "https://www.youtube.com/@riskambition",
+        "category": "youtube",
+        "note": "@riskambition",
+        "kind": "youtube",
+        "youtube_id": "18Nh2H0RwLM",
+        "tags": ["productivity"],
     },
     {
-        "id": "sa_bio",
-        "title": "How to study BIOLOGY so FAST that it feels ILLEGAL",
-        "creator": "simple, actually",
-        "channel": "simple, actually",
-        "channel_url": "https://www.youtube.com/@simpleactuallyus",
+        "id": "ra_polymath",
+        "title": "how to actually become a polymath.",
+        "creator": "riskambition",
+        "channel": "riskambition",
+        "channel_url": "https://www.youtube.com/@riskambition",
         "category": "youtube",
-        "note": "@simpleactuallyus",
+        "note": "@riskambition",
         "kind": "youtube",
-        "youtube_id": "-qU1mQ0ilxo",
-        "year": "2024",
-        "tags": ["study", "productivity"],
+        "youtube_id": "jndWxpCzO5g",
+        "tags": ["productivity"],
     },
     {
-        "id": "sa_stoic",
-        "title": "How To Never Get Angry Or Bothered By Anyone (STOICISM)",
-        "creator": "simple, actually",
-        "channel": "simple, actually",
-        "channel_url": "https://www.youtube.com/@simpleactuallyus",
+        "id": "ra_flow",
+        "title": "how to easily enter flow state anytime you want",
+        "creator": "riskambition",
+        "channel": "riskambition",
+        "channel_url": "https://www.youtube.com/@riskambition",
         "category": "youtube",
-        "note": "@simpleactuallyus",
+        "note": "@riskambition",
         "kind": "youtube",
-        "youtube_id": "OgJQkabvdA4",
-        "year": "2025",
-        "tags": ["mindset", "productivity"],
+        "youtube_id": "_e--tk58Lvo",
+        "tags": ["focus"],
+    },
+    {
+        "id": "ra_passion",
+        "title": "how to develop extreme passion.",
+        "creator": "riskambition",
+        "channel": "riskambition",
+        "channel_url": "https://www.youtube.com/@riskambition",
+        "category": "youtube",
+        "note": "@riskambition",
+        "kind": "youtube",
+        "youtube_id": "_BXXXiCgNiM",
+        "tags": ["mindset"],
+    },
+    # —— Veritasium ——
+    {
+        "id": "ve_molecular",
+        "title": "Your Body's Molecular Machines",
+        "creator": "Veritasium",
+        "channel": "Veritasium",
+        "channel_url": "https://www.youtube.com/@veritasium",
+        "category": "youtube",
+        "note": "@veritasium",
+        "kind": "youtube",
+        "youtube_id": "X_tYrnv_o6A",
+        "tags": ["science"],
+    },
+    {
+        "id": "ve_future",
+        "title": "The Future of Veritasium",
+        "creator": "Veritasium",
+        "channel": "Veritasium",
+        "channel_url": "https://www.youtube.com/@veritasium",
+        "category": "youtube",
+        "note": "@veritasium",
+        "kind": "youtube",
+        "youtube_id": "piHGnG4LsmQ",
+        "tags": ["science"],
+    },
+    {
+        "id": "ve_fingerprint",
+        "title": "The Problem With Fingerprint Analysis",
+        "creator": "Veritasium",
+        "channel": "Veritasium",
+        "channel_url": "https://www.youtube.com/@veritasium",
+        "category": "youtube",
+        "note": "@veritasium",
+        "kind": "youtube",
+        "youtube_id": "mvcesPWvUIc",
+        "tags": ["science"],
+    },
+    {
+        "id": "ve_pattern",
+        "title": "We're 99.9% sure this pattern is true, but no one can prove it",
+        "creator": "Veritasium",
+        "channel": "Veritasium",
+        "channel_url": "https://www.youtube.com/@veritasium",
+        "category": "youtube",
+        "note": "@veritasium",
+        "kind": "youtube",
+        "youtube_id": "8HBDE-msUjw",
+        "tags": ["math", "science"],
+    },
+    # —— Practical Engineering ——
+    {
+        "id": "pe_landfills",
+        "title": "The Hidden Engineering of Landfills",
+        "creator": "Practical Engineering",
+        "channel": "Practical Engineering",
+        "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel",
+        "category": "youtube",
+        "note": "@PracticalEngineeringChannel",
+        "kind": "youtube",
+        "youtube_id": "HRx_dZawN44",
+        "tags": ["engineering"],
+    },
+    {
+        "id": "pe_baseplates",
+        "title": "What's the Deal with Base Plates?",
+        "creator": "Practical Engineering",
+        "channel": "Practical Engineering",
+        "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel",
+        "category": "youtube",
+        "note": "@PracticalEngineeringChannel",
+        "kind": "youtube",
+        "youtube_id": "nGa1244hK9Y",
+        "tags": ["engineering"],
+    },
+    {
+        "id": "pe_powergrid",
+        "title": "The Most Confusing Part of the Power Grid",
+        "creator": "Practical Engineering",
+        "channel": "Practical Engineering",
+        "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel",
+        "category": "youtube",
+        "note": "@PracticalEngineeringChannel",
+        "kind": "youtube",
+        "youtube_id": "ZwkNTwWJP5k",
+        "tags": ["engineering"],
+    },
+    {
+        "id": "pe_blackstart",
+        "title": "What Is A Black Start Of The Power Grid?",
+        "creator": "Practical Engineering",
+        "channel": "Practical Engineering",
+        "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel",
+        "category": "youtube",
+        "note": "@PracticalEngineeringChannel",
+        "kind": "youtube",
+        "youtube_id": "uOSnQM1Zu4w",
+        "tags": ["engineering"],
+    },
+    # —— Outdoor Boys ——
+    {
+        "id": "ob_ketchikan",
+        "title": "7 Days Remote Camping, Fishing & Exploring Ketchikan Alaska",
+        "creator": "Outdoor Boys",
+        "channel": "Outdoor Boys",
+        "channel_url": "https://www.youtube.com/@OutdoorBoys",
+        "category": "youtube",
+        "note": "@OutdoorBoys",
+        "kind": "youtube",
+        "youtube_id": "LxVczipWxos",
+        "tags": ["outdoors"],
+    },
+    {
+        "id": "ob_valdez",
+        "title": "4 Days Camping, Fishing & Eating What We Catch in Alaska",
+        "creator": "Outdoor Boys",
+        "channel": "Outdoor Boys",
+        "channel_url": "https://www.youtube.com/@OutdoorBoys",
+        "category": "youtube",
+        "note": "@OutdoorBoys",
+        "kind": "youtube",
+        "youtube_id": "qUhW2hJJVxA",
+        "tags": ["outdoors"],
+    },
+    {
+        "id": "ob_trail",
+        "title": "4 Days Camping & Building a Trail",
+        "creator": "Outdoor Boys",
+        "channel": "Outdoor Boys",
+        "channel_url": "https://www.youtube.com/@OutdoorBoys",
+        "category": "youtube",
+        "note": "@OutdoorBoys",
+        "kind": "youtube",
+        "youtube_id": "IyCEpSLheUw",
+        "tags": ["outdoors"],
+    },
+    # —— SmarterEveryDay ——
+    {
+        "id": "sed_taco",
+        "title": "They Call it \"The Taco Turn\" and it's Genius - Smarter Every Day 315",
+        "creator": "SmarterEveryDay",
+        "channel": "SmarterEveryDay",
+        "channel_url": "https://www.youtube.com/@smartereveryday",
+        "category": "youtube",
+        "note": "@smartereveryday",
+        "kind": "youtube",
+        "youtube_id": "5lCWqEFVzbY",
+        "tags": ["science"],
+    },
+    {
+        "id": "sed_johari",
+        "title": "What Everyone Sees... But I Don't (The Johari Window) - Smarter Every Day 314",
+        "creator": "SmarterEveryDay",
+        "channel": "SmarterEveryDay",
+        "channel_url": "https://www.youtube.com/@smartereveryday",
+        "category": "youtube",
+        "note": "@smartereveryday",
+        "kind": "youtube",
+        "youtube_id": "WtQ64nSbdY4",
+        "tags": ["science"],
+    },
+    {
+        "id": "sed_spin",
+        "title": "Why Do Spinning Things Do This? - Smarter Every Day 312",
+        "creator": "SmarterEveryDay",
+        "channel": "SmarterEveryDay",
+        "channel_url": "https://www.youtube.com/@smartereveryday",
+        "category": "youtube",
+        "note": "@smartereveryday",
+        "kind": "youtube",
+        "youtube_id": "XwBZx1cXEdM",
+        "tags": ["science"],
+    },
+    {
+        "id": "sed_nuclear",
+        "title": "I Went Into a Nuclear Plant and It Changed How I Think About Radiation - Smarter Every Day 309",
+        "creator": "SmarterEveryDay",
+        "channel": "SmarterEveryDay",
+        "channel_url": "https://www.youtube.com/@smartereveryday",
+        "category": "youtube",
+        "note": "@smartereveryday",
+        "kind": "youtube",
+        "youtube_id": "cRaKMTK7ea0",
+        "tags": ["science"],
     },
 ]
+
 
 
 def _youtube_id_from_url(url: str) -> str:
@@ -4243,7 +4373,7 @@ if st.session_state.view == "cinema":
         <div class="panel">
           <div class="panel-label">Cinema</div>
           <div class="hero" style="font-size:1.4rem;">Free screen</div>
-          <div class="sub">Movies (in-app) · YouTube by channel</div>
+          <div class="sub">YouTube shelves · browse by channel</div>
           <div class="ridge"></div>
         </div>
         """,
@@ -4311,52 +4441,35 @@ if st.session_state.view == "cinema":
                 else:
                     st.warning("Could not read a YouTube id from that link.")
 
-        st.caption("Browse by category — Movies play in-app · YouTube opens via embed or YouTube button.")
+        st.caption("Pick a channel, then a video. Use **Open on YouTube** if the embed is blocked.")
 
-        cat = st.radio(
-            "Category",
-            ["All", "Movies", "YouTube"],
-            horizontal=True,
-            key="cinema_category",
-        )
-
-        shelf = list(CINEMA_CATALOG)
-        if cat == "Movies":
-            shelf = [it for it in shelf if (it.get("category") or "") == "movies"]
-        elif cat == "YouTube":
-            shelf = [it for it in shelf if (it.get("category") or "") == "youtube"]
-
-        # Channel filter (YouTube shelf / All)
         channels = sorted({
             (it.get("channel") or it.get("creator") or "Unknown")
-            for it in shelf
-            if (it.get("category") or "") == "youtube" or cat == "All"
+            for it in CINEMA_CATALOG
         })
-        if cat in ("YouTube", "All") and channels:
-            ch_opts = ["All channels"] + channels
-            ch = st.selectbox("Channel", ch_opts, key="cinema_channel_filter")
-            if ch != "All channels":
-                shelf = [
-                    it for it in shelf
-                    if (it.get("channel") or it.get("creator") or "Unknown") == ch
-                ]
-
-        # Group display by category → channel
-        movies = [it for it in shelf if (it.get("category") or "") == "movies"]
-        yts = [it for it in shelf if (it.get("category") or "") == "youtube"]
+        ch = st.selectbox(
+            "Channel",
+            ["All channels"] + channels,
+            key="cinema_channel_filter",
+        )
+        shelf = list(CINEMA_CATALOG)
+        if ch != "All channels":
+            shelf = [
+                it for it in shelf
+                if (it.get("channel") or it.get("creator") or "Unknown") == ch
+            ]
 
         def _render_shelf_items(items: list, key_prefix: str):
             for item in items:
-                kind_label = "YouTube" if item.get("kind") == "youtube" else "In-app"
                 channel = item.get("channel") or item.get("creator") or ""
+                note = item.get("note") or ""
                 bc1, bc2 = st.columns([4, 1])
                 with bc1:
                     st.markdown(
                         f"**{item.get('title', 'Untitled')}**  \n"
                         f"<span style='opacity:0.7;font-size:0.85rem'>"
                         f"{channel}"
-                        f"{(' · ' + item['note']) if item.get('note') else ''}"
-                        f" · {kind_label}"
+                        f"{(' · ' + note) if note else ''}"
                         f"</span>",
                         unsafe_allow_html=True,
                     )
@@ -4369,37 +4482,28 @@ if st.session_state.view == "cinema":
                         st.session_state.cinema_watching = item.get("id")
                         st.rerun()
 
-        if movies and cat in ("All", "Movies"):
-            st.markdown("#### 🎬 Movies")
-            st.caption("Open / sample films — play inside Meridium")
-            _render_shelf_items(movies, "m")
+        by_ch = {}
+        for it in shelf:
+            k = it.get("channel") or it.get("creator") or "Unknown"
+            by_ch.setdefault(k, []).append(it)
 
-        if yts and cat in ("All", "YouTube"):
-            st.markdown("#### ▶ YouTube")
-            # Sub-group by channel
-            by_ch = {}
-            for it in yts:
-                k = it.get("channel") or it.get("creator") or "Unknown"
-                by_ch.setdefault(k, []).append(it)
+        if not by_ch:
+            st.info("Nothing in this filter yet.")
+        else:
             for ch_name, items in sorted(by_ch.items(), key=lambda x: x[0].lower()):
                 url = next((i.get("channel_url") for i in items if i.get("channel_url")), None)
-                header = f"**{ch_name}**"
                 if url:
-                    st.markdown(f"{header} · [channel]({url})")
+                    st.markdown(f"#### {ch_name} · [open channel]({url})")
                 else:
-                    st.markdown(header)
+                    st.markdown(f"#### {ch_name}")
                 _render_shelf_items(items, f"y_{ch_name}")
-
-        if not movies and not yts:
-            st.info("Nothing in this filter yet.")
 
         st.markdown("---")
         st.caption(
-            "**Movies** use direct video files (reliable in-app). "
-            "**YouTube** uses official embeds + Open on YouTube when embedding is blocked. "
-            "Add entries to `CINEMA_CATALOG` with `category`: `movies` or `youtube`, "
-            "and `channel` for YouTube grouping."
+            "Official YouTube embeds only. If a player says unavailable, use **Open on YouTube**. "
+            "Add more in `CINEMA_CATALOG` with `channel`, `channel_url`, and `youtube_id`."
         )
+
     st.stop()
 
 
