@@ -1453,7 +1453,19 @@ def estimate_lyrics_ai(track_name: str, artist: str) -> str:
         return ""
 
 def render_spotify_panel(key_prefix="sp"):
-    """Show connect / now playing / controls / lyrics. Returns True if connected."""
+    """Show connect / now playing / controls / lyrics. Returns True if connected.
+
+    Compact mode (home / chat): single-column cover + controls only so the album
+    art is not crushed inside a nested half-width column.
+    Full mode (music page): art LEFT · lyrics RIGHT.
+    """
+    # home / chat sit in a narrow column — use compact cover layout (no lyrics split)
+    # music page uses full art + lyrics columns
+    compact = key_prefix in ("home", "chat") or (
+        not str(key_prefix).startswith("music")
+        and st.session_state.get("view") in ("home", "chat")
+    )
+
     cid, secret, _ = _spotify_creds()
     if not cid or not secret:
         st.warning("Spotify keys missing. In Streamlit → Settings → Secrets add SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET.")
@@ -1475,11 +1487,160 @@ def render_spotify_panel(key_prefix="sp"):
             st.rerun()
         return True
 
-    # Animated now playing banner
     import html as _html
-    _tname = _html.escape(str(track.get("name") or "Unknown"))
-    _tarts = _html.escape(str(track.get("artists") or ""))
-    _status = "Now playing" if track.get("playing") else "Paused"
+    art = track.get("art") or ""
+    _aname = _html.escape(str(track.get("name") or "Unknown"))
+    _aarts = _html.escape(str(track.get("artists") or ""))
+    _adev = _html.escape(str(track.get("device") or ""))
+    # Do not HTML-escape the URL for src= — only quote-safe characters matter
+    _art_src = (art or "").replace('"', "%22")
+    _track_uid = _html.escape(str(track.get("uri") or track.get("name") or "x"))
+    _prev_art = str(st.session_state.get("_prev_cover_url") or "")
+    _prev_esc = (_prev_art or "").replace('"', "%22")
+    # Remember current cover for the next track's crossfade (after reading prev)
+    if art and art != _prev_art:
+        # only update after we've used the previous value for this render
+        st.session_state._pending_prev_cover = art
+    elif art and not st.session_state.get("_prev_cover_url"):
+        st.session_state._pending_prev_cover = art
+
+    cover_px = 140 if compact else 200
+    html_h = 210 if compact else 280
+    status_label = "Now playing" if track.get("playing") else "Paused"
+
+    def _render_cover_block():
+        prev_img = (
+            f'<img class="prev" src="{_prev_esc}" alt="" />'
+            if _prev_art and _prev_art != art
+            else ""
+        )
+        curr_img = f'<img class="curr" src="{_art_src}" alt="" />' if art else ""
+        st.components.v1.html(
+            f"""
+            <style>
+              html, body {{
+                margin: 0; padding: 0; overflow: hidden;
+                background: transparent !important;
+                font-family: Inter, system-ui, sans-serif;
+                color: #e8e6f0;
+              }}
+              @keyframes merArtIn {{
+                from {{ opacity: 0; transform: scale(0.88) translateY(14px); filter: blur(8px); }}
+                to {{ opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }}
+              }}
+              @keyframes merArtOut {{
+                from {{ opacity: 1; transform: scale(1); filter: blur(0); }}
+                to {{ opacity: 0; transform: scale(1.06); filter: blur(6px); }}
+              }}
+              @keyframes merTextIn {{
+                from {{ opacity: 0; transform: translateY(10px); }}
+                to {{ opacity: 1; transform: translateY(0); }}
+              }}
+              .mer-track-block {{ text-align: center; padding: 4px 0 4px; }}
+              .cover-stage {{
+                position: relative;
+                width: {cover_px}px; height: {cover_px}px;
+                margin: 0 auto 10px;
+                background: rgba(255,255,255,0.04);
+                border-radius: 14px;
+                overflow: hidden;
+              }}
+              .cover-stage img {{
+                position: absolute; inset: 0;
+                width: {cover_px}px; height: {cover_px}px;
+                object-fit: cover;
+                border-radius: 14px;
+                box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+                display: block;
+              }}
+              .cover-stage img.prev {{
+                animation: merArtOut 0.45s ease forwards;
+                z-index: 1;
+              }}
+              .cover-stage img.curr {{
+                animation: merArtIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+                z-index: 2;
+              }}
+              .mer-t-name {{
+                font-size: {('1rem' if compact else '1.2rem')};
+                font-weight: 650; letter-spacing: -0.02em;
+                margin-top: 0.25rem;
+                animation: merTextIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+                max-width: 100%;
+                padding: 0 6px;
+              }}
+              .mer-t-arts {{
+                opacity: 0.7; font-size: {('0.8rem' if compact else '0.88rem')};
+                margin-top: 0.15rem;
+                animation: merTextIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.16s both;
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+                max-width: 100%;
+                padding: 0 6px;
+              }}
+              .mer-t-status {{
+                font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase;
+                opacity: 0.55; margin-bottom: 6px;
+              }}
+            </style>
+            <div class="mer-track-block" data-track="{_track_uid}">
+              <div class="mer-t-status">{status_label}</div>
+              <div class="cover-stage">
+                {prev_img}
+                {curr_img}
+              </div>
+              <div class="mer-t-name">{_aname}</div>
+              <div class="mer-t-arts">{_aarts}{(' · ' + _adev) if _adev else ''}</div>
+            </div>
+            """,
+            height=html_h,
+            scrolling=False,
+        )
+        # Commit pending prev cover after paint so next track can crossfade
+        pending = st.session_state.pop("_pending_prev_cover", None)
+        if pending:
+            st.session_state._prev_cover_url = pending
+
+    def _render_controls():
+        p1, p2, p3, p4 = st.columns(4)
+        with p1:
+            if st.button("⏮", key=f"{key_prefix}_prev", use_container_width=True):
+                try:
+                    sp.previous_track(); time.sleep(0.25); st.rerun()
+                except Exception as e:
+                    st.caption(str(e))
+        with p2:
+            icon = "⏸" if track["playing"] else "▶"
+            if st.button(icon, key=f"{key_prefix}_play", use_container_width=True):
+                try:
+                    if track["playing"]:
+                        sp.pause_playback()
+                    else:
+                        sp.start_playback()
+                    time.sleep(0.25); st.rerun()
+                except Exception as e:
+                    st.caption(f"Needs Premium + active device: {e}")
+        with p3:
+            if st.button("⏭", key=f"{key_prefix}_next", use_container_width=True):
+                try:
+                    sp.next_track(); time.sleep(0.25); st.rerun()
+                except Exception as e:
+                    st.caption(str(e))
+        with p4:
+            if st.button("↻", key=f"{key_prefix}_ref", use_container_width=True):
+                st.session_state._lyrics_key = None
+                st.rerun()
+
+    if compact:
+        # Main menu / chat: centered cover only — no lyrics column that collapses art
+        _render_cover_block()
+        _render_controls()
+        return True
+
+    # Full music page layout: banner + art LEFT · lyrics RIGHT
+    _tname = _aname
+    _tarts = _aarts
+    _status = status_label
     st.markdown(
         f"""
         <style>
@@ -1518,115 +1679,11 @@ def render_spotify_panel(key_prefix="sp"):
         unsafe_allow_html=True,
     )
 
-    # Layout: art + controls LEFT · lyrics RIGHT (where user pointed)
     left, right = st.columns([1.05, 1.35], gap="medium")
 
     with left:
-        art = track.get("art") or ""
-        _aname = _html.escape(str(track.get("name") or "Unknown"))
-        _aarts = _html.escape(str(track.get("artists") or ""))
-        _adev = _html.escape(str(track.get("device") or ""))
-        _art_src = _html.escape(art)
-        _track_uid = _html.escape(str(track.get("uri") or track.get("name") or "x"))
-        _prev_art = str(st.session_state.get("_prev_cover_url") or "")
-        _prev_esc = _html.escape(_prev_art)
-        # Remember current cover for the next track's crossfade
-        if art:
-            st.session_state._prev_cover_url = art
-
-        st.components.v1.html(
-            f"""
-            <style>
-              html, body {{
-                margin: 0; padding: 0; overflow: hidden;
-                background: transparent;
-                font-family: Inter, system-ui, sans-serif;
-                color: #e8e6f0;
-              }}
-              @keyframes merArtIn {{
-                from {{ opacity: 0; transform: scale(0.88) translateY(14px); filter: blur(8px); }}
-                to {{ opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }}
-              }}
-              @keyframes merArtOut {{
-                from {{ opacity: 1; transform: scale(1); filter: blur(0); }}
-                to {{ opacity: 0; transform: scale(1.06); filter: blur(6px); }}
-              }}
-              @keyframes merTextIn {{
-                from {{ opacity: 0; transform: translateY(10px); }}
-                to {{ opacity: 1; transform: translateY(0); }}
-              }}
-              .mer-track-block {{ text-align: center; padding: 4px 0 8px; }}
-              .cover-stage {{
-                position: relative;
-                width: 200px; height: 200px;
-                margin: 0 auto 12px;
-              }}
-              .cover-stage img {{
-                position: absolute; inset: 0;
-                width: 200px; height: 200px;
-                object-fit: cover;
-                border-radius: 14px;
-                box-shadow: 0 12px 32px rgba(0,0,0,0.4);
-              }}
-              .cover-stage img.prev {{
-                animation: merArtOut 0.45s ease forwards;
-                z-index: 1;
-              }}
-              .cover-stage img.curr {{
-                animation: merArtIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
-                z-index: 2;
-              }}
-              .mer-t-name {{
-                font-size: 1.2rem; font-weight: 650; letter-spacing: -0.02em;
-                margin-top: 0.35rem;
-                animation: merTextIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
-              }}
-              .mer-t-arts {{
-                opacity: 0.7; font-size: 0.88rem; margin-top: 0.2rem;
-                animation: merTextIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.16s both;
-              }}
-            </style>
-            <div class="mer-track-block" data-track="{_track_uid}">
-              <div class="cover-stage">
-                {f'<img class="prev" src="{_prev_esc}" alt="" />' if _prev_art and _prev_art != art else ''}
-                {f'<img class="curr" src="{_art_src}" alt="" />' if art else ''}
-              </div>
-              <div class="mer-t-name">{_aname}</div>
-              <div class="mer-t-arts">{_aarts}{(' · ' + _adev) if _adev else ''}</div>
-            </div>
-            """,
-            height=280,
-            scrolling=False,
-        )
-        p1, p2, p3, p4 = st.columns(4)
-        with p1:
-            if st.button("⏮", key=f"{key_prefix}_prev", use_container_width=True):
-                try:
-                    sp.previous_track(); time.sleep(0.25); st.rerun()
-                except Exception as e:
-                    st.caption(str(e))
-        with p2:
-            icon = "⏸" if track["playing"] else "▶"
-            if st.button(icon, key=f"{key_prefix}_play", use_container_width=True):
-                try:
-                    if track["playing"]:
-                        sp.pause_playback()
-                    else:
-                        sp.start_playback()
-                    time.sleep(0.25); st.rerun()
-                except Exception as e:
-                    st.caption(f"Needs Premium + active device: {e}")
-        with p3:
-            if st.button("⏭", key=f"{key_prefix}_next", use_container_width=True):
-                try:
-                    sp.next_track(); time.sleep(0.25); st.rerun()
-                except Exception as e:
-                    st.caption(str(e))
-        with p4:
-            if st.button("↻", key=f"{key_prefix}_ref", use_container_width=True):
-                # force fresh lyrics + progress
-                st.session_state._lyrics_key = None
-                st.rerun()
+        _render_cover_block()
+        _render_controls()
 
     with right:
         st.markdown("#### Lyrics")
@@ -1656,7 +1713,6 @@ def render_spotify_panel(key_prefix="sp"):
                             for ms, text in parsed
                         ]
                         payload = _json.dumps(lines_payload)
-                        # slight lead so highlight feels on-beat (LRC often lags a bit)
                         prog_js = max(0, int(progress) + 150)
                         play_js = "true" if playing else "false"
                         st.components.v1.html(
@@ -1798,7 +1854,6 @@ def render_spotify_panel(key_prefix="sp"):
                     st.text(lyric_data.get("plain") or "")
                     st.caption("Plain lyrics (not timed)")
 
-            # Fullscreen lyrics (Spotify-style) — available whenever we have lyrics
             if lyric_data and (lyric_data.get("synced") or lyric_data.get("plain")):
                 if st.button("⛶ Fullscreen lyrics", key=f"{key_prefix}_lyrics_fs", use_container_width=True):
                     st.session_state._lyrics_fs_track = {
@@ -1829,7 +1884,6 @@ def render_spotify_panel(key_prefix="sp"):
         except Exception:
             st.caption("Lyrics unavailable right now.")
 
-    # Re-anchor Spotify progress so lyrics stay accurate while playing
     if track.get("playing"):
         try:
             from streamlit_autorefresh import st_autorefresh
