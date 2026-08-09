@@ -2820,10 +2820,44 @@ if st.session_state.view == "lyrics_full":
           #fs-status {{
             position: absolute;
             right: 24px;
-            bottom: 28px;
+            bottom: 96px;
             font-size: 12px;
             opacity: 0.5;
             letter-spacing: 0.04em;
+            z-index: 6;
+          }}
+          /* CAVA-style spectrum underbar */
+          #fs-cava {{
+            position: absolute;
+            left: 0; right: 0; bottom: 0;
+            height: 72px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 3px;
+            padding: 0 18px 10px;
+            box-sizing: border-box;
+            z-index: 4;
+            pointer-events: none;
+            background: linear-gradient(to top, rgba(10,10,14,0.92) 20%, transparent);
+          }}
+          #fs-cava .bar {{
+            flex: 1;
+            max-width: 10px;
+            min-width: 3px;
+            height: 8%;
+            border-radius: 2px 2px 0 0;
+            background: linear-gradient(to top, #7c3aed, #c4a7e7 55%, #e9d5ff);
+            box-shadow: 0 0 8px rgba(196,167,231,0.25);
+            transition: height 0.05s linear;
+            opacity: 0.9;
+          }}
+          #fs-cava.paused .bar {{
+            opacity: 0.35;
+            transition: height 0.4s ease;
+          }}
+          #fs-meta {{
+            bottom: 88px;
           }}
         </style>
         <div id="fs-root">
@@ -2836,6 +2870,7 @@ if st.session_state.view == "lyrics_full":
             </div>
           </div>
           <div id="fs-status"></div>
+          <div id="fs-cava" aria-hidden="true"></div>
         </div>
         <script>
         (function(){{
@@ -2865,12 +2900,60 @@ if st.session_state.view == "lyrics_full":
           const nameEl = document.getElementById('fs-name');
           const artEl = document.getElementById('fs-art');
           const artstsEl = document.getElementById('fs-artists');
+          const cava = document.getElementById('fs-cava');
           if (nameEl) nameEl.textContent = name || '';
           if (artstsEl) artstsEl.textContent = artists || '';
           if (artEl && art) {{
             artEl.src = art;
             artEl.style.display = 'block';
           }}
+
+          // --- CAVA-style bars (visual only; not real system audio) ---
+          const BAR_COUNT = 48;
+          const levels = new Float32Array(BAR_COUNT);
+          const targets = new Float32Array(BAR_COUNT);
+          if (cava) {{
+            for (let i = 0; i < BAR_COUNT; i++) {{
+              const b = document.createElement('div');
+              b.className = 'bar';
+              cava.appendChild(b);
+            }}
+          }}
+          function cavaFrame(t) {{
+            if (!cava) return;
+            const bars = cava.children;
+            if (!isPlaying) {{
+              cava.classList.add('paused');
+              for (let i = 0; i < bars.length; i++) {{
+                levels[i] += (0.06 - levels[i]) * 0.08;
+                bars[i].style.height = Math.max(4, levels[i] * 100) + '%';
+              }}
+              return;
+            }}
+            cava.classList.remove('paused');
+            // Pseudo-spectrum: layered sines + noise (feels like cava)
+            const tsec = t * 0.001;
+            for (let i = 0; i < BAR_COUNT; i++) {{
+              const f = i / BAR_COUNT;
+              // Bass heavier on the left, airy on the right
+              const bass = Math.sin(tsec * 2.2 + f * 3.1) * 0.35 + 0.4;
+              const mid  = Math.sin(tsec * 5.5 + f * 8.0) * 0.25 + 0.3;
+              const high = Math.sin(tsec * 11.0 + f * 14.0) * 0.15 + 0.15;
+              const noise = Math.random() * 0.12;
+              const envelope = Math.pow(1 - Math.abs(f - 0.15), 1.4) * 0.55
+                             + Math.pow(1 - Math.abs(f - 0.45), 1.2) * 0.35
+                             + Math.pow(f, 0.6) * 0.25;
+              targets[i] = Math.min(1, Math.max(0.04, (bass * 0.5 + mid * 0.35 + high * 0.25 + noise) * envelope * 1.35));
+              // Smooth toward target (cava-like gravity)
+              levels[i] += (targets[i] - levels[i]) * 0.35;
+              bars[i].style.height = (levels[i] * 100) + '%';
+            }}
+          }}
+          (function cavaLoop(now) {{
+            cavaFrame(now || 0);
+            requestAnimationFrame(cavaLoop);
+          }})(0);
+
           if (!root) return;
           if (!lines.length) {{
             root.innerHTML = '<div class="fs-line active" style="opacity:0.7">No lyrics for this track</div>';
