@@ -4367,108 +4367,122 @@ def paginate_text(text: str, page_size: int = 2200) -> list:
 # ============================================================
 CINEMA_CATALOG = [
     # —— simple, actually (10) ——
-    {"id": "sa_lotus", "title": "How To Force Your Brain To Do Hard Things (Lotus Method)", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "GpsWTFciswE", "tags": ["productivity"]},
-    {"id": "sa_cs", "title": "How to study computer science so FAST that it feels ILLEGAL", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "TbZj_hlJitA", "tags": ["study"]},
-    {"id": "sa_chem", "title": "How to study CHEMISTRY so FAST that it feels ILLEGAL", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "0oHMoSSelo0", "tags": ["study"]},
-    {"id": "sa_bio", "title": "How to study BIOLOGY so FAST that it feels ILLEGAL", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "-qU1mQ0ilxo", "tags": ["study"]},
-    {"id": "sa_physics", "title": "How to study PHYSICS so FAST that it feels ILLEGAL", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "kGBv_vZFnvw", "tags": ["study"]},
-    {"id": "sa_study_fast", "title": "How to STUDY so FAST that it feels ILLEGAL", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "ZTFcn5rbBFg", "tags": ["study"]},
-    {"id": "sa_stoic", "title": "How To Never Get Angry Or Bothered By Anyone (STOICISM)", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "OgJQkabvdA4", "tags": ["mindset"]},
-    {"id": "sa_cant_study", "title": "Please Watch This If YOU Can't Study", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "Wm-qGO_dme4", "tags": ["study"]},
-    {"id": "sa_hours", "title": "How to Study for Hours Without Getting Distracted", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "XQFsva8fi9k", "tags": ["study"]},
-    {"id": "sa_memory", "title": "How to Build a MEMORY PALACE That Actually Works", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "mTK3T8p4md8", "tags": ["study"]},
+    {"id": "sa_lotus", "title": "How To Force Your Brain To Do Hard Things (Lotus Method)", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "GpsWTFciswE", "tags": ["productivity"]},
+    {"id": "sa_cs", "title": "How to study computer science so FAST that it feels ILLEGAL", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "TbZj_hlJitA", "tags": ["study"]},
+    {"id": "sa_chem", "title": "How to study CHEMISTRY so FAST that it feels ILLEGAL", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "0oHMoSSelo0", "tags": ["study"]},
+    {"id": "sa_bio", "title": "How to study BIOLOGY so FAST that it feels ILLEGAL", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "-qU1mQ0ilxo", "tags": ["study"]},
+    {"id": "sa_physics", "title": "How to study PHYSICS so FAST that it feels ILLEGAL", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "kGBv_vZFnvw", "tags": ["study"]},
+    {"id": "sa_study_fast", "title": "How to STUDY so FAST that it feels ILLEGAL", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "ZTFcn5rbBFg", "tags": ["study"]},
+    {"id": "sa_stoic", "title": "How To Never Get Angry Or Bothered By Anyone (STOICISM)", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "OgJQkabvdA4", "tags": ["mindset"]},
+    {"id": "sa_cant_study", "title": "Please Watch This If YOU Can't Study", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "Wm-qGO_dme4", "tags": ["study"]},
+    {"id": "sa_hours", "title": "How to Study for Hours Without Getting Distracted", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "XQFsva8fi9k", "tags": ["study"]},
+    {"id": "sa_memory", "title": "How to Build a MEMORY PALACE That Actually Works", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "mTK3T8p4md8", "tags": ["study"]},
     # —— riskambition (10) ——
-    {"id": "ra_peak", "title": "how to reach peak performance in anything you do.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "note": "@riskambition", "kind": "youtube", "youtube_id": "18Nh2H0RwLM", "tags": ["productivity"]},
-    {"id": "ra_polymath", "title": "how to actually become a polymath.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "note": "@riskambition", "kind": "youtube", "youtube_id": "jndWxpCzO5g", "tags": ["productivity"]},
-    {"id": "ra_flow", "title": "how to easily enter flow state anytime you want", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "note": "@riskambition", "kind": "youtube", "youtube_id": "_e--tk58Lvo", "tags": ["focus"]},
-    {"id": "ra_passion", "title": "how to develop extreme passion.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "note": "@riskambition", "kind": "youtube", "youtube_id": "_BXXXiCgNiM", "tags": ["mindset"]},
-    {"id": "ra_hobby", "title": "how to find a hobby you like.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "note": "@riskambition", "kind": "youtube", "youtube_id": "zl2eZkh6rMU", "tags": ["mindset"]},
-    {"id": "ra_deep", "title": "how to enter deep work properly.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "note": "@riskambition", "kind": "youtube", "youtube_id": "mbxqRzCVJao", "tags": ["focus"]},
-    {"id": "ra_discipline", "title": "how to easily become more disciplined.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "note": "@riskambition", "kind": "youtube", "youtube_id": "4r3A5cxOcmA", "tags": ["productivity"]},
-    {"id": "ra_high", "title": "how to become a high performer.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "note": "@riskambition", "kind": "youtube", "youtube_id": "BJWUaxh-ojM", "tags": ["productivity"]},
-    {"id": "ra_hyper", "title": "how to hyperfocus and get more done in less time.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "note": "@riskambition", "kind": "youtube", "youtube_id": "9_t-NYyhDkM", "tags": ["focus"]},
-    {"id": "ra_focus8", "title": "how to focus for 8+ hours a day.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "note": "@riskambition", "kind": "youtube", "youtube_id": "BOEROJ-CjBY", "tags": ["focus"]},
+    {"id": "ra_peak", "title": "how to reach peak performance in anything you do.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@riskambition", "kind": "youtube", "youtube_id": "18Nh2H0RwLM", "tags": ["productivity"]},
+    {"id": "ra_polymath", "title": "how to actually become a polymath.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@riskambition", "kind": "youtube", "youtube_id": "jndWxpCzO5g", "tags": ["productivity"]},
+    {"id": "ra_flow", "title": "how to easily enter flow state anytime you want", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@riskambition", "kind": "youtube", "youtube_id": "_e--tk58Lvo", "tags": ["focus"]},
+    {"id": "ra_passion", "title": "how to develop extreme passion.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@riskambition", "kind": "youtube", "youtube_id": "_BXXXiCgNiM", "tags": ["mindset"]},
+    {"id": "ra_hobby", "title": "how to find a hobby you like.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@riskambition", "kind": "youtube", "youtube_id": "zl2eZkh6rMU", "tags": ["mindset"]},
+    {"id": "ra_deep", "title": "how to enter deep work properly.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@riskambition", "kind": "youtube", "youtube_id": "mbxqRzCVJao", "tags": ["focus"]},
+    {"id": "ra_discipline", "title": "how to easily become more disciplined.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@riskambition", "kind": "youtube", "youtube_id": "4r3A5cxOcmA", "tags": ["productivity"]},
+    {"id": "ra_high", "title": "how to become a high performer.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@riskambition", "kind": "youtube", "youtube_id": "BJWUaxh-ojM", "tags": ["productivity"]},
+    {"id": "ra_hyper", "title": "how to hyperfocus and get more done in less time.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@riskambition", "kind": "youtube", "youtube_id": "9_t-NYyhDkM", "tags": ["focus"]},
+    {"id": "ra_focus8", "title": "how to focus for 8+ hours a day.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@riskambition", "kind": "youtube", "youtube_id": "BOEROJ-CjBY", "tags": ["focus"]},
     # —— Veritasium (10) ——
-    {"id": "ve_molecular", "title": "Your Body's Molecular Machines", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "note": "@veritasium", "kind": "youtube", "youtube_id": "X_tYrnv_o6A", "tags": ["science"]},
-    {"id": "ve_future", "title": "The Future of Veritasium", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "note": "@veritasium", "kind": "youtube", "youtube_id": "piHGnG4LsmQ", "tags": ["science"]},
-    {"id": "ve_fingerprint", "title": "The Problem With Fingerprint Analysis", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "note": "@veritasium", "kind": "youtube", "youtube_id": "mvcesPWvUIc", "tags": ["science"]},
-    {"id": "ve_pattern", "title": "We're 99.9% sure this pattern is true, but no one can prove it", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "note": "@veritasium", "kind": "youtube", "youtube_id": "8HBDE-msUjw", "tags": ["math"]},
-    {"id": "ve_bet", "title": "A Physics Prof Bet Me $10,000 I'm Wrong", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "note": "@veritasium", "kind": "youtube", "youtube_id": "yCsgoLc_fzI", "tags": ["science"]},
-    {"id": "ve_life", "title": "My Life Story", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "note": "@veritasium", "kind": "youtube", "youtube_id": "S1tFT4smd6E", "tags": ["science"]},
-    {"id": "ve_maps", "title": "Google Maps is unreasonably fast. Let me explain", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "note": "@veritasium", "kind": "youtube", "youtube_id": "kS-CGkiPetQ", "tags": ["science"]},
-    {"id": "ve_gps", "title": "Something is jamming GPS over Europe. Here's what we found", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "note": "@veritasium", "kind": "youtube", "youtube_id": "tz23G_UXCGA", "tags": ["science"]},
-    {"id": "ve_antimatter", "title": "What happens if you drop 0.125 grams of antimatter?", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "note": "@veritasium", "kind": "youtube", "youtube_id": "jjp3WC8Unj8", "tags": ["science"]},
-    {"id": "ve_ftl", "title": "There Is Something Faster Than Light", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "note": "@veritasium", "kind": "youtube", "youtube_id": "NIk_0AW5hFU", "tags": ["science"]},
+    {"id": "ve_molecular", "title": "Your Body's Molecular Machines", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "shelf_category": "Science", "note": "@veritasium", "kind": "youtube", "youtube_id": "X_tYrnv_o6A", "tags": ["science"]},
+    {"id": "ve_future", "title": "The Future of Veritasium", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "shelf_category": "Science", "note": "@veritasium", "kind": "youtube", "youtube_id": "piHGnG4LsmQ", "tags": ["science"]},
+    {"id": "ve_fingerprint", "title": "The Problem With Fingerprint Analysis", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "shelf_category": "Science", "note": "@veritasium", "kind": "youtube", "youtube_id": "mvcesPWvUIc", "tags": ["science"]},
+    {"id": "ve_pattern", "title": "We're 99.9% sure this pattern is true, but no one can prove it", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "shelf_category": "Science", "note": "@veritasium", "kind": "youtube", "youtube_id": "8HBDE-msUjw", "tags": ["math"]},
+    {"id": "ve_bet", "title": "A Physics Prof Bet Me $10,000 I'm Wrong", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "shelf_category": "Science", "note": "@veritasium", "kind": "youtube", "youtube_id": "yCsgoLc_fzI", "tags": ["science"]},
+    {"id": "ve_life", "title": "My Life Story", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "shelf_category": "Science", "note": "@veritasium", "kind": "youtube", "youtube_id": "S1tFT4smd6E", "tags": ["science"]},
+    {"id": "ve_maps", "title": "Google Maps is unreasonably fast. Let me explain", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "shelf_category": "Science", "note": "@veritasium", "kind": "youtube", "youtube_id": "kS-CGkiPetQ", "tags": ["science"]},
+    {"id": "ve_gps", "title": "Something is jamming GPS over Europe. Here's what we found", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "shelf_category": "Science", "note": "@veritasium", "kind": "youtube", "youtube_id": "tz23G_UXCGA", "tags": ["science"]},
+    {"id": "ve_antimatter", "title": "What happens if you drop 0.125 grams of antimatter?", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "shelf_category": "Science", "note": "@veritasium", "kind": "youtube", "youtube_id": "jjp3WC8Unj8", "tags": ["science"]},
+    {"id": "ve_ftl", "title": "There Is Something Faster Than Light", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "shelf_category": "Science", "note": "@veritasium", "kind": "youtube", "youtube_id": "NIk_0AW5hFU", "tags": ["science"]},
     # —— Practical Engineering (10) ——
-    {"id": "pe_landfills", "title": "The Hidden Engineering of Landfills", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "HRx_dZawN44", "tags": ["engineering"]},
-    {"id": "pe_baseplates", "title": "What's the Deal with Base Plates?", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "nGa1244hK9Y", "tags": ["engineering"]},
-    {"id": "pe_powergrid", "title": "The Most Confusing Part of the Power Grid", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "ZwkNTwWJP5k", "tags": ["engineering"]},
-    {"id": "pe_blackstart", "title": "What Is A Black Start Of The Power Grid?", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "uOSnQM1Zu4w", "tags": ["engineering"]},
-    {"id": "pe_fish", "title": "How Fish Survive Hydro Turbines", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "HCE_lFUMXNg", "tags": ["engineering"]},
-    {"id": "pe_pump", "title": "Recreating an Ancient Pump (with no moving parts)", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "7OHCOFFUamQ", "tags": ["engineering"]},
-    {"id": "pe_flood", "title": "How Flood Tunnels Work", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "r4G0aTq5oSM", "tags": ["engineering"]},
-    {"id": "pe_loco", "title": "Why Locomotives Don't Have Tires", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "nGhBHrr5CYQ", "tags": ["engineering"]},
-    {"id": "pe_budget", "title": "Why Construction Projects Always Go Over Budget", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "dOe_6vuaR_s", "tags": ["engineering"]},
-    {"id": "pe_million", "title": "1E6 Views and a Few Announcements", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "qeSXSQFMvbo", "tags": ["engineering"]},
+    {"id": "pe_landfills", "title": "The Hidden Engineering of Landfills", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "shelf_category": "Science", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "HRx_dZawN44", "tags": ["engineering"]},
+    {"id": "pe_baseplates", "title": "What's the Deal with Base Plates?", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "shelf_category": "Science", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "nGa1244hK9Y", "tags": ["engineering"]},
+    {"id": "pe_powergrid", "title": "The Most Confusing Part of the Power Grid", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "shelf_category": "Science", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "ZwkNTwWJP5k", "tags": ["engineering"]},
+    {"id": "pe_blackstart", "title": "What Is A Black Start Of The Power Grid?", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "shelf_category": "Science", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "uOSnQM1Zu4w", "tags": ["engineering"]},
+    {"id": "pe_fish", "title": "How Fish Survive Hydro Turbines", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "shelf_category": "Science", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "HCE_lFUMXNg", "tags": ["engineering"]},
+    {"id": "pe_pump", "title": "Recreating an Ancient Pump (with no moving parts)", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "shelf_category": "Science", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "7OHCOFFUamQ", "tags": ["engineering"]},
+    {"id": "pe_flood", "title": "How Flood Tunnels Work", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "shelf_category": "Science", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "r4G0aTq5oSM", "tags": ["engineering"]},
+    {"id": "pe_loco", "title": "Why Locomotives Don't Have Tires", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "shelf_category": "Science", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "nGhBHrr5CYQ", "tags": ["engineering"]},
+    {"id": "pe_budget", "title": "Why Construction Projects Always Go Over Budget", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "shelf_category": "Science", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "dOe_6vuaR_s", "tags": ["engineering"]},
+    {"id": "pe_million", "title": "1E6 Views and a Few Announcements", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "shelf_category": "Science", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "qeSXSQFMvbo", "tags": ["engineering"]},
     # —— Outdoor Boys (10) ——
-    {"id": "ob_ketchikan", "title": "7 Days Remote Camping, Fishing & Exploring Ketchikan Alaska", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "LxVczipWxos", "tags": ["outdoors"]},
-    {"id": "ob_valdez", "title": "4 Days Camping, Fishing & Eating What We Catch in Alaska", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "qUhW2hJJVxA", "tags": ["outdoors"]},
-    {"id": "ob_trail", "title": "4 Days Camping & Building a Trail", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "IyCEpSLheUw", "tags": ["outdoors"]},
-    {"id": "ob_family10", "title": "1 Week Fishing, Camping, & Hiking Adventure (Family of 10 to Alaska)", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "4OCJ0Bt66ms", "tags": ["outdoors"]},
-    {"id": "ob_proenneke", "title": "3 Days Camping & Fishing Alaska's Wilderness (Near Dick Proenneke's Cabin)", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "93zzKz-2PZU", "tags": ["outdoors"]},
-    {"id": "ob_shrimp", "title": "3 Days Camping in Alaska & Eating What We Catch", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "0Gx60dye-_U", "tags": ["outdoors"]},
-    {"id": "ob_alone", "title": "4 Days Alone in Alaska - Bushcraft Camping & Foraging Food", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "sSsTR8qqDl4", "tags": ["outdoors"]},
-    {"id": "ob_frozen", "title": "Camping on Frozen Ocean - 6 Days Fishing for King Crab", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "8hvbcAvkuJs", "tags": ["outdoors"]},
-    {"id": "ob_swamp", "title": "5 Days Fishing & Camping in Swamp - Catch & Cook", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "J-sMBdJyclo", "tags": ["outdoors"]},
-    {"id": "ob_atv", "title": "ATV Camping & Fishing on Deserted Island", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "5LUgUW0yox4", "tags": ["outdoors"]},
+    {"id": "ob_ketchikan", "title": "7 Days Remote Camping, Fishing & Exploring Ketchikan Alaska", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "shelf_category": "Outdoors", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "LxVczipWxos", "tags": ["outdoors"]},
+    {"id": "ob_valdez", "title": "4 Days Camping, Fishing & Eating What We Catch in Alaska", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "shelf_category": "Outdoors", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "qUhW2hJJVxA", "tags": ["outdoors"]},
+    {"id": "ob_trail", "title": "4 Days Camping & Building a Trail", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "shelf_category": "Outdoors", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "IyCEpSLheUw", "tags": ["outdoors"]},
+    {"id": "ob_family10", "title": "1 Week Fishing, Camping, & Hiking Adventure (Family of 10 to Alaska)", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "shelf_category": "Outdoors", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "4OCJ0Bt66ms", "tags": ["outdoors"]},
+    {"id": "ob_proenneke", "title": "3 Days Camping & Fishing Alaska's Wilderness (Near Dick Proenneke's Cabin)", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "shelf_category": "Outdoors", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "93zzKz-2PZU", "tags": ["outdoors"]},
+    {"id": "ob_shrimp", "title": "3 Days Camping in Alaska & Eating What We Catch", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "shelf_category": "Outdoors", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "0Gx60dye-_U", "tags": ["outdoors"]},
+    {"id": "ob_alone", "title": "4 Days Alone in Alaska - Bushcraft Camping & Foraging Food", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "shelf_category": "Outdoors", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "sSsTR8qqDl4", "tags": ["outdoors"]},
+    {"id": "ob_frozen", "title": "Camping on Frozen Ocean - 6 Days Fishing for King Crab", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "shelf_category": "Outdoors", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "8hvbcAvkuJs", "tags": ["outdoors"]},
+    {"id": "ob_swamp", "title": "5 Days Fishing & Camping in Swamp - Catch & Cook", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "shelf_category": "Outdoors", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "J-sMBdJyclo", "tags": ["outdoors"]},
+    {"id": "ob_atv", "title": "ATV Camping & Fishing on Deserted Island", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "shelf_category": "Outdoors", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "5LUgUW0yox4", "tags": ["outdoors"]},
     # —— SmarterEveryDay (10) ——
-    {"id": "sed_taco", "title": "They Call it \"The Taco Turn\" and it's Genius - Smarter Every Day 315", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "5lCWqEFVzbY", "tags": ["science"]},
-    {"id": "sed_johari", "title": "What Everyone Sees... But I Don't (The Johari Window) - Smarter Every Day 314", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "WtQ64nSbdY4", "tags": ["science"]},
-    {"id": "sed_spin", "title": "Why Do Spinning Things Do This? - Smarter Every Day 312", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "XwBZx1cXEdM", "tags": ["science"]},
-    {"id": "sed_nuclear", "title": "I Went Into a Nuclear Plant and It Changed How I Think About Radiation - Smarter Every Day 309", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "cRaKMTK7ea0", "tags": ["science"]},
-    {"id": "sed_reactor", "title": "Refueling a NUCLEAR REACTOR - Smarter Every Day 311", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "v0afQ6w3Bjw", "tags": ["science"]},
-    {"id": "sed_america", "title": "I Tried To Make Something In America - Smarter Every Day 308", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "3ZTGwcHQfLY", "tags": ["science"]},
-    {"id": "sed_pompeii", "title": "Pompeii Changed How I Think About The Roman Empire - Smarter Every Day 310", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "dt_CG_xRnrY", "tags": ["science"]},
-    {"id": "sed_shorts", "title": "YouTube Shorts is Changing YouTube - Smarter Every Day 266", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "ZVaUoyabjAg", "tags": ["science"]},
-    {"id": "sed_war", "title": "The Future of War, and How It Affects YOU - Smarter Every Day 211", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "qOTYgcdNrXE", "tags": ["science"]},
-    {"id": "sed_eclipse", "title": "I Accidentally Photographed Something Unknown During the Eclipse - Smarter Every Day 298", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "bQF51mqzrY4", "tags": ["science"]},
+    {"id": "sed_taco", "title": "They Call it \"The Taco Turn\" and it's Genius - Smarter Every Day 315", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "shelf_category": "Science", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "5lCWqEFVzbY", "tags": ["science"]},
+    {"id": "sed_johari", "title": "What Everyone Sees... But I Don't (The Johari Window) - Smarter Every Day 314", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "shelf_category": "Science", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "WtQ64nSbdY4", "tags": ["science"]},
+    {"id": "sed_spin", "title": "Why Do Spinning Things Do This? - Smarter Every Day 312", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "shelf_category": "Science", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "XwBZx1cXEdM", "tags": ["science"]},
+    {"id": "sed_nuclear", "title": "I Went Into a Nuclear Plant and It Changed How I Think About Radiation - Smarter Every Day 309", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "shelf_category": "Science", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "cRaKMTK7ea0", "tags": ["science"]},
+    {"id": "sed_reactor", "title": "Refueling a NUCLEAR REACTOR - Smarter Every Day 311", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "shelf_category": "Science", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "v0afQ6w3Bjw", "tags": ["science"]},
+    {"id": "sed_america", "title": "I Tried To Make Something In America - Smarter Every Day 308", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "shelf_category": "Science", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "3ZTGwcHQfLY", "tags": ["science"]},
+    {"id": "sed_pompeii", "title": "Pompeii Changed How I Think About The Roman Empire - Smarter Every Day 310", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "shelf_category": "Science", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "dt_CG_xRnrY", "tags": ["science"]},
+    {"id": "sed_shorts", "title": "YouTube Shorts is Changing YouTube - Smarter Every Day 266", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "shelf_category": "Science", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "ZVaUoyabjAg", "tags": ["science"]},
+    {"id": "sed_war", "title": "The Future of War, and How It Affects YOU - Smarter Every Day 211", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "shelf_category": "Science", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "qOTYgcdNrXE", "tags": ["science"]},
+    {"id": "sed_eclipse", "title": "I Accidentally Photographed Something Unknown During the Eclipse - Smarter Every Day 298", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "shelf_category": "Science", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "bQF51mqzrY4", "tags": ["science"]},
 
     # —— Clarified Mind (10) ——
-    {"id": "cm_jubilee", "title": "Jubilee's Spectrum But It's Philosophers on God", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "Gh7P3UWjHp8", "tags": ["philosophy"]},
-    {"id": "cm_socrates", "title": "Socrates Debates Lao Tzu's Philosophy Of Flow", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "rywxXv7rKLA", "tags": ["philosophy"]},
-    {"id": "cm_nietzsche_marcus", "title": "Nietzsche debates Marcus Aurelius' Stoic way of living", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "wAxYObrcHrY", "tags": ["philosophy"]},
-    {"id": "cm_nietzsche_jung", "title": "Nietzsche debates Jung on what makes life worth living", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "wXD0SPhncBs", "tags": ["philosophy"]},
-    {"id": "cm_trolley", "title": "AI Decides on Absurd Trolley Problems", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "1boxiCcpZ-w", "tags": ["philosophy"]},
-    {"id": "cm_trolley2", "title": "AI Decides on EVEN MORE Absurd Trolley Problems", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "yQlX7yToj-8", "tags": ["philosophy"]},
-    {"id": "cm_machiavelli", "title": "Machiavelli debates Marcus Aurelius' Stoicism", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "rbjYKZe-Ds0", "tags": ["philosophy"]},
-    {"id": "cm_god", "title": "Does God Exist? AI debates (Atheist vs Believer)", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "EjxL2oB7J-o", "tags": ["philosophy"]},
-    {"id": "cm_freewill", "title": "Does Free Will Exist? AI Debates", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "1zEjQ_LILJA", "tags": ["philosophy"]},
-    {"id": "cm_econ", "title": "Best Economic System? AI debates (Capitalist vs Socialist)", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "ZB4soi4FZJc", "tags": ["philosophy"]},
+    {"id": "cm_jubilee", "title": "Jubilee's Spectrum But It's Philosophers on God", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "Gh7P3UWjHp8", "tags": ["philosophy"]},
+    {"id": "cm_socrates", "title": "Socrates Debates Lao Tzu's Philosophy Of Flow", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "rywxXv7rKLA", "tags": ["philosophy"]},
+    {"id": "cm_nietzsche_marcus", "title": "Nietzsche debates Marcus Aurelius' Stoic way of living", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "wAxYObrcHrY", "tags": ["philosophy"]},
+    {"id": "cm_nietzsche_jung", "title": "Nietzsche debates Jung on what makes life worth living", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "wXD0SPhncBs", "tags": ["philosophy"]},
+    {"id": "cm_trolley", "title": "AI Decides on Absurd Trolley Problems", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "1boxiCcpZ-w", "tags": ["philosophy"]},
+    {"id": "cm_trolley2", "title": "AI Decides on EVEN MORE Absurd Trolley Problems", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "yQlX7yToj-8", "tags": ["philosophy"]},
+    {"id": "cm_machiavelli", "title": "Machiavelli debates Marcus Aurelius' Stoicism", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "rbjYKZe-Ds0", "tags": ["philosophy"]},
+    {"id": "cm_god", "title": "Does God Exist? AI debates (Atheist vs Believer)", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "EjxL2oB7J-o", "tags": ["philosophy"]},
+    {"id": "cm_freewill", "title": "Does Free Will Exist? AI Debates", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "1zEjQ_LILJA", "tags": ["philosophy"]},
+    {"id": "cm_econ", "title": "Best Economic System? AI debates (Capitalist vs Socialist)", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "ZB4soi4FZJc", "tags": ["philosophy"]},
     # —— Just Explained (10) ——
-    {"id": "je_prog", "title": "Every Programming Language Explained in 16 Minutes", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "uerEG_yigco", "tags": ["tech"]},
-    {"id": "je_usb", "title": "Every USB Port COLOR Explained in 13 Minutes", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "r2sBNRWcvTY", "tags": ["tech"]},
-    {"id": "je_illegal_os", "title": "Every Illegal Operating System Explained in 15 Minutes", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "2D2Z-eqK0YM", "tags": ["tech"]},
-    {"id": "je_tv", "title": "Every Type of TV SCREEN Explained in 11 Minutes", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "9BcQk1myhbc", "tags": ["tech"]},
-    {"id": "je_ai", "title": "Every AI Model Explained in 17 Minutes", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "h1MEtoxegzw", "tags": ["tech"]},
-    {"id": "je_underrated", "title": "Every Underrated Tech Invention That Changed The World", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "yr8NqTSxZ2w", "tags": ["tech"]},
-    {"id": "je_watch_tv", "title": "Every Way People Watched TV Explained", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "FbTBA389Ks0", "tags": ["tech"]},
-    {"id": "je_network", "title": "Every Mobile Network Explained in 12 Minutes", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "nfyyidvGZuI", "tags": ["tech"]},
-    {"id": "je_browser", "title": "Every Web Browser Explained in 18 Minutes", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "zF-4OO5p_Yg", "tags": ["tech"]},
-    {"id": "je_os", "title": "Every Operating System Explained in 20 Minutes", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "6Bjj1i6oMow", "tags": ["tech"]},
+    {"id": "je_prog", "title": "Every Programming Language Explained in 16 Minutes", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "uerEG_yigco", "tags": ["tech"]},
+    {"id": "je_usb", "title": "Every USB Port COLOR Explained in 13 Minutes", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "r2sBNRWcvTY", "tags": ["tech"]},
+    {"id": "je_illegal_os", "title": "Every Illegal Operating System Explained in 15 Minutes", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "2D2Z-eqK0YM", "tags": ["tech"]},
+    {"id": "je_tv", "title": "Every Type of TV SCREEN Explained in 11 Minutes", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "9BcQk1myhbc", "tags": ["tech"]},
+    {"id": "je_ai", "title": "Every AI Model Explained in 17 Minutes", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "h1MEtoxegzw", "tags": ["tech"]},
+    {"id": "je_underrated", "title": "Every Underrated Tech Invention That Changed The World", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "yr8NqTSxZ2w", "tags": ["tech"]},
+    {"id": "je_watch_tv", "title": "Every Way People Watched TV Explained", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "FbTBA389Ks0", "tags": ["tech"]},
+    {"id": "je_network", "title": "Every Mobile Network Explained in 12 Minutes", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "nfyyidvGZuI", "tags": ["tech"]},
+    {"id": "je_browser", "title": "Every Web Browser Explained in 18 Minutes", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "zF-4OO5p_Yg", "tags": ["tech"]},
+    {"id": "je_os", "title": "Every Operating System Explained in 20 Minutes", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "6Bjj1i6oMow", "tags": ["tech"]},
     # —— Uncovering (10) ——
-    {"id": "uc_nyc", "title": "The NYC Gang War, Mapped", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "tk2W7mjfFpY", "tags": ["docs"]},
-    {"id": "uc_afghan", "title": "72 Hours to Escape Afghanistan", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "MwfDVUyGLTo", "tags": ["docs"]},
-    {"id": "uc_astroworld", "title": "The Deadly Pit at an Astroworld Concert", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "HUxHBgeO8JE", "tags": ["docs"]},
-    {"id": "uc_titanic", "title": "The Last 4 Survivors of the Titanic", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "xUZAkSaxMUo", "tags": ["docs"]},
-    {"id": "uc_atomic", "title": "The Man Who Survived Both Atomic Bombs", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "FGOpRAuIbUo", "tags": ["docs"]},
-    {"id": "uc_911", "title": "The Last 4 Survivors of 9/11", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "FiGgO-wfEzs", "tags": ["docs"]},
-    {"id": "uc_japan", "title": "The Dark Truth Behind Japan's Free Homes", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "Cn-LVCWHIx0", "tags": ["docs"]},
-    {"id": "uc_chicago", "title": "The Chicago Gang War, Mapped", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "4wHJWlDRVN8", "tags": ["docs"]},
-    {"id": "uc_bermuda", "title": "Why Planes Disappear in the Bermuda Triangle", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "AeetW-9BOgs", "tags": ["docs"]},
-    {"id": "uc_binladen", "title": "Exposing Bin Laden's 19 Hideouts", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "LyQy5_He0Xk", "tags": ["docs"]},
+    {"id": "uc_nyc", "title": "The NYC Gang War, Mapped", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "shelf_category": "Documentaries", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "tk2W7mjfFpY", "tags": ["docs"]},
+    {"id": "uc_afghan", "title": "72 Hours to Escape Afghanistan", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "shelf_category": "Documentaries", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "MwfDVUyGLTo", "tags": ["docs"]},
+    {"id": "uc_astroworld", "title": "The Deadly Pit at an Astroworld Concert", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "shelf_category": "Documentaries", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "HUxHBgeO8JE", "tags": ["docs"]},
+    {"id": "uc_titanic", "title": "The Last 4 Survivors of the Titanic", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "shelf_category": "Documentaries", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "xUZAkSaxMUo", "tags": ["docs"]},
+    {"id": "uc_atomic", "title": "The Man Who Survived Both Atomic Bombs", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "shelf_category": "Documentaries", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "FGOpRAuIbUo", "tags": ["docs"]},
+    {"id": "uc_911", "title": "The Last 4 Survivors of 9/11", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "shelf_category": "Documentaries", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "FiGgO-wfEzs", "tags": ["docs"]},
+    {"id": "uc_japan", "title": "The Dark Truth Behind Japan's Free Homes", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "shelf_category": "Documentaries", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "Cn-LVCWHIx0", "tags": ["docs"]},
+    {"id": "uc_chicago", "title": "The Chicago Gang War, Mapped", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "shelf_category": "Documentaries", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "4wHJWlDRVN8", "tags": ["docs"]},
+    {"id": "uc_bermuda", "title": "Why Planes Disappear in the Bermuda Triangle", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "shelf_category": "Documentaries", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "AeetW-9BOgs", "tags": ["docs"]},
+    {"id": "uc_binladen", "title": "Exposing Bin Laden's 19 Hideouts", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "shelf_category": "Documentaries", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "LyQy5_He0Xk", "tags": ["docs"]},
+    # —— The Big Lez Show (official) ——
+    {"id": "bl_s1_all", "title": "THE BIG LEZ SHOW — ALL OF SEASON 1", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "The Big Lez Saga", "note": "@THEBIGLEZSHOWOFFICIAL · Season 1 complete", "kind": "youtube", "youtube_id": "VuihdCwvm80", "tags": ["comedy"]},
+    {"id": "bl_s2_all", "title": "THE BIG LEZ SHOW — ALL OF SEASON 2", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "The Big Lez Saga", "note": "@THEBIGLEZSHOWOFFICIAL · Season 2 complete", "kind": "youtube", "youtube_id": "OgX31m23zeg", "tags": ["comedy"]},
+    {"id": "bl_s3_all", "title": "THE BIG LEZ SHOW — ALL OF SEASON 3", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "The Big Lez Saga", "note": "@THEBIGLEZSHOWOFFICIAL · Season 3 complete", "kind": "youtube", "youtube_id": "HRJuo0vO3BA", "tags": ["comedy"]},
+    {"id": "bl_s4_all", "title": "THE BIG LEZ SHOW — ALL OF SEASON 4", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "The Big Lez Saga", "note": "@THEBIGLEZSHOWOFFICIAL · Season 4 complete", "kind": "youtube", "youtube_id": "G2wVHFCfjsE", "tags": ["comedy"]},
+    {"id": "bl_s1e01", "title": "S01 EP01 · The Flowers", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "Season 1 Episodes", "note": "Official episode", "kind": "youtube", "youtube_id": "N1n0r3UnpeY", "tags": ["comedy"]},
+    {"id": "bl_s1e02", "title": "S01 EP02 · The Volcano Bong", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "Season 1 Episodes", "note": "Official episode", "kind": "youtube", "youtube_id": "p48-G4KmRXk", "tags": ["comedy"]},
+    {"id": "bl_s1e03", "title": "S01 EP03 · Norton's Revenge", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "Season 1 Episodes", "note": "Official episode", "kind": "youtube", "youtube_id": "ilnYCCvAqsM", "tags": ["comedy"]},
+    {"id": "bl_s1e11", "title": "S01 EP11 · Choomah Island", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "Season 1 Episodes", "note": "Official episode", "kind": "youtube", "youtube_id": "BiFJDQkmXMA", "tags": ["comedy"]},
+    {"id": "bl_s2e01", "title": "S02 EP01 · They're Back", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "Season 2 Episodes", "note": "Official episode", "kind": "youtube", "youtube_id": "E7AFfJFJhtE", "tags": ["comedy"]},
+    {"id": "bl_s2e02", "title": "S02 EP02 · The Trippa Snippa", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "Season 2 Episodes", "note": "Official episode", "kind": "youtube", "youtube_id": "FhykvrPZwA4", "tags": ["comedy"]},
+    {"id": "bl_choomah2", "title": "Choomah Island 2", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "Specials", "note": "Official special", "kind": "youtube", "youtube_id": "7WwLT32_VAk", "tags": ["comedy"]},
+    {"id": "bl_sassy1", "title": "Sassy the Sasquatch EP01 · Seen a Dinosaur", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "Sassy the Sasquatch", "note": "Spin-off", "kind": "youtube", "youtube_id": "9OmR0ypCyOU", "tags": ["comedy"]},
+    {"id": "bl_sassy2", "title": "Sassy the Sasquatch EP02 · Water You Talkinabeet", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "Sassy the Sasquatch", "note": "Spin-off", "kind": "youtube", "youtube_id": "tvCUmH92HfU", "tags": ["comedy"]},
+    {"id": "bl_mike1", "title": "The Mike Nolan Show EP01 · Yeah Nah Yeah", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "Mike Nolan Show", "note": "Spin-off", "kind": "youtube", "youtube_id": "uuc9frxacfE", "tags": ["comedy"]},
 
 ]
-
 
 
 
@@ -4604,7 +4618,7 @@ if st.session_state.view == "cinema":
         </style>
         <div class="cin-hero">
           <h1>Cinema</h1>
-          <p>Channels · pick one, then a video</p>
+          <p>Categories · channels · videos</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -4632,6 +4646,8 @@ if st.session_state.view == "cinema":
             if st.button("Channels", key="cinema_back_channels", use_container_width=True):
                 st.session_state.cinema_watching = None
                 st.session_state.cinema_channel = None
+                st.session_state.cinema_playlist = None
+                st.session_state.cinema_shelf_cat = None
                 st.rerun()
         with nav3:
             if current and not is_custom:
@@ -4653,142 +4669,210 @@ if st.session_state.view == "cinema":
                     st.caption("Last in channel")
         render_cinema_player(play)
 
-    # ---- VIDEOS IN CHANNEL ----
-    elif selected_ch:
-        ch_items = [
-            x for x in CINEMA_CATALOG
-            if (x.get("channel") or x.get("creator") or "Unknown") == selected_ch
-        ]
-        ch_url = next((x.get("channel_url") for x in ch_items if x.get("channel_url")), None)
-
-        top1, top2 = st.columns([1, 3])
-        with top1:
-            if st.button("← Channels", key="cinema_ch_back", use_container_width=True):
-                st.session_state.cinema_channel = None
-                st.rerun()
-        with top2:
-            if ch_url:
-                st.markdown(
-                    f"<div style='padding-top:8px;opacity:0.7;font-size:0.9rem;'>"
-                    f"<strong>{selected_ch}</strong> · "
-                    f"<a href='{ch_url}' target='_blank' rel='noopener'>YouTube</a>"
-                    f" · {len(ch_items)} videos</div>",
-                    unsafe_allow_html=True,
-                )
-            else:
-                st.markdown(
-                    f"<div style='padding-top:8px;opacity:0.7;'><strong>{selected_ch}</strong>"
-                    f" · {len(ch_items)} videos</div>",
-                    unsafe_allow_html=True,
-                )
-
-        # compact 2-column video grid
-        for i in range(0, len(ch_items), 2):
-            cols = st.columns(2)
-            for j, col in enumerate(cols):
-                if i + j >= len(ch_items):
-                    break
-                item = ch_items[i + j]
-                title = item.get("title") or "Untitled"
-                short = title if len(title) <= 72 else title[:69] + "…"
-                with col:
-                    st.markdown(
-                        f"""
-                        <div class="cin-vid">
-                          <div class="cin-title">{short}</div>
-                          <p class="cin-meta">{item.get('note') or ''}</p>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-                    if st.button("Play", key=f"cin_play_{item.get('id')}", use_container_width=True):
-                        st.session_state.cinema_watching = item.get("id")
-                        st.rerun()
-
-        with st.expander("Paste a YouTube link", expanded=False):
-            custom = st.text_input(
-                "URL or video id",
-                placeholder="https://www.youtube.com/watch?v=…",
-                key="cinema_custom_url",
-                label_visibility="collapsed",
-            )
-            if st.button("Play link", key="cinema_play_custom", use_container_width=True):
-                yid = _youtube_id_from_url(custom)
-                if yid:
-                    st.session_state.cinema_watching = f"custom::{yid}"
-                    st.session_state._cinema_custom = {
-                        "id": f"custom::{yid}",
-                        "title": "Custom YouTube",
-                        "creator": "",
-                        "note": "Pasted link",
-                        "kind": "youtube",
-                        "youtube_id": yid,
-                    }
-                    st.rerun()
-                else:
-                    st.warning("Could not read a YouTube id from that link.")
-
-    # ---- CHANNEL GRID ----
+    # ---- CATEGORY → CHANNEL → VIDEOS ----
     else:
+        # state: cinema_shelf_cat, cinema_channel, cinema_playlist
+        shelf_cat = st.session_state.get("cinema_shelf_cat")
+        selected_ch = st.session_state.get("cinema_channel")
+        selected_pl = st.session_state.get("cinema_playlist")
+
         if st.button("← Home", key="cinema_back_home"):
             st.session_state.view = "home"
             st.session_state.cinema_watching = None
             st.session_state.cinema_channel = None
+            st.session_state.cinema_shelf_cat = None
+            st.session_state.cinema_playlist = None
             st.rerun()
 
-        # build channel map
-        by_ch = {}
+        # Build maps
+        by_shelf = {}
         for it in CINEMA_CATALOG:
-            k = it.get("channel") or it.get("creator") or "Unknown"
-            by_ch.setdefault(k, []).append(it)
-        ch_names = sorted(by_ch.keys(), key=lambda s: s.lower())
+            sc = it.get("shelf_category") or "Other"
+            ch = it.get("channel") or it.get("creator") or "Unknown"
+            by_shelf.setdefault(sc, {}).setdefault(ch, []).append(it)
 
-        for i in range(0, len(ch_names), 3):
-            cols = st.columns(3)
-            for j, col in enumerate(cols):
-                if i + j >= len(ch_names):
-                    break
-                name = ch_names[i + j]
-                items = by_ch[name]
-                handle = items[0].get("note") or ""
-                n = len(items)
-                with col:
-                    st.markdown(
-                        f"""
-                        <div class="cin-card">
-                          <div class="cin-kicker">Channel</div>
-                          <div class="cin-title">{name}</div>
-                          <p class="cin-meta">{handle} · {n} video{"s" if n != 1 else ""}</p>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-                    if st.button("Open", key=f"cin_ch_{name}", use_container_width=True):
-                        st.session_state.cinema_channel = name
-                        st.rerun()
-
-        with st.expander("Paste a YouTube link", expanded=False):
-            custom = st.text_input(
-                "URL or video id",
-                placeholder="https://www.youtube.com/watch?v=…",
-                key="cinema_custom_url_home",
-                label_visibility="collapsed",
+        # Level 1: categories
+        if not shelf_cat:
+            st.markdown(
+                "<p style='opacity:0.55;text-align:center;margin:4px 0 14px;font-size:0.9rem'>"
+                "Pick a category</p>",
+                unsafe_allow_html=True,
             )
-            if st.button("Play link", key="cinema_play_custom_home", use_container_width=True):
-                yid = _youtube_id_from_url(custom)
-                if yid:
-                    st.session_state.cinema_watching = f"custom::{yid}"
-                    st.session_state._cinema_custom = {
-                        "id": f"custom::{yid}",
-                        "title": "Custom YouTube",
-                        "creator": "",
-                        "note": "Pasted link",
-                        "kind": "youtube",
-                        "youtube_id": yid,
-                    }
+            cats = sorted(by_shelf.keys(), key=lambda s: (s != "Simple But Effective", s.lower()))
+            for i in range(0, len(cats), 2):
+                cols = st.columns(2)
+                for j, col in enumerate(cols):
+                    if i + j >= len(cats):
+                        break
+                    name = cats[i + j]
+                    n_ch = len(by_shelf[name])
+                    n_vid = sum(len(v) for v in by_shelf[name].values())
+                    with col:
+                        st.markdown(
+                            f"""
+                            <div class="cin-card">
+                              <div class="cin-kicker">Category</div>
+                              <div class="cin-title">{name}</div>
+                              <p class="cin-meta">{n_ch} channels · {n_vid} videos</p>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+                        if st.button("Open", key=f"cin_cat_{name}", use_container_width=True):
+                            st.session_state.cinema_shelf_cat = name
+                            st.rerun()
+
+            with st.expander("Paste a YouTube link", expanded=False):
+                custom = st.text_input(
+                    "URL or video id",
+                    placeholder="https://www.youtube.com/watch?v=…",
+                    key="cinema_custom_url_home",
+                    label_visibility="collapsed",
+                )
+                if st.button("Play link", key="cinema_play_custom_home", use_container_width=True):
+                    yid = _youtube_id_from_url(custom)
+                    if yid:
+                        st.session_state.cinema_watching = f"custom::{yid}"
+                        st.session_state._cinema_custom = {
+                            "id": f"custom::{yid}",
+                            "title": "Custom YouTube",
+                            "creator": "",
+                            "note": "Pasted link",
+                            "kind": "youtube",
+                            "youtube_id": yid,
+                        }
+                        st.rerun()
+                    else:
+                        st.warning("Could not read a YouTube id from that link.")
+
+        # Level 2: channels in category
+        elif not selected_ch:
+            if st.button("← Categories", key="cin_back_cats"):
+                st.session_state.cinema_shelf_cat = None
+                st.rerun()
+            st.markdown(
+                f"<p style='opacity:0.65;margin:4px 0 12px'><strong>{shelf_cat}</strong></p>",
+                unsafe_allow_html=True,
+            )
+            channels = by_shelf.get(shelf_cat) or {}
+            ch_names = sorted(channels.keys(), key=lambda s: s.lower())
+            for i in range(0, len(ch_names), 3):
+                cols = st.columns(3)
+                for j, col in enumerate(cols):
+                    if i + j >= len(ch_names):
+                        break
+                    name = ch_names[i + j]
+                    items = channels[name]
+                    handle = items[0].get("note") or ""
+                    # strip long notes
+                    handle = (items[0].get("channel_url") or "").replace("https://www.youtube.com/", "")
+                    n = len(items)
+                    with col:
+                        st.markdown(
+                            f"""
+                            <div class="cin-card">
+                              <div class="cin-kicker">Channel</div>
+                              <div class="cin-title">{name}</div>
+                              <p class="cin-meta">{handle} · {n} video{"s" if n != 1 else ""}</p>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+                        if st.button("Open", key=f"cin_ch_{shelf_cat}_{name}", use_container_width=True):
+                            st.session_state.cinema_channel = name
+                            st.session_state.cinema_playlist = None
+                            st.rerun()
+
+        # Level 3: playlists / videos in channel
+        else:
+            ch_items = [
+                x for x in CINEMA_CATALOG
+                if (x.get("channel") or x.get("creator") or "Unknown") == selected_ch
+            ]
+            ch_url = next((x.get("channel_url") for x in ch_items if x.get("channel_url")), None)
+            playlists = {}
+            for it in ch_items:
+                pl = it.get("playlist") or "Videos"
+                playlists.setdefault(pl, []).append(it)
+
+            b1, b2 = st.columns([1, 3])
+            with b1:
+                if st.button("← Channels", key="cin_back_ch"):
+                    st.session_state.cinema_channel = None
+                    st.session_state.cinema_playlist = None
                     st.rerun()
-                else:
-                    st.warning("Could not read a YouTube id from that link.")
+            with b2:
+                link = f" · <a href='{ch_url}' target='_blank' rel='noopener'>YouTube</a>" if ch_url else ""
+                st.markdown(
+                    f"<div style='padding-top:8px;opacity:0.7;font-size:0.9rem'>"
+                    f"<strong>{selected_ch}</strong>{link}</div>",
+                    unsafe_allow_html=True,
+                )
+
+            # If multiple playlists, pick one first
+            if len(playlists) > 1 and not selected_pl:
+                st.caption("Playlists")
+                for pl_name, items in sorted(playlists.items(), key=lambda x: x[0].lower()):
+                    c1, c2 = st.columns([4, 1])
+                    with c1:
+                        st.markdown(f"**{pl_name}**  \n<span style='opacity:0.55;font-size:0.85rem'>{len(items)} videos</span>", unsafe_allow_html=True)
+                    with c2:
+                        if st.button("Open", key=f"cin_pl_{selected_ch}_{pl_name}", use_container_width=True):
+                            st.session_state.cinema_playlist = pl_name
+                            st.rerun()
+            else:
+                pl_name = selected_pl if selected_pl in playlists else next(iter(playlists))
+                if len(playlists) > 1:
+                    if st.button("← Playlists", key="cin_back_pl"):
+                        st.session_state.cinema_playlist = None
+                        st.rerun()
+                    st.caption(pl_name)
+                show = playlists.get(pl_name) or ch_items
+                for i in range(0, len(show), 2):
+                    cols = st.columns(2)
+                    for j, col in enumerate(cols):
+                        if i + j >= len(show):
+                            break
+                        item = show[i + j]
+                        title = item.get("title") or "Untitled"
+                        short = title if len(title) <= 72 else title[:69] + "…"
+                        with col:
+                            st.markdown(
+                                f"""
+                                <div class="cin-vid">
+                                  <div class="cin-title">{short}</div>
+                                  <p class="cin-meta">{item.get('note') or ''}</p>
+                                </div>
+                                """,
+                                unsafe_allow_html=True,
+                            )
+                            if st.button("Play", key=f"cin_play_{item.get('id')}", use_container_width=True):
+                                st.session_state.cinema_watching = item.get("id")
+                                st.rerun()
+
+            with st.expander("Paste a YouTube link", expanded=False):
+                custom = st.text_input(
+                    "URL or video id",
+                    placeholder="https://www.youtube.com/watch?v=…",
+                    key="cinema_custom_url",
+                    label_visibility="collapsed",
+                )
+                if st.button("Play link", key="cinema_play_custom", use_container_width=True):
+                    yid = _youtube_id_from_url(custom)
+                    if yid:
+                        st.session_state.cinema_watching = f"custom::{yid}"
+                        st.session_state._cinema_custom = {
+                            "id": f"custom::{yid}",
+                            "title": "Custom YouTube",
+                            "creator": "",
+                            "note": "Pasted link",
+                            "kind": "youtube",
+                            "youtube_id": yid,
+                        }
+                        st.rerun()
+                    else:
+                        st.warning("Could not read a YouTube id from that link.")
+
 
     st.stop()
 
