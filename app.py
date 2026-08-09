@@ -550,6 +550,29 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
     .clock {{ font-weight: 600; font-variant-numeric: tabular-nums; }}
     .muted {{ color: {SHELL["muted"]}; font-size: 0.8rem; }}
 
+    .bookmark-rail {{
+        background: {SHELL["panel_solid"]} !important;
+        border: 1px solid {SHELL["border"]} !important;
+        border-radius: 16px !important;
+        padding: 14px 12px 12px !important;
+        margin-bottom: 14px;
+        animation: fadeUp 0.4s ease both;
+        position: sticky;
+        top: 0.5rem;
+    }}
+    .bookmark-rail .panel-label {{
+        margin-bottom: 10px !important;
+        padding: 0 4px;
+    }}
+    .bookmark-rail div[data-testid="stButton"] button {{
+        text-align: left !important;
+        justify-content: flex-start !important;
+        padding-left: 12px !important;
+        font-size: 0.88rem !important;
+        min-height: 38px !important;
+        border-radius: 10px !important;
+    }}
+
     .panel {{
         padding: 18px 18px 16px;
         margin-bottom: 14px;
@@ -2722,35 +2745,25 @@ if st.session_state.view not in ("lab", "note", "voss_file", "lyrics_full"):
 </div>
 """, unsafe_allow_html=True)
 
-    n1, n2, n3 = st.columns(3)
-    with n1:
-        if st.button("⌂ Home", use_container_width=True, key="n_home"):
-            st.session_state.view = "home"
-            st.rerun()
-    with n2:
-        if st.button("💬 Chat", use_container_width=True, key="n_chat"):
-            st.session_state.view = "chat"
-            st.rerun()
-    with n3:
-        if st.button("♫ Music", use_container_width=True, key="n_music"):
-            st.session_state.view = "music"
-            st.rerun()
-    n4, n5, n6 = st.columns(3)
-    with n4:
-        if st.button("◎ Listen", use_container_width=True, key="n_listen"):
-            st.session_state.view = "listen"
-            st.rerun()
-    with n5:
-        if st.button("☰ Menu", use_container_width=True, key="n_menu"):
-            st.session_state.popup = True
-            st.rerun()
-    with n6:
-        if lab_is_unlocked():
-            if st.button("Open the lab", use_container_width=True, key="n_lab"):
-                st.session_state.view = "lab"
+    # Slim top nav — full shortcuts live in the home bookmark rail
+    if st.session_state.view != "home":
+        n1, n2, n3, n4 = st.columns(4)
+        with n1:
+            if st.button("⌂ Home", use_container_width=True, key="n_home"):
+                st.session_state.view = "home"
                 st.rerun()
-        else:
-            st.caption("")
+        with n2:
+            if st.button("💬 Chat", use_container_width=True, key="n_chat"):
+                st.session_state.view = "chat"
+                st.rerun()
+        with n3:
+            if st.button("♫ Music", use_container_width=True, key="n_music"):
+                st.session_state.view = "music"
+                st.rerun()
+        with n4:
+            if st.button("☰ Menu", use_container_width=True, key="n_menu"):
+                st.session_state.popup = True
+                st.rerun()
 
 # ===== FULLSCREEN LYRICS (Spotify-style) =====
 if st.session_state.view == "lyrics_full":
@@ -4004,240 +4017,101 @@ if st.session_state.view == "library":
         )
     st.stop()
 
-# HOME — Design 1
+# HOME — bookmark rail + calm main panel
 if st.session_state.view == "home":
+    rail, body = st.columns([1.15, 3.35], gap="medium")
 
-    # Easter egg captions on home
-    for _fn in (owner_rare_line, quiet_hour_caption, lab_leftover_caption, stabilize_countdown):
-        try:
-            if _fn is owner_rare_line:
-                _c = owner_rare_line(st.session_state.get("username") or "")
-            else:
-                _c = _fn()
-            if _c:
-                st.caption(_c)
-        except Exception:
-            pass
-    _combo = font_theme_combo_caption(
-        st.session_state.get("font") or "Inter",
-        st.session_state.get("theme") or "Caelestia",
-    )
-    if _combo:
-        st.caption(_combo)
-    if st.session_state.get("_egg_flash"):
-        st.info(st.session_state.pop("_egg_flash"))
-    st.markdown(f"""
-    <div class="panel">
-      <div class="panel-label">Shell</div>
-      <div class="hero">{greet_line(st.session_state.username)}</div>
-      <div class="sub">{owner_subline(st.session_state.username)}</div>
-      <div class="ridge"></div>
-    </div>
-    """, unsafe_allow_html=True)
-
-
-    # Post-lab anomaly warning + home glitch (after 2nd lab visit)
-    if lab_is_unlocked() and glitches_unlocked() and not anomalies_complete():
+    # ---------- BOOKMARK RAIL ----------
+    with rail:
         st.markdown(
-            """
-            <div style="
-              margin: 0 0 12px; padding: 12px 14px; border-radius: 12px;
-              background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.45);
-              color: #fecaca; font-family: ui-monospace, monospace; font-size: 0.85rem;
-              animation: anomPulse 2.2s ease-in-out infinite;
-            ">
-              ⚠ WARNING: ANOMALIES PRESENT<br/>
-              <span style="opacity:0.9;font-size:0.78rem;line-height:1.45;">
-              — Dr. E. Voss, Observation Division<br/>
-              You opened the log. That was the point. Now the medium is leaving fingerprints
-              in three places it should not reach. Find them before the committees do.
-              </span>
-            </div>
-            <style>
-              @keyframes anomPulse {
-                0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.0); }
-                50% { box-shadow: 0 0 18px 0 rgba(239,68,68,0.25); }
-              }
-            </style>
-            """,
+            '<div class="bookmark-rail"><div class="panel-label">Bookmarks</div>',
             unsafe_allow_html=True,
         )
-        found = set(st.session_state.get("glitches_found") or [])
-        st.caption(f"Voss markers recovered: {len(found)} / 3")
-        # Home glitch — clickable image (not a white box)
-        st.markdown(
-            """
-            <style>
-              div[data-testid="stButton"]:has(button[kind="secondary"]) button {
-                background: #0a1210 !important;
-                color: #5eead4 !important;
-                border: 1px solid rgba(34,211,238,0.35) !important;
-                border-radius: 10px !important;
-              }
-            </style>
-            <div style="font-family:ui-monospace,monospace;font-size:0.72rem;color:#5eead4;opacity:0.7;margin:6px 0 4px;">
-              Voss field residual — tap the interference
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        _gpath = None
-        _base = Path(__file__).resolve().parent / "assets"
-        for _name in ("glitch_home.png", "IMG_1354.jpeg", "IMG_1354.jpg"):
-            _cand = _base / _name
-            if _cand.exists() and _cand.stat().st_size > 500:
-                _gpath = _cand
-                break
-        if _gpath is not None:
-            st.image(str(_gpath), width=280)
-        else:
-            st.markdown(
-                '<div style="height:72px;border-radius:10px;background:repeating-linear-gradient(0deg,#04120e,#04120e 2px,#0a1c18 2px,#0a1c18 4px);border:1px solid rgba(34,211,238,0.35);"></div>',
-                unsafe_allow_html=True,
-            )
-        st.markdown(
-            """
-            <style>
-              div[data-testid="stButton"]:has(button[kind="secondary"]) button,
-              div[data-testid="stButton"] button[kind="secondary"] {
-                min-height: 32px !important;
-                height: 32px !important;
-                padding: 0 12px !important;
-                font-size: 0.78rem !important;
-                border-radius: 8px !important;
-              }
-            </style>
-            """,
-            unsafe_allow_html=True,
-        )
-        if st.button("Tap anomaly", key="glitch_home", use_container_width=False):
-            play_glitch_sfx()
-            if find_glitch("home", "Voss log: home marker secured. Two remain."):
-                st.session_state.anomaly_warned = True
-                save_user_data()
-            st.rerun()
-        if "home" in found:
-            st.caption("Home marker · secured")
-        if st.session_state.get("_glitch_flash"):
-            st.success(st.session_state.pop("_glitch_flash"))
-
-        # All three Voss markers → open her file
-        if set(st.session_state.get("glitches_found") or []) >= {"home", "lab", "pixel"}:
-            st.session_state.voss_file_unlocked = True
-            if st.button("Open Dr. Voss's file", use_container_width=True, key="open_voss_file", type="primary"):
-                st.session_state.voss_cutscene_stage = 0
-                st.session_state.view = "voss_file"
-                st.rerun()
-
-
-    # Re-open Voss file if already earned
-    if st.session_state.get("voss_file_unlocked") and not glitches_unlocked():
-        if st.button("Open Dr. Voss's file", use_container_width=True, key="open_voss_always", type="primary"):
-            st.session_state.voss_cutscene_stage = 0
-            st.session_state.view = "voss_file"
-            st.rerun()
-
-
-    # Anomalies finished — no more hunting; reopen Voss file only
-    if lab_is_unlocked() and anomalies_complete():
-        ensure_voss_theme()
-        st.markdown(
-            """
-            <div style="
-              margin: 0 0 12px; padding: 12px 14px; border-radius: 12px;
-              background: rgba(80,20,20,0.25); border: 1px solid rgba(180,60,60,0.4);
-              color: #e8b0b0; font-family: ui-monospace, monospace; font-size: 0.82rem;
-            ">
-              Voss markers sealed · 3 / 3<br/>
-              <span style="opacity:0.85;font-size:0.75rem;">The anomalies will not return. The file remains.</span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        if st.button("Open Dr. Voss's file", use_container_width=True, key="open_voss_home_done", type="primary"):
-            st.session_state.voss_cutscene_stage = 0
-            st.session_state.view = "voss_file"
-            st.rerun()
-
-    # —— Interactive feature toggles (actually work) ——
-    prov = st.session_state.provider
-    wiki_on = st.session_state.use_wiki_toggle
-    web_on = st.session_state.use_web_toggle
-    music_on = st.session_state.show_spotify
-
-    # Row 1: Provider cycle + Wiki + Web + Music
-    f1, f2, f3, f4 = st.columns(4)
-    with f1:
-        prov_label = {
-            "groq": "✧ Groq · ON",
-            "grok": "✧ Grok · ON",
-            "openrouter": "✧ OpenRouter · ON",
-        }.get(prov, "✧ Provider")
-        if st.button(prov_label, use_container_width=True, key="feat_prov",
-                     type="primary"):
-            order = ["groq", "grok", "openrouter"]
-            i = order.index(prov) if prov in order else 0
-            st.session_state.provider = order[(i + 1) % len(order)]
-            if st.session_state.provider == "groq":
-                st.session_state.model_name = "Smart · Llama 3.3 70B"
-            elif st.session_state.provider == "grok":
-                st.session_state.model_name = "Grok 4.5"
-            else:
-                st.session_state.model_name = "meta-llama/llama-3.3-70b-instruct:free"
-            save_user_data()
-            st.rerun()
-    with f2:
-        wlabel = "◈ Wiki · ON" if wiki_on else "◈ Wiki · OFF"
-        if st.button(wlabel, use_container_width=True, key="feat_wiki",
-                     type="primary" if wiki_on else "secondary"):
-            st.session_state.use_wiki_toggle = not wiki_on
-            save_user_data()
-            st.rerun()
-    with f3:
-        weblabel = "🌐 Web · ON" if web_on else "🌐 Web · OFF"
-        if st.button(weblabel, use_container_width=True, key="feat_web",
-                     type="primary" if web_on else "secondary"):
-            st.session_state.use_web_toggle = not web_on
-            save_user_data()
-            st.rerun()
-    with f4:
-        mlabel = "♫ Music · ON" if music_on else "♫ Music · OFF"
-        if st.button(mlabel, use_container_width=True, key="feat_music",
-                     type="primary" if music_on else "secondary"):
-            st.session_state.show_spotify = not music_on
-            save_user_data()
-            st.rerun()
-
-    st.caption(
-        f"Provider **{st.session_state.provider}** · "
-        f"Model **{st.session_state.model_name}** · "
-        f"Wiki {'on' if st.session_state.use_wiki_toggle else 'off'} · "
-        f"Web {'on' if st.session_state.use_web_toggle else 'off'}"
-    )
-
-    b1, b2, b3, b4 = st.columns(4)
-    with b1:
-        if st.button("Start chat", use_container_width=True, key="h_chat", type="primary"):
+        if st.button("💬  Chat", use_container_width=True, key="bm_chat", type="primary"):
             st.session_state.view = "chat"
             st.rerun()
-    with b2:
-        if st.button("＋ New", use_container_width=True, key="h_new"):
+        if st.button("＋  New chat", use_container_width=True, key="bm_new"):
             create_new_chat()
             st.session_state.view = "chat"
             st.rerun()
-    with b3:
-        if st.button("◎ Listen", use_container_width=True, key="h_listen"):
+        if st.button("♫  Music", use_container_width=True, key="bm_music"):
+            st.session_state.view = "music"
+            st.rerun()
+        if st.button("◎  Listen", use_container_width=True, key="bm_listen"):
             st.session_state.view = "listen"
             st.rerun()
-    with b4:
-        if st.button("☰ Menu", use_container_width=True, key="h_menu"):
+        if st.button("📚  Library", use_container_width=True, key="bm_library"):
+            st.session_state.library_reading = None
+            st.session_state.library_page = 0
+            st.session_state.view = "library"
+            st.rerun()
+        if lab_is_unlocked():
+            if st.button("🔬  Lab", use_container_width=True, key="bm_lab"):
+                st.session_state.view = "lab"
+                st.rerun()
+        if st.session_state.get("voss_file_unlocked"):
+            if st.button("📁  Voss file", use_container_width=True, key="bm_voss"):
+                st.session_state.voss_cutscene_stage = 0
+                st.session_state.view = "voss_file"
+                st.rerun()
+        if st.button("☰  Menu", use_container_width=True, key="bm_menu"):
             st.session_state.popup = True
             st.rerun()
 
-    qotd, qotd_author = quote_of_the_day()
-    c1, c2 = st.columns(2)
-    with c1:
-        # Single box = one button (label + quote + author + date/time)
+        st.markdown('<div class="ridge" style="margin:12px 0 8px;"></div>', unsafe_allow_html=True)
+        st.caption("Recent chats")
+        items = sorted(
+            st.session_state.chats.items(),
+            key=lambda x: x[1].get("created", ""),
+            reverse=True,
+        )[:6]
+        if not items:
+            st.caption("None yet")
+        for cid, data in items:
+            title = (data.get("title") or "Untitled")[:28]
+            if st.button(title, key=f"bm_c_{cid}", use_container_width=True):
+                st.session_state.current_chat_id = cid
+                st.session_state.view = "chat"
+                save_user_data()
+                st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # ---------- MAIN BODY ----------
+    with body:
+        # Easter egg captions
+        for _fn in (owner_rare_line, quiet_hour_caption, lab_leftover_caption, stabilize_countdown):
+            try:
+                if _fn is owner_rare_line:
+                    _c = owner_rare_line(st.session_state.get("username") or "")
+                else:
+                    _c = _fn()
+                if _c:
+                    st.caption(_c)
+            except Exception:
+                pass
+        _combo = font_theme_combo_caption(
+            st.session_state.get("font") or "Inter",
+            st.session_state.get("theme") or "Caelestia",
+        )
+        if _combo:
+            st.caption(_combo)
+        if st.session_state.get("_egg_flash"):
+            st.info(st.session_state.pop("_egg_flash"))
+
+        st.markdown(f"""
+        <div class="panel">
+          <div class="panel-label">Shell</div>
+          <div class="hero">{greet_line(st.session_state.username)}</div>
+          <div class="sub">{owner_subline(st.session_state.username)}</div>
+          <div class="ridge"></div>
+          <div class="muted" style="margin-top:6px;">
+            {st.session_state.provider} · {st.session_state.model_name}
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Quote of the hour
+        qotd, qotd_author = quote_of_the_day()
         st.markdown(
             """
         <style>
@@ -4287,69 +4161,101 @@ if st.session_state.view == "home":
             st.session_state.view = "note"
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
-        if st.session_state.show_spotify:
-            render_spotify_panel("home")
-    with c2:
-        # ---- Library (public-domain / free shelf) ----
-        st.markdown(
-            '<div class="panel"><div class="panel-label">Library</div>',
-            unsafe_allow_html=True,
-        )
-        st.caption("Free to read · public domain & open texts")
 
-        for book in LIBRARY_CATALOG:
-            bcol1, bcol2 = st.columns([4, 1])
-            with bcol1:
+        # ARG anomaly content (only when active)
+        if lab_is_unlocked() and glitches_unlocked() and not anomalies_complete():
+            st.markdown(
+                """
+                <div style="
+                  margin: 12px 0; padding: 12px 14px; border-radius: 12px;
+                  background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.45);
+                  color: #fecaca; font-family: ui-monospace, monospace; font-size: 0.85rem;
+                  animation: anomPulse 2.2s ease-in-out infinite;
+                ">
+                  ⚠ WARNING: ANOMALIES PRESENT<br/>
+                  <span style="opacity:0.9;font-size:0.78rem;line-height:1.45;">
+                  — Dr. E. Voss, Observation Division<br/>
+                  You opened the log. That was the point. Now the medium is leaving fingerprints
+                  in three places it should not reach. Find them before the committees do.
+                  </span>
+                </div>
+                <style>
+                  @keyframes anomPulse {
+                    0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.0); }
+                    50% { box-shadow: 0 0 18px 0 rgba(239,68,68,0.25); }
+                  }
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
+            found = set(st.session_state.get("glitches_found") or [])
+            st.caption(f"Voss markers recovered: {len(found)} / 3")
+            st.markdown(
+                """
+                <div style="font-family:ui-monospace,monospace;font-size:0.72rem;color:#5eead4;opacity:0.7;margin:6px 0 4px;">
+                  Voss field residual — tap the interference
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            _gpath = None
+            _base = Path(__file__).resolve().parent / "assets"
+            for _name in ("glitch_home.png", "IMG_1354.jpeg", "IMG_1354.jpg"):
+                _cand = _base / _name
+                if _cand.exists() and _cand.stat().st_size > 500:
+                    _gpath = _cand
+                    break
+            if _gpath is not None:
+                st.image(str(_gpath), width=280)
+            else:
                 st.markdown(
-                    f"**{book.get('title', 'Untitled')}**  \n"
-                    f"<span style='opacity:0.7;font-size:0.8rem'>"
-                    f"{book.get('author', '')}"
-                    f"{(' · ' + book['note']) if book.get('note') else ''}"
-                    f"</span>",
+                    '<div style="height:72px;border-radius:10px;background:repeating-linear-gradient(0deg,#04120e,#04120e 2px,#0a1c18 2px,#0a1c18 4px);border:1px solid rgba(34,211,238,0.35);"></div>',
                     unsafe_allow_html=True,
                 )
-            with bcol2:
-                if st.button("Read", key=f"lib_home_{book.get('id')}", use_container_width=True):
-                    st.session_state.library_reading = book.get("id")
-                    st.session_state.library_page = 0
-                    st.session_state.view = "library"
-                    st.rerun()
-
-        if st.button("Open full library", key="lib_home_open", use_container_width=True):
-            st.session_state.library_reading = None
-            st.session_state.library_page = 0
-            st.session_state.view = "library"
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-
-        st.markdown('<div class="panel"><div class="panel-label">Chat history</div>', unsafe_allow_html=True)
-        items = sorted(st.session_state.chats.items(), key=lambda x: x[1].get("created", ""), reverse=True)[:10]
-        if not items:
-            st.caption("No chats yet — start one.")
-        for cid, data in items:
-            msgs = data.get("messages") or []
-            title = data.get("title") or "Untitled"
-            preview = ""
-            if msgs:
-                last = msgs[-1].get("content", "")
-                preview = (last[:60] + "…") if len(last) > 60 else last
-                preview = preview.replace("\n", " ")
-            n = len(msgs)
-            label = f"{title}  ·  {n} msg"
-            if preview:
-                label = f"{title}\n{preview}"
-            cols = st.columns([5, 1])
-            with cols[0]:
-                if st.button(label, key=f"h_{cid}", use_container_width=True):
-                    st.session_state.current_chat_id = cid
-                    st.session_state.view = "chat"
+            if st.button("Tap anomaly", key="glitch_home", use_container_width=False):
+                play_glitch_sfx()
+                if find_glitch("home", "Voss log: home marker secured. Two remain."):
+                    st.session_state.anomaly_warned = True
                     save_user_data()
+                st.rerun()
+            if "home" in found:
+                st.caption("Home marker · secured")
+            if st.session_state.get("_glitch_flash"):
+                st.success(st.session_state.pop("_glitch_flash"))
+            if set(st.session_state.get("glitches_found") or []) >= {"home", "lab", "pixel"}:
+                st.session_state.voss_file_unlocked = True
+                if st.button("Open Dr. Voss's file", use_container_width=True, key="open_voss_file", type="primary"):
+                    st.session_state.voss_cutscene_stage = 0
+                    st.session_state.view = "voss_file"
                     st.rerun()
-            with cols[1]:
-                if st.button("Del", key=f"hd_{cid}", use_container_width=True, help="Delete chat"):
-                    delete_chat(cid)
-                    st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
+
+        if st.session_state.get("voss_file_unlocked") and not glitches_unlocked():
+            if st.button("Open Dr. Voss's file", use_container_width=True, key="open_voss_always", type="primary"):
+                st.session_state.voss_cutscene_stage = 0
+                st.session_state.view = "voss_file"
+                st.rerun()
+
+        if lab_is_unlocked() and anomalies_complete():
+            ensure_voss_theme()
+            st.markdown(
+                """
+                <div style="
+                  margin: 12px 0; padding: 12px 14px; border-radius: 12px;
+                  background: rgba(80,20,20,0.25); border: 1px solid rgba(180,60,60,0.4);
+                  color: #e8b0b0; font-family: ui-monospace, monospace; font-size: 0.82rem;
+                ">
+                  Voss markers sealed · 3 / 3<br/>
+                  <span style="opacity:0.85;font-size:0.75rem;">The anomalies will not return. The file remains.</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        # Optional compact now-playing (only if Spotify toggle is on)
+        if st.session_state.show_spotify:
+            with st.expander("♫ Now playing", expanded=False):
+                render_spotify_panel("home")
+
     st.stop()
 
 # CHAT
