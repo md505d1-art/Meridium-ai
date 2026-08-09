@@ -1522,55 +1522,81 @@ def render_spotify_panel(key_prefix="sp"):
     left, right = st.columns([1.05, 1.35], gap="medium")
 
     with left:
-        art = track.get("art")
+        art = track.get("art") or ""
         _aname = _html.escape(str(track.get("name") or "Unknown"))
         _aarts = _html.escape(str(track.get("artists") or ""))
         _adev = _html.escape(str(track.get("device") or ""))
-        _art_tag = (
-            f'<img src="{_html.escape(art)}" alt="" '
-            f'style="width:200px;height:200px;object-fit:cover;border-radius:14px;'
-            f'box-shadow:0 12px 32px rgba(0,0,0,0.35);display:block;margin:0 auto 12px"/>'
-            if art else ""
-        )
-        st.markdown(
+        _art_src = _html.escape(art)
+        _track_uid = _html.escape(str(track.get("uri") or track.get("name") or "x"))
+        _prev_art = str(st.session_state.get("_prev_cover_url") or "")
+        _prev_esc = _html.escape(_prev_art)
+        # Remember current cover for the next track's crossfade
+        if art:
+            st.session_state._prev_cover_url = art
+
+        st.components.v1.html(
             f"""
             <style>
+              html, body {{
+                margin: 0; padding: 0; overflow: hidden;
+                background: transparent;
+                font-family: Inter, system-ui, sans-serif;
+                color: #e8e6f0;
+              }}
               @keyframes merArtIn {{
-                from {{ opacity: 0; transform: scale(0.9) translateY(12px); filter: blur(5px); }}
+                from {{ opacity: 0; transform: scale(0.88) translateY(14px); filter: blur(8px); }}
                 to {{ opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }}
+              }}
+              @keyframes merArtOut {{
+                from {{ opacity: 1; transform: scale(1); filter: blur(0); }}
+                to {{ opacity: 0; transform: scale(1.06); filter: blur(6px); }}
               }}
               @keyframes merTextIn {{
                 from {{ opacity: 0; transform: translateY(10px); }}
                 to {{ opacity: 1; transform: translateY(0); }}
               }}
-              .mer-track-block {{
-                text-align: center;
-                margin-bottom: 0.6rem;
+              .mer-track-block {{ text-align: center; padding: 4px 0 8px; }}
+              .cover-stage {{
+                position: relative;
+                width: 200px; height: 200px;
+                margin: 0 auto 12px;
               }}
-              .mer-track-block img {{
-                animation: merArtIn 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+              .cover-stage img {{
+                position: absolute; inset: 0;
+                width: 200px; height: 200px;
+                object-fit: cover;
+                border-radius: 14px;
+                box-shadow: 0 12px 32px rgba(0,0,0,0.4);
               }}
-              .mer-track-block .mer-t-name {{
-                font-size: 1.2rem;
-                font-weight: 650;
-                letter-spacing: -0.02em;
+              .cover-stage img.prev {{
+                animation: merArtOut 0.45s ease forwards;
+                z-index: 1;
+              }}
+              .cover-stage img.curr {{
+                animation: merArtIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+                z-index: 2;
+              }}
+              .mer-t-name {{
+                font-size: 1.2rem; font-weight: 650; letter-spacing: -0.02em;
                 margin-top: 0.35rem;
-                animation: merTextIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+                animation: merTextIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
               }}
-              .mer-track-block .mer-t-arts {{
-                opacity: 0.7;
-                font-size: 0.88rem;
-                margin-top: 0.2rem;
-                animation: merTextIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.14s both;
+              .mer-t-arts {{
+                opacity: 0.7; font-size: 0.88rem; margin-top: 0.2rem;
+                animation: merTextIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.16s both;
               }}
             </style>
-            <div class="mer-track-block">
-              {_art_tag}
+            <div class="mer-track-block" data-track="{_track_uid}">
+              <div class="cover-stage">
+                {f'<img class="prev" src="{_prev_esc}" alt="" />' if _prev_art and _prev_art != art else ''}
+                {f'<img class="curr" src="{_art_src}" alt="" />' if art else ''}
+              </div>
               <div class="mer-t-name">{_aname}</div>
               <div class="mer-t-arts">{_aarts}{(' · ' + _adev) if _adev else ''}</div>
             </div>
             """,
-            unsafe_allow_html=True,
+            height=280,
+            scrolling=False,
         )
         p1, p2, p3, p4 = st.columns(4)
         with p1:
