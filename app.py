@@ -902,6 +902,10 @@ def save_user_data():
         "chats": safe_chats,
         "current_chat_id": st.session_state.get("current_chat_id"),
         "meridium_playlist": st.session_state.get("meridium_playlist") or [],
+        "eq_bands": list(st.session_state.get("eq_bands") or [0,0,0,0,0,0,0]),
+        "eq_preset": st.session_state.get("eq_preset") or "Flat",
+        "eq_custom_presets": dict(st.session_state.get("eq_custom_presets") or {}),
+        "eq_enabled": bool(st.session_state.get("eq_enabled", True)),
         "saved_at": datetime.now().isoformat(),
     }
     raw = json.dumps(payload, ensure_ascii=False, indent=2)
@@ -944,6 +948,17 @@ def load_user_data(username: str) -> bool:
         st.session_state.use_wiki_toggle = data.get("use_wiki_toggle", True)
         st.session_state.use_web_toggle = data.get("use_web_toggle", True)
         st.session_state.meridium_playlist = data.get("meridium_playlist") or []
+        _eb = data.get("eq_bands")
+        if isinstance(_eb, list) and len(_eb) == 7:
+            st.session_state.eq_bands = [float(x) for x in _eb]
+        st.session_state.eq_preset = data.get("eq_preset") or "Flat"
+        _ec = data.get("eq_custom_presets")
+        if isinstance(_ec, dict):
+            st.session_state.eq_custom_presets = {
+                str(k): [float(x) for x in v] for k, v in _ec.items()
+                if isinstance(v, list) and len(v) == 7
+            }
+        st.session_state.eq_enabled = bool(data.get("eq_enabled", True))
         chats = data.get("chats") or {}
         if isinstance(chats, dict) and chats:
             st.session_state.chats = chats
@@ -1073,6 +1088,10 @@ defaults = {
     "unlocked_themes": [],
     "meridium_playlist": [],
     "music_status": "",
+    "eq_bands": [0, 0, 0, 0, 0, 0, 0],
+    "eq_preset": "Flat",
+    "eq_custom_presets": {},
+    "eq_enabled": True,
     "stabilize_at": None,
     "qotd_opens": 0,
     "lab_found": [],
@@ -1090,6 +1109,7 @@ _USER_SCOPED_KEYS = (
     "arg_unlocked", "anomaly_warned", "glitches_found",
     "voss_file_unlocked", "lab_visits", "arg_stabilized",
     "unlocked_themes", "meridium_playlist", "music_status",
+    "eq_bands", "eq_preset", "eq_custom_presets", "eq_enabled",
     "stabilize_at", "qotd_opens", "lab_found",
     "_currently_in_lab", "_lab_session_visit", "voss_cutscene_stage",
     "view", "library_reading", "library_page",
@@ -3318,6 +3338,304 @@ if st.session_state.view == "lyrics_full":
 
     st.stop()
 
+
+# ============================================================
+# EQUALIZER — Web Audio API (real filters on browser audio)
+# Spotify Connect (phone/desktop app) is outside the browser:
+# this EQ shapes audio elements / media on this page.
+# ============================================================
+EQ_BAND_FREQS = [60, 150, 400, 1000, 2400, 6000, 15000]
+EQ_BAND_LABELS = ["60", "150", "400", "1k", "2.4k", "6k", "15k"]
+EQ_BUILTIN_PRESETS = {
+    "Flat":        [0, 0, 0, 0, 0, 0, 0],
+    "Bass boost":  [8, 5, 2, 0, -1, 0, 0],
+    "Treble":      [-2, -1, 0, 1, 3, 6, 7],
+    "Vocal":       [-3, -2, 1, 5, 4, 1, -1],
+    "Electronic":  [5, 3, -1, 0, 2, 4, 5],
+    "Rock":        [5, 3, -1, 1, 3, 4, 3],
+    "Jazz":        [3, 2, 0, 2, -1, 2, 3],
+    "Loudness":    [6, 3, 0, -2, 0, 3, 5],
+}
+
+
+def render_equalizer_panel() -> None:
+    """Interactive 7-band EQ with presets. Applies via Web Audio in the browser."""
+    if "eq_bands" not in st.session_state or not isinstance(st.session_state.eq_bands, list) or len(st.session_state.eq_bands) != 7:
+        st.session_state.eq_bands = [0.0] * 7
+    if "eq_custom_presets" not in st.session_state or not isinstance(st.session_state.eq_custom_presets, dict):
+        st.session_state.eq_custom_presets = {}
+    if "eq_preset" not in st.session_state:
+        st.session_state.eq_preset = "Flat"
+    if "eq_enabled" not in st.session_state:
+        st.session_state.eq_enabled = True
+
+    custom = st.session_state.eq_custom_presets
+    all_presets = {**EQ_BUILTIN_PRESETS, **{f"★ {k}": v for k, v in custom.items()}}
+
+    with st.expander("Equalizer", expanded=False):
+        st.caption(
+            "Real browser EQ (Web Audio). Affects audio playing **in this tab**. "
+            "Spotify on your phone/desktop app has its own sound path — use that app EQ or system EQ for those devices."
+        )
+
+        top = st.columns([2, 1, 1])
+        with top[0]:
+            names = list(all_presets.keys())
+            cur = st.session_state.eq_preset
+            if cur not in names:
+                cur = "Flat"
+            pick = st.selectbox("Preset", names, index=names.index(cur), key="eq_preset_select", label_visibility="collapsed")
+            if pick != st.session_state.eq_preset:
+                st.session_state.eq_preset = pick
+                key = pick[2:] if pick.startswith("★ ") else pick
+                bands = custom.get(key) if pick.startswith("★ ") else EQ_BUILTIN_PRESETS.get(pick)
+                if bands and len(bands) == 7:
+                    st.session_state.eq_bands = [float(x) for x in bands]
+                    save_user_data()
+                    st.rerun()
+        with top[1]:
+            en = st.toggle("On", value=bool(st.session_state.eq_enabled), key="eq_on_toggle")
+            if en != st.session_state.eq_enabled:
+                st.session_state.eq_enabled = en
+                save_user_data()
+                st.rerun()
+        with top[2]:
+            if st.button("Reset", key="eq_reset", use_container_width=True):
+                st.session_state.eq_bands = [0.0] * 7
+                st.session_state.eq_preset = "Flat"
+                save_user_data()
+                st.rerun()
+
+        cols = st.columns(7)
+        new_bands = []
+        changed = False
+        for i, col in enumerate(cols):
+            with col:
+                st.markdown(
+                    f"<div style='text-align:center;font-size:0.7rem;opacity:0.55;margin-bottom:2px'>{EQ_BAND_LABELS[i]}</div>",
+                    unsafe_allow_html=True,
+                )
+                val = float(st.session_state.eq_bands[i])
+                v = st.slider(
+                    EQ_BAND_LABELS[i],
+                    min_value=-12.0,
+                    max_value=12.0,
+                    value=val,
+                    step=0.5,
+                    key=f"eq_band_{i}",
+                    label_visibility="collapsed",
+                )
+                new_bands.append(float(v))
+                if abs(v - val) > 0.01:
+                    changed = True
+        if changed:
+            st.session_state.eq_bands = new_bands
+            st.session_state.eq_preset = "Custom"
+            save_user_data()
+
+        c1, c2, c3 = st.columns([3, 1, 1])
+        with c1:
+            pname = st.text_input(
+                "Save as",
+                placeholder="Preset name",
+                key="eq_save_name",
+                label_visibility="collapsed",
+            )
+        with c2:
+            if st.button("Save", key="eq_save_btn", use_container_width=True):
+                name = (pname or "").strip()[:32]
+                if not name:
+                    st.warning("Name your preset")
+                elif name in EQ_BUILTIN_PRESETS:
+                    st.warning("That name is reserved")
+                else:
+                    custom = dict(st.session_state.eq_custom_presets)
+                    custom[name] = list(st.session_state.eq_bands)
+                    st.session_state.eq_custom_presets = custom
+                    st.session_state.eq_preset = f"★ {name}"
+                    save_user_data()
+                    st.toast(f"Saved preset")
+                    st.rerun()
+        with c3:
+            if custom and st.button("Delete", key="eq_del_btn", use_container_width=True):
+                cur = st.session_state.eq_preset or ""
+                key = cur[2:] if cur.startswith("★ ") else cur
+                if key in custom:
+                    custom = dict(custom)
+                    custom.pop(key, None)
+                    st.session_state.eq_custom_presets = custom
+                    st.session_state.eq_preset = "Flat"
+                    st.session_state.eq_bands = [0.0] * 7
+                    save_user_data()
+                    st.rerun()
+
+        bands_js = ",".join(str(float(x)) for x in st.session_state.eq_bands)
+        freqs_js = ",".join(str(f) for f in EQ_BAND_FREQS)
+        enabled_js = "true" if st.session_state.eq_enabled else "false"
+        st.components.v1.html(
+            f"""
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"/>
+<style>
+  html,body {{ margin:0; background:transparent; font-family: system-ui,sans-serif; color:#c8c4d4; }}
+  .wrap {{ padding: 4px 2px 8px; }}
+  .bars {{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    height: 56px; gap: 6px; margin-bottom: 8px;
+  }}
+  .bar {{
+    flex:1; border-radius: 4px 4px 2px 2px;
+    background: linear-gradient(180deg, #c4a7e7, #7aa2f7);
+    opacity: 0.85; min-height: 4px; transition: height 0.08s linear;
+  }}
+  .meta {{ font-size: 11px; opacity: 0.55; text-align: center; }}
+  button#arm {{
+    display:block; width:100%; margin-top: 8px; padding: 8px 10px;
+    border-radius: 10px; border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06); color: #e8e4f0; cursor: pointer;
+    font-size: 12px;
+  }}
+  button#arm:hover {{ background: rgba(196,167,231,0.18); }}
+</style></head>
+<body>
+<div class="wrap">
+  <div class="bars" id="bars"></div>
+  <div class="meta" id="status">EQ ready · click Arm to process audio on this page</div>
+  <button id="arm" type="button">Arm equalizer (required once)</button>
+</div>
+<script>
+(function() {{
+  const freqs = [{freqs_js}];
+  let gainsDb = [{bands_js}];
+  let enabled = {enabled_js};
+  const barsEl = document.getElementById('bars');
+  const status = document.getElementById('status');
+  const armBtn = document.getElementById('arm');
+  freqs.forEach(() => {{
+    const d = document.createElement('div');
+    d.className = 'bar';
+    d.style.height = '8px';
+    barsEl.appendChild(d);
+  }});
+  const barNodes = [...barsEl.children];
+
+  let ctx, filters = [], sourceMap = new WeakMap(), analyser, raf;
+
+  function buildChain() {{
+    if (!ctx) return;
+    filters = [];
+    freqs.forEach((f, i) => {{
+      const fil = ctx.createBiquadFilter();
+      if (i === 0) {{ fil.type = 'lowshelf'; fil.frequency.value = f; }}
+      else if (i === freqs.length - 1) {{ fil.type = 'highshelf'; fil.frequency.value = f; }}
+      else {{
+        fil.type = 'peaking';
+        fil.frequency.value = f;
+        fil.Q.value = 1.1;
+      }}
+      fil.gain.value = enabled ? gainsDb[i] : 0;
+      if (i > 0) filters[i-1].connect(fil);
+      filters.push(fil);
+    }});
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 256;
+    if (filters.length) {{
+      filters[filters.length-1].connect(analyser);
+    }}
+    analyser.connect(ctx.destination);
+  }}
+
+  function applyGains() {{
+    filters.forEach((fil, i) => {{
+      fil.gain.value = enabled ? gainsDb[i] : 0;
+    }});
+    barNodes.forEach((el, i) => {{
+      const g = enabled ? gainsDb[i] : 0;
+      const h = 8 + ((g + 12) / 24) * 44;
+      el.style.height = h + 'px';
+      el.style.opacity = enabled ? '0.9' : '0.25';
+    }});
+  }}
+
+  function connectMediaElement(el) {{
+    if (!ctx || !filters.length) return;
+    if (sourceMap.has(el)) return;
+    try {{
+      const src = ctx.createMediaElementSource(el);
+      src.connect(filters[0]);
+      sourceMap.set(el, src);
+      el.dataset.merEq = '1';
+    }} catch (e) {{}}
+  }}
+
+  function scan() {{
+    document.querySelectorAll('audio, video').forEach(connectMediaElement);
+  }}
+
+  function pulse() {{
+    if (!analyser) {{
+      applyGains();
+      raf = requestAnimationFrame(pulse);
+      return;
+    }}
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(data);
+    const step = Math.floor(data.length / barNodes.length) || 1;
+    barNodes.forEach((el, i) => {{
+      let sum = 0;
+      for (let k = 0; k < step; k++) sum += data[i * step + k] || 0;
+      const avg = sum / step;
+      const base = enabled ? ((gainsDb[i] + 12) / 24) * 20 : 0;
+      el.style.height = (6 + base + avg / 8) + 'px';
+    }});
+    raf = requestAnimationFrame(pulse);
+  }}
+
+  armBtn.addEventListener('click', async () => {{
+    try {{
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === 'suspended') await ctx.resume();
+      buildChain();
+      applyGains();
+      scan();
+      setInterval(scan, 1500);
+      pulse();
+      // Audible test: short noise burst through the EQ chain so you can hear it
+      try {{
+        const dur = 0.55;
+        const buffer = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) {{
+          data[i] = (Math.random() * 2 - 1) * Math.exp(-3 * i / data.length);
+        }}
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+        const vol = ctx.createGain();
+        vol.gain.value = 0.22;
+        noise.connect(vol);
+        vol.connect(filters[0]);
+        noise.start();
+      }} catch (e) {{}}
+      status.textContent = enabled
+        ? 'EQ armed · test tone played through filters'
+        : 'EQ armed · currently bypassed (Off)';
+      armBtn.textContent = 'Equalizer armed';
+      armBtn.disabled = true;
+    }} catch (e) {{
+      status.textContent = 'Could not start audio context: ' + e;
+    }}
+  }});
+
+  applyGains();
+}})();
+</script>
+</body></html>
+            """,
+            height=140,
+            scrolling=False,
+        )
+
+
 # MUSIC — dedicated player + Meridium playlist
 if st.session_state.view == "music":
     st.session_state.show_spotify = True
@@ -3376,6 +3694,7 @@ if st.session_state.view == "music":
     """, unsafe_allow_html=True)
 
     render_spotify_panel("musicpage")
+    render_equalizer_panel()
 
     MAX_PLAYLIST = 500
     PAGE_SIZE = 12  # compact pages — less clutter
