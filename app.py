@@ -906,6 +906,7 @@ def save_user_data():
         "eq_preset": st.session_state.get("eq_preset") or "Flat",
         "eq_custom_presets": dict(st.session_state.get("eq_custom_presets") or {}),
         "eq_enabled": bool(st.session_state.get("eq_enabled", True)),
+        "callaghan_safe_unlocked": bool(st.session_state.get("callaghan_safe_unlocked")),
         "saved_at": datetime.now().isoformat(),
     }
     raw = json.dumps(payload, ensure_ascii=False, indent=2)
@@ -959,6 +960,7 @@ def load_user_data(username: str) -> bool:
                 if isinstance(v, list) and len(v) == 7
             }
         st.session_state.eq_enabled = bool(data.get("eq_enabled", True))
+        st.session_state.callaghan_safe_unlocked = bool(data.get("callaghan_safe_unlocked"))
         chats = data.get("chats") or {}
         if isinstance(chats, dict) and chats:
             st.session_state.chats = chats
@@ -1098,6 +1100,7 @@ defaults = {
     "_currently_in_lab": False,
     "_lab_session_visit": False,
     "voss_cutscene_stage": 0,
+    "callaghan_safe_unlocked": False,
 }
 
 # Keys that belong to a specific user and must not leak across sign-in/switch-user
@@ -1112,6 +1115,7 @@ _USER_SCOPED_KEYS = (
     "eq_bands", "eq_preset", "eq_custom_presets", "eq_enabled",
     "stabilize_at", "qotd_opens", "lab_found",
     "_currently_in_lab", "_lab_session_visit", "voss_cutscene_stage",
+    "callaghan_safe_unlocked",
     "view", "library_reading", "library_page",
     "_theme_unlock_msg", "_glitch_flash", "_egg_flash",
     "_title_egg_done", "_last_speak", "_lyrics_key", "_lyrics_data",
@@ -4947,6 +4951,175 @@ if st.session_state.view == "cinema":
 
 
 
+
+# ===== RILEY CALLAGHAN RESIDUAL SAFE =====
+if st.session_state.view == "callaghan_safe":
+    # Full black ominous lock
+    st.markdown(
+        """
+        <style>
+          .stApp { background: #000 !important; }
+          [data-testid="stAppViewContainer"] { background: #000 !important; }
+          [data-testid="stHeader"] { background: transparent !important; }
+          .block-container { padding-top: 2.5rem !important; max-width: 520px !important; }
+          .santos-lock {
+            text-align: center; color: #c8b8a8;
+            font-family: Georgia, "Times New Roman", serif;
+            padding: 1.2rem 0.6rem 0.4rem;
+          }
+          .santos-lock .mark {
+            font-family: ui-monospace, monospace;
+            font-size: 0.62rem; letter-spacing: 0.28em;
+            color: #6a4030; margin-bottom: 1.1rem;
+          }
+          .santos-lock h1 {
+            font-size: 1.15rem; font-weight: 500; color: #e0d0c0;
+            letter-spacing: 0.04em; margin: 0 0 0.6rem;
+          }
+          .santos-lock p {
+            font-size: 0.88rem; line-height: 1.55; color: #9a8878;
+            margin: 0.35rem auto 0.8rem; max-width: 26rem;
+          }
+          .santos-lock .hint {
+            font-size: 0.78rem; color: #5a4030; font-style: italic;
+            margin-top: 1rem;
+          }
+          .santos-dial {
+            width: 64px; height: 64px; margin: 1rem auto 0.4rem;
+            border-radius: 50%;
+            border: 2px solid #4a3020;
+            background: radial-gradient(circle at 40% 35%, #2a1a12, #0a0604 70%);
+            box-shadow: 0 0 24px rgba(80,20,10,0.35);
+          }
+        </style>
+        <div class="santos-lock">
+          <div class="mark">OBSERVATION DIVISION · RESIDUAL LOCK</div>
+          <div class="santos-dial"></div>
+          <h1>Riley Callaghan</h1>
+          <p>
+            Another child under glass. Not Jaime. Not PIXEL.
+            Riley Callaghan — logged out of a coastal intake in New South Wales,
+            shipped inland, then filed under residual when the bloom would not take cleanly.
+            They left a four-digit dial in the margin of a book
+            the Division never finished reading.
+          </p>
+          <p class="hint">
+            “Four teeth in the year the creature first woke.”
+          </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Play Dream — The Old Timey Jazz Orchestra (YouTube embed, low profile)
+    st.components.v1.html(
+        """
+        <div style="position:fixed;left:-9999px;width:1px;height:1px;overflow:hidden">
+          <iframe
+            src="https://www.youtube.com/embed/VFWVUGBRAQI?autoplay=1&loop=1&playlist=VFWVUGBRAQI&controls=0&modestbranding=1"
+            allow="autoplay; encrypted-media"
+            style="width:1px;height:1px;border:0"
+          ></iframe>
+        </div>
+        <p style="text-align:center;color:#4a3830;font-size:11px;margin:0 0 10px;font-family:Georgia,serif">
+          ♪ Dream — The Old Timey Jazz Orchestra
+        </p>
+        """,
+        height=28,
+        scrolling=False,
+    )
+
+    already = bool(st.session_state.get("callaghan_safe_unlocked"))
+    if already:
+        st.markdown(
+            """
+            <div style="color:#c8b8a8;font-family:Georgia,serif;line-height:1.6;padding:0.6rem 0.4rem 1rem">
+              <p style="color:#8a6050;font-size:0.7rem;letter-spacing:0.2em">FILE FRAGMENT · R. CALLAGHAN · OPENED</p>
+              <p>
+                They pulled me off a jetty in New South Wales and called it intake.
+                Observation Division preferred kids who still asked questions.
+                I asked too many. The bloom never set the way they wanted,
+                so they wrote <i>residual</i> on my folder and stopped saying my name out loud.
+              </p>
+              <p>
+                They made me count the editions before they made me count the days.
+                Mary printed the creature in <b>1818</b>. I carved the same year into the dial
+                so someone patient enough to read page eighty-eight under residual light
+                would know I was still a person, not a designation.
+              </p>
+              <p>
+                Jaime got a name the Division could sell. I got a margin and a dial
+                and the sound of cicadas in a room with no windows.
+                If you are reading this, the lock worked. Stay curious.
+                Curiosity is how we stay human in here.
+              </p>
+              <p style="color:#6a4030;margin-top:1rem">— Riley Callaghan · residual only</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("Leave the margin", use_container_width=True, key="callaghan_leave_open"):
+            try:
+                stop_all_meridium_audio()
+            except Exception:
+                pass
+            st.session_state.view = "library"
+            st.session_state.library_reading = "frankenstein"
+            st.rerun()
+    else:
+        code = st.text_input(
+            "Four digits",
+            max_chars=4,
+            placeholder="····",
+            key="callaghan_code_input",
+            label_visibility="collapsed",
+        )
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("Try the dial", use_container_width=True, key="callaghan_try"):
+                entered = "".join(ch for ch in (code or "") if ch.isdigit())
+                if entered == "1818":
+                    st.session_state.callaghan_safe_unlocked = True
+                    try:
+                        find_glitch("callaghan_safe", "Riley Callaghan residual lock opened")
+                    except Exception:
+                        pass
+                    try:
+                        save_user_data()
+                    except Exception:
+                        pass
+                    st.rerun()
+                else:
+                    st.markdown(
+                        "<p style='color:#8a3030;text-align:center;font-size:0.85rem'>"
+                        "The dial does not turn.</p>",
+                        unsafe_allow_html=True,
+                    )
+        with c2:
+            if st.button("Step away", use_container_width=True, key="callaghan_away"):
+                try:
+                    stop_all_meridium_audio()
+                except Exception:
+                    pass
+                st.session_state.view = "library"
+                st.session_state.library_reading = "frankenstein"
+                st.rerun()
+
+        with st.expander("A scrap in the hinge", expanded=False):
+            st.markdown(
+                """
+                Faint pencil, child’s hand:
+
+                *“Not the page. The **year** the first edition woke.
+                Four numbers. Winter print. London.”*
+
+                (Frankenstein was first published in **1818**.)
+                """
+            )
+
+    st.stop()
+
+
 # ===== LIBRARY =====
 if st.session_state.view == "library":
     st.markdown(
@@ -5040,6 +5213,51 @@ if st.session_state.view == "library":
             f"white-space:pre-wrap'>{safe}</div>",
             unsafe_allow_html=True,
         )
+
+        # --- ARG: Riley Callaghan residual safe (Frankenstein page 88 + Voss Residual) ---
+        if (
+            book_id == "frankenstein"
+            and page == 87  # 1-indexed page 88
+            and st.session_state.get("theme") == "Voss Residual"
+        ):
+            st.markdown(
+                """
+                <style>
+                  .santos-safe-wrap {
+                    display: flex; justify-content: flex-end; margin: 6px 4px 2px;
+                  }
+                  .santos-safe {
+                    width: 28px; height: 32px;
+                    border-radius: 3px 3px 2px 2px;
+                    background: linear-gradient(160deg, #2a1810 0%, #0d0806 55%, #1a0e0a 100%);
+                    border: 1px solid #5a3a28;
+                    box-shadow: 0 0 8px rgba(120,40,20,0.35), inset 0 1px 0 rgba(255,200,150,0.08);
+                    position: relative;
+                    opacity: 0.72;
+                    transition: opacity 0.25s ease, box-shadow 0.25s ease;
+                  }
+                  .santos-safe:hover { opacity: 1; box-shadow: 0 0 14px rgba(160,50,30,0.55); }
+                  .santos-safe::after {
+                    content: "";
+                    position: absolute; left: 50%; top: 42%;
+                    width: 7px; height: 7px; margin-left: -3.5px;
+                    border-radius: 50%;
+                    border: 1px solid #8a6040;
+                    background: #1a1008;
+                  }
+                  .santos-safe-label {
+                    font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase;
+                    color: #8a6050; opacity: 0.55; text-align: right; margin: 0 2px 8px;
+                  }
+                </style>
+                <div class="santos-safe-wrap"><div class="santos-safe" title="?"></div></div>
+                <div class="santos-safe-label">R.C. · residual</div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button("▣", key="callaghan_safe_click", help="Something small is set into the margin"):
+                st.session_state.view = "callaghan_safe"
+                st.rerun()
 
         # Bottom nav
         b1, b2, b3 = st.columns([1, 2, 1])
