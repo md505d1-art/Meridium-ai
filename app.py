@@ -286,7 +286,7 @@ VOSS_FILE_SONG_URL = (
 
 
 def stop_all_meridium_audio() -> None:
-    """Hard-stop note / pixel / lab / voss / any tagged audio."""
+    """Hard-stop note / pixel / lab / voss / residual / any tagged audio."""
     st.components.v1.html(
         """
         <script>
@@ -308,7 +308,9 @@ def stop_all_meridium_audio() -> None:
                 kill(root.__mer_pixel_song); root.__mer_pixel_song = null;
                 kill(root.__mer_lab_song); root.__mer_lab_song = null;
                 kill(root.__mer_voss_song); root.__mer_voss_song = null;
+                kill(root.__mer_residual_song); root.__mer_residual_song = null;
                 root.__mer_note_audio_on = false;
+                root.__mer_residual_audio_on = false;
                 var nodes = root.document.querySelectorAll('audio');
                 for (var i = 0; i < nodes.length; i++) {
                   var a = nodes[i];
@@ -316,6 +318,7 @@ def stop_all_meridium_audio() -> None:
                     || a.getAttribute('data-meridium-note')
                     || a.getAttribute('data-meridium-lab')
                     || a.getAttribute('data-meridium-voss')
+                    || a.getAttribute('data-meridium-residual')
                     || a.getAttribute('data-meridium-glitch');
                   if (tag || (a.src && (
                     a.src.indexOf('artmanzh') !== -1 ||
@@ -327,6 +330,11 @@ def stop_all_meridium_audio() -> None:
                   ))) {
                     kill(a);
                   }
+                }
+                // kill residual YouTube embeds (Dream track)
+                var frames = root.document.querySelectorAll('iframe[data-meridium-residual], iframe.meridium-residual-yt');
+                for (var f = 0; f < frames.length; f++) {
+                  try { frames[f].src = 'about:blank'; frames[f].remove(); } catch(e){}
                 }
               } catch(e){}
             }
@@ -387,6 +395,35 @@ def start_voss_file_audio() -> None:
         </script>
         """,
         height=1,
+    )
+
+
+
+def start_residual_dream_audio() -> None:
+    """Play Dream (Old Timey Jazz Orchestra) for residual lock + investigation board."""
+    # YouTube embed loop — tagged so stop_all can remove it
+    st.components.v1.html(
+        """
+        <div style="position:fixed;left:-9999px;width:1px;height:1px;overflow:hidden">
+          <iframe
+            class="meridium-residual-yt"
+            data-meridium-residual="1"
+            src="https://www.youtube.com/embed/VFWVUGBRAQI?autoplay=1&loop=1&playlist=VFWVUGBRAQI&controls=0&modestbranding=1"
+            allow="autoplay; encrypted-media"
+            style="width:1px;height:1px;border:0"
+          ></iframe>
+        </div>
+        <script>
+        (function(){
+          try {
+            var root = window.parent || window;
+            root.__mer_residual_audio_on = true;
+          } catch(e){}
+        })();
+        </script>
+        """,
+        height=0,
+        scrolling=False,
     )
 
 
@@ -5081,6 +5118,12 @@ if st.session_state.view == "board":
     st.session_state.board_unlocked = True
     st.session_state.callaghan_safe_unlocked = True
 
+    # Keep residual track playing on the board
+    try:
+        start_residual_dream_audio()
+    except Exception:
+        pass
+
     open_id = st.session_state.get("board_evidence_open")
     read = set(st.session_state.get("board_read") or [])
 
@@ -5220,12 +5263,20 @@ if st.session_state.view == "board":
     b1, b2 = st.columns(2)
     with b1:
         if st.button("← Library", use_container_width=True, key="board_to_lib"):
+            try:
+                stop_all_meridium_audio()
+            except Exception:
+                pass
             st.session_state.board_evidence_open = None
             st.session_state.view = "library"
             st.session_state.library_reading = "frankenstein"
             st.rerun()
     with b2:
         if st.button("⌂ Home", use_container_width=True, key="board_to_home"):
+            try:
+                stop_all_meridium_audio()
+            except Exception:
+                pass
             st.session_state.board_evidence_open = None
             st.session_state.view = "home"
             st.rerun()
@@ -5291,22 +5342,15 @@ if st.session_state.view == "callaghan_safe":
         unsafe_allow_html=True,
     )
 
-    # Play Dream — The Old Timey Jazz Orchestra (YouTube embed, low profile)
-    st.components.v1.html(
-        """
-        <div style="position:fixed;left:-9999px;width:1px;height:1px;overflow:hidden">
-          <iframe
-            src="https://www.youtube.com/embed/VFWVUGBRAQI?autoplay=1&loop=1&playlist=VFWVUGBRAQI&controls=0&modestbranding=1"
-            allow="autoplay; encrypted-media"
-            style="width:1px;height:1px;border:0"
-          ></iframe>
-        </div>
-        <p style="text-align:center;color:#4a3830;font-size:11px;margin:0 0 10px;font-family:Georgia,serif">
-          ♪ Dream — The Old Timey Jazz Orchestra
-        </p>
-        """,
-        height=28,
-        scrolling=False,
+    # Play Dream — The Old Timey Jazz Orchestra
+    try:
+        start_residual_dream_audio()
+    except Exception:
+        pass
+    st.markdown(
+        "<p style='text-align:center;color:#4a3830;font-size:11px;margin:0 0 10px;font-family:Georgia,serif'>"
+        "♪ Dream — The Old Timey Jazz Orchestra</p>",
+        unsafe_allow_html=True,
     )
 
     already = bool(st.session_state.get("callaghan_safe_unlocked"))
@@ -5497,41 +5541,77 @@ if st.session_state.view == "library":
             st.markdown(
                 """
                 <style>
-                  .santos-safe-wrap {
-                    display: flex; justify-content: flex-end; margin: 6px 4px 2px;
+                  .rc-safe-wrap {
+                    display: flex; flex-direction: column; align-items: flex-end;
+                    margin: 10px 4px 4px;
                   }
-                  .santos-safe {
-                    width: 28px; height: 32px;
-                    border-radius: 3px 3px 2px 2px;
-                    background: linear-gradient(160deg, #2a1810 0%, #0d0806 55%, #1a0e0a 100%);
-                    border: 1px solid #5a3a28;
-                    box-shadow: 0 0 8px rgba(120,40,20,0.35), inset 0 1px 0 rgba(255,200,150,0.08);
+                  .rc-safe-icon {
+                    width: 42px; height: 48px;
+                    border-radius: 6px 6px 4px 4px;
+                    background:
+                      linear-gradient(180deg, #3a2418 0%, #1a100a 40%, #0c0806 100%);
+                    border: 1.5px solid #6a4530;
+                    box-shadow:
+                      0 0 12px rgba(140,50,25,0.4),
+                      inset 0 1px 0 rgba(255,210,160,0.12),
+                      inset 0 -6px 10px rgba(0,0,0,0.35);
                     position: relative;
-                    opacity: 0.72;
-                    transition: opacity 0.25s ease, box-shadow 0.25s ease;
+                    display: flex; align-items: center; justify-content: center;
+                    opacity: 0.88;
+                    transition: opacity 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
                   }
-                  .santos-safe:hover { opacity: 1; box-shadow: 0 0 14px rgba(160,50,30,0.55); }
-                  .santos-safe::after {
-                    content: "";
-                    position: absolute; left: 50%; top: 42%;
-                    width: 7px; height: 7px; margin-left: -3.5px;
+                  .rc-safe-icon:hover {
+                    opacity: 1;
+                    transform: translateY(-1px);
+                    box-shadow: 0 0 18px rgba(180,60,30,0.55);
+                  }
+                  .rc-safe-icon .bolt {
+                    width: 10px; height: 10px;
                     border-radius: 50%;
-                    border: 1px solid #8a6040;
-                    background: #1a1008;
+                    border: 1.5px solid #c09060;
+                    background: radial-gradient(circle at 35% 35%, #2a1a10, #0a0604);
+                    box-shadow: 0 0 6px rgba(200,120,60,0.45);
                   }
-                  .santos-safe-label {
+                  .rc-safe-icon .handle {
+                    position: absolute; right: -5px; top: 50%;
+                    width: 6px; height: 14px; margin-top: -7px;
+                    border-radius: 0 3px 3px 0;
+                    background: #5a3a28;
+                    border: 1px solid #8a6040;
+                  }
+                  .rc-safe-icon .hinge {
+                    position: absolute; left: 3px; top: 8px;
+                    width: 3px; height: 6px; border-radius: 1px;
+                    background: #6a4a30;
+                  }
+                  .rc-safe-icon .hinge2 {
+                    position: absolute; left: 3px; bottom: 8px;
+                    width: 3px; height: 6px; border-radius: 1px;
+                    background: #6a4a30;
+                  }
+                  .rc-safe-label {
                     font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase;
-                    color: #8a6050; opacity: 0.55; text-align: right; margin: 0 2px 8px;
+                    color: #8a6050; opacity: 0.65; margin: 4px 2px 2px;
+                    font-family: ui-monospace, monospace;
                   }
                 </style>
-                <div class="santos-safe-wrap"><div class="santos-safe" title="?"></div></div>
-                <div class="santos-safe-label">R.C. · residual</div>
+                <div class="rc-safe-wrap">
+                  <div class="rc-safe-icon" title="Residual lock">
+                    <span class="hinge"></span>
+                    <span class="hinge2"></span>
+                    <span class="bolt"></span>
+                    <span class="handle"></span>
+                  </div>
+                  <div class="rc-safe-label">🔐 R.C. · residual</div>
+                </div>
                 """,
                 unsafe_allow_html=True,
             )
-            if st.button("▣", key="callaghan_safe_click", help="Something small is set into the margin"):
-                st.session_state.view = "callaghan_safe"
-                st.rerun()
+            sc1, sc2 = st.columns([5, 1])
+            with sc2:
+                if st.button("🔐", key="callaghan_safe_click", help="Open residual safe", use_container_width=True):
+                    st.session_state.view = "callaghan_safe"
+                    st.rerun()
 
         # Bottom nav
         b1, b2, b3 = st.columns([1, 2, 1])
