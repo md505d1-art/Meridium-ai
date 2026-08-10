@@ -1351,12 +1351,19 @@ SITE_EFFECTS_FILE = DATA_DIR / "owner_site_effects.json"
 
 _DEFAULT_SITE_EFFECTS = {
     "rainbow_chat": False,
-    "global_banner": "",
-    "force_theme": "",          # empty = off
-    "residual_static": False,   # subtle VHS static overlay
-    "soft_bloom": False,        # pink/gold glow (Lumity-ish)
-    "quiet_mode": False,        # dim + hush captions
-    "creator_watermark": True,  # small "Meridium · Drae" mark
+    "aurora_shell": False,
+    "neon_buttons": False,
+    "matrix_rain": False,
+    "heart_cursor": False,
+    "scanlines": False,
+    "residual_static": False,
+    "soft_bloom": False,
+    "quiet_mode": False,
+    "creator_watermark": True,
+    "force_theme": "",
+    "announce_text": "",
+    "announce_style": "violet",  # violet | alert | residual | soft
+    "announce_id": "",
 }
 
 
@@ -1381,133 +1388,264 @@ def site_effects_save(data: dict) -> None:
 
 
 def apply_site_effects_css() -> None:
-    """Inject global visual effects for every signed-in user."""
+    """Hard-apply global visual effects for every signed-in user."""
     fx = site_effects_load()
-    bits = []
+    import html as _html
+    css_parts = []
+    html_parts = []
 
-    banner = (fx.get("global_banner") or "").strip()
-    if banner:
-        import html as _html
-        safe = _html.escape(banner)[:160]
-        bits.append(
-            f"""
-            <div class="drae-global-banner">{safe}</div>
-            <style>
-              .drae-global-banner {{
-                position: sticky; top: 0; z-index: 9990;
-                text-align: center;
-                padding: 0.55rem 1rem;
-                font-family: Georgia, 'Cormorant Garamond', serif;
-                font-style: italic;
-                font-size: 0.95rem;
-                letter-spacing: 0.02em;
-                color: #f5f0ff;
-                background: linear-gradient(90deg, #1a1028, #2a1840, #1a1028);
-                border-bottom: 1px solid rgba(196,167,231,0.35);
-                box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-              }}
-            </style>
+    # ---- Announcement (site-wide) ----
+    ann = (fx.get("announce_text") or "").strip()
+    if ann:
+        aid = str(fx.get("announce_id") or "a0")
+        dismissed = st.session_state.get("_dismissed_announce_id")
+        if dismissed != aid:
+            style = (fx.get("announce_style") or "violet").lower()
+            palettes = {
+                "violet": ("#c4a7e7", "rgba(28,16,48,0.97)", "rgba(167,139,250,0.45)"),
+                "alert": ("#fca5a5", "rgba(40,10,14,0.97)", "rgba(239,68,68,0.45)"),
+                "residual": ("#5eead4", "rgba(6,20,18,0.97)", "rgba(45,212,191,0.4)"),
+                "soft": ("#f9a8d4", "rgba(40,16,32,0.97)", "rgba(244,114,182,0.4)"),
+            }
+            accent, bg, border = palettes.get(style, palettes["violet"])
+            safe = _html.escape(ann)[:220]
+            html_parts.append(
+                f"""
+                <div class="drae-announce" style="
+                  position:sticky;top:0;z-index:10000;text-align:center;
+                  padding:0.75rem 1.1rem 0.7rem;
+                  background:{bg};
+                  border-bottom:1px solid {border};
+                  box-shadow:0 12px 40px rgba(0,0,0,0.45);
+                ">
+                  <div style="
+                    font-family:ui-monospace,monospace;font-size:0.6rem;letter-spacing:0.24em;
+                    color:{accent};opacity:0.85;margin-bottom:0.25rem;
+                  ">SITE ANNOUNCEMENT · DRAE</div>
+                  <div style="
+                    font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;
+                    font-size:clamp(1.05rem,2.8vw,1.35rem);color:#faf7ff;line-height:1.35;
+                  ">{safe}</div>
+                </div>
+                """
+            )
+
+    # ---- Base keyframes always available when any fx on ----
+    css_parts.append(
+        """
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,500&display=swap');
+        @keyframes draeRainbow { to { background-position: 200% center; } }
+        @keyframes draeAurora {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        @keyframes draePulseGlow {
+          0%,100% { box-shadow: 0 0 0 0 rgba(167,139,250,0.0), 0 0 24px rgba(167,139,250,0.15); }
+          50% { box-shadow: 0 0 0 4px rgba(167,139,250,0.08), 0 0 36px rgba(244,114,182,0.25); }
+        }
+        @keyframes draeScan {
+          0% { transform: translateY(-100%); }
+          100% { transform: translateY(100vh); }
+        }
+        @keyframes draeStatic {
+          0% { transform: translate(0,0); }
+          33% { transform: translate(-0.5%,0.4%); }
+          66% { transform: translate(0.4%,-0.3%); }
+          100% { transform: translate(0,0); }
+        }
+        @keyframes draeMatrixFall {
+          0% { background-position: 0 0; }
+          100% { background-position: 0 240px; }
+        }
+        """
+    )
+
+    if fx.get("rainbow_chat"):
+        css_parts.append(
+            """
+            [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] p,
+            [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] li,
+            [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] span,
+            [data-testid="stChatMessage"] .stMarkdown p {
+              background: linear-gradient(90deg,#f472b6,#c084fc,#60a5fa,#2dd4bf,#fbbf24,#f472b6) !important;
+              background-size: 220% auto !important;
+              -webkit-background-clip: text !important;
+              background-clip: text !important;
+              -webkit-text-fill-color: transparent !important;
+              color: transparent !important;
+              animation: draeRainbow 3.5s linear infinite !important;
+              font-weight: 500 !important;
+            }
+            [data-testid="stChatMessage"] {
+              border: 1px solid rgba(167,139,250,0.35) !important;
+              border-radius: 18px !important;
+              background: rgba(20,12,32,0.55) !important;
+            }
             """
         )
 
-    if fx.get("rainbow_chat"):
-        bits.append(
+    if fx.get("aurora_shell"):
+        css_parts.append(
             """
-            <style>
-              [data-testid="stChatMessage"] p,
-              [data-testid="stChatMessage"] span,
-              [data-testid="stChatMessage"] li,
-              [data-testid="stChatMessage"] .stMarkdown {
-                background: linear-gradient(90deg,#f472b6,#a78bfa,#60a5fa,#34d399,#fbbf24,#f472b6);
-                background-size: 200% auto;
-                -webkit-background-clip: text;
-                background-clip: text;
-                -webkit-text-fill-color: transparent;
-                animation: draeRainbow 4s linear infinite;
-              }
-              @keyframes draeRainbow {
-                to { background-position: 200% center; }
-              }
-              [data-testid="stChatMessage"] {
-                border: 1px solid rgba(167,139,250,0.25) !important;
-                border-radius: 16px !important;
-              }
-            </style>
+            .stApp, [data-testid="stAppViewContainer"] {
+              background: linear-gradient(-45deg, #0c0614, #1a0a24, #0a1820, #140820, #0c0614) !important;
+              background-size: 400% 400% !important;
+              animation: draeAurora 14s ease infinite !important;
+            }
+            section.main > div { background: transparent !important; }
+            """
+        )
+
+    if fx.get("neon_buttons"):
+        css_parts.append(
+            """
+            .stButton > button {
+              border: 1px solid rgba(167,139,250,0.55) !important;
+              box-shadow: 0 0 16px rgba(167,139,250,0.25), inset 0 0 12px rgba(244,114,182,0.08) !important;
+              animation: draePulseGlow 2.8s ease-in-out infinite !important;
+            }
+            .stButton > button:hover {
+              border-color: #f9a8d4 !important;
+              box-shadow: 0 0 28px rgba(244,114,182,0.45) !important;
+              color: #fde8ff !important;
+            }
+            """
+        )
+
+    if fx.get("matrix_rain"):
+        css_parts.append(
+            """
+            .stApp::before {
+              content: "01 10 11 01 00 10 11 01 10 00 11 01 10 11";
+              pointer-events: none;
+              position: fixed; inset: 0; z-index: 9960;
+              font-family: ui-monospace, monospace;
+              font-size: 11px;
+              line-height: 1.6;
+              letter-spacing: 0.35em;
+              color: rgba(52,211,153,0.11);
+              white-space: pre-wrap;
+              word-break: break-all;
+              overflow: hidden;
+              background-image: repeating-linear-gradient(
+                180deg,
+                rgba(52,211,153,0.08) 0px,
+                transparent 2px,
+                transparent 18px
+              );
+              background-size: 100% 240px;
+              animation: draeMatrixFall 8s linear infinite;
+              mix-blend-mode: screen;
+            }
+            """
+        )
+
+    if fx.get("scanlines"):
+        css_parts.append(
+            """
+            .stApp::after {
+              content: "";
+              pointer-events: none;
+              position: fixed; left: 0; right: 0; top: -20%;
+              height: 28%;
+              z-index: 9975;
+              background: linear-gradient(
+                180deg,
+                transparent 0%,
+                rgba(196,167,231,0.06) 40%,
+                rgba(244,114,182,0.05) 60%,
+                transparent 100%
+              );
+              animation: draeScan 5.5s linear infinite;
+            }
+            .stApp {
+              background-image: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,0,0,0.07) 2px,
+                rgba(0,0,0,0.07) 4px
+              ) !important;
+            }
             """
         )
 
     if fx.get("residual_static"):
-        bits.append(
+        css_parts.append(
             """
-            <style>
-              .stApp::after {
-                content: "";
-                pointer-events: none;
-                position: fixed; inset: 0; z-index: 9980;
-                opacity: 0.07;
-                background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-                animation: draeStatic 0.35s steps(3) infinite;
-                mix-blend-mode: overlay;
-              }
-              @keyframes draeStatic {
-                0% { transform: translate(0,0); }
-                50% { transform: translate(-1%,1%); }
-                100% { transform: translate(1%,-1%); }
-              }
-            </style>
+            .drae-static-layer {
+              pointer-events: none;
+              position: fixed; inset: 0; z-index: 9970;
+              opacity: 0.12;
+              background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.9'/%3E%3C/svg%3E");
+              animation: draeStatic 0.28s steps(2) infinite;
+              mix-blend-mode: overlay;
+            }
             """
         )
+        html_parts.append('<div class="drae-static-layer"></div>')
 
     if fx.get("soft_bloom"):
-        bits.append(
+        css_parts.append(
             """
-            <style>
-              .stApp {
-                box-shadow: inset 0 0 120px rgba(244,114,182,0.12), inset 0 0 80px rgba(251,191,36,0.08) !important;
-              }
-              .panel, [data-testid="stVerticalBlockBorderWrapper"] {
-                border-color: rgba(244,114,182,0.25) !important;
-              }
-            </style>
+            .stApp {
+              box-shadow:
+                inset 0 0 140px rgba(244,114,182,0.16),
+                inset 0 0 90px rgba(251,191,36,0.1) !important;
+            }
+            .panel, div[data-testid="stVerticalBlockBorderWrapper"] {
+              border-color: rgba(244,114,182,0.35) !important;
+              box-shadow: 0 0 30px rgba(244,114,182,0.08) !important;
+            }
             """
         )
 
     if fx.get("quiet_mode"):
-        bits.append(
+        css_parts.append(
             """
-            <style>
-              .stApp { filter: saturate(0.75) brightness(0.92); }
-              .sub, .muted, [data-testid="stCaption"] { opacity: 0.55 !important; }
-            </style>
+            .stApp { filter: saturate(0.7) brightness(0.9) !important; }
+            [data-testid="stCaption"], .sub, .muted { opacity: 0.5 !important; }
+            """
+        )
+
+    if fx.get("heart_cursor"):
+        css_parts.append(
+            """
+            .stApp, .stApp * {
+              cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ctext y='18' font-size='16'%3E%E2%9D%A4%EF%B8%8F%3C/text%3E%3C/svg%3E") 8 8, auto !important;
+            }
             """
         )
 
     if fx.get("creator_watermark"):
-        bits.append(
+        css_parts.append(
             """
-            <style>
-              .drae-watermark {
-                position: fixed; right: 12px; bottom: 10px; z-index: 9970;
-                font-family: ui-monospace, monospace;
-                font-size: 0.62rem;
-                letter-spacing: 0.14em;
-                color: rgba(196,167,231,0.45);
-                pointer-events: none;
-                text-transform: uppercase;
-              }
-            </style>
-            <div class="drae-watermark">Meridium · Drae</div>
+            .drae-watermark {
+              position: fixed; right: 14px; bottom: 12px; z-index: 9995;
+              font-family: ui-monospace, monospace;
+              font-size: 0.64rem;
+              letter-spacing: 0.16em;
+              color: rgba(196,167,231,0.55);
+              text-shadow: 0 0 12px rgba(167,139,250,0.35);
+              pointer-events: none;
+              text-transform: uppercase;
+            }
             """
         )
+        html_parts.append('<div class="drae-watermark">Meridium · Drae</div>')
 
     force = (fx.get("force_theme") or "").strip()
     if force and force in {**THEMES, **SECRET_THEMES}:
-        # Soft-apply for non-owners only; owner keeps their choice in panel
         if not is_owner(st.session_state.get("username") or ""):
             st.session_state.theme = force
 
-    if bits:
-        st.markdown("\n".join(bits), unsafe_allow_html=True)
+    payload = ""
+    if css_parts:
+        payload += "<style>\n" + "\n".join(css_parts) + "\n</style>\n"
+    payload += "\n".join(html_parts)
+    if payload.strip():
+        st.markdown(payload, unsafe_allow_html=True)
 
 def save_user_data():
     name = (st.session_state.get("username") or "").strip()
@@ -7520,19 +7658,44 @@ if st.session_state.view == "owner":
             st.caption("No messages yet.")
 
     with tab_fx:
-        st.markdown("**Site-wide effects** — hit every signed-in user on next load.")
+        st.markdown("#### Reality dial")
+        st.caption("These rewrite Meridium for **everyone** signed in. Flip switches → Apply.")
         fx = site_effects_load()
-        rainbow = st.toggle("🌈 Rainbow chat", value=bool(fx.get("rainbow_chat")), key="fx_rainbow")
-        static = st.toggle("📼 Residual static overlay", value=bool(fx.get("residual_static")), key="fx_static")
-        bloom = st.toggle("✨ Soft bloom (Lumity glow)", value=bool(fx.get("soft_bloom")), key="fx_bloom")
-        quiet = st.toggle("🤫 Quiet mode (dim / hush)", value=bool(fx.get("quiet_mode")), key="fx_quiet")
-        mark = st.toggle("✎ Creator watermark", value=bool(fx.get("creator_watermark", True)), key="fx_mark")
-        banner = st.text_input(
-            "Global banner (everyone sees this)",
-            value=str(fx.get("global_banner") or ""),
-            key="fx_banner",
-            placeholder="e.g. Observation desk is open tonight.",
+
+        st.markdown("**Visual atmosphere**")
+        c1, c2 = st.columns(2)
+        with c1:
+            rainbow = st.toggle("🌈 Rainbow chat", value=bool(fx.get("rainbow_chat")), key="fx_rainbow")
+            aurora = st.toggle("🌌 Aurora shell", value=bool(fx.get("aurora_shell")), key="fx_aurora")
+            neon = st.toggle("💜 Neon buttons", value=bool(fx.get("neon_buttons")), key="fx_neon")
+            matrix = st.toggle("💚 Matrix rain", value=bool(fx.get("matrix_rain")), key="fx_matrix")
+            scan = st.toggle("📺 CRT scanlines", value=bool(fx.get("scanlines")), key="fx_scan")
+        with c2:
+            static = st.toggle("📼 Residual static", value=bool(fx.get("residual_static")), key="fx_static")
+            bloom = st.toggle("✨ Soft bloom", value=bool(fx.get("soft_bloom")), key="fx_bloom")
+            quiet = st.toggle("🤫 Quiet mode", value=bool(fx.get("quiet_mode")), key="fx_quiet")
+            heart = st.toggle("❤️ Heart cursor", value=bool(fx.get("heart_cursor")), key="fx_heart")
+            mark = st.toggle("✎ Creator watermark", value=bool(fx.get("creator_watermark", True)), key="fx_mark")
+
+        st.markdown("---")
+        st.markdown("**Site announcement**")
+        st.caption("Sticky banner at the top of every page. Empty = no announcement.")
+        ann_text = st.text_area(
+            "Announcement text",
+            value=str(fx.get("announce_text") or ""),
+            key="fx_ann_text",
+            placeholder="The residual door is open. Library dial: 1818.",
+            height=80,
         )
+        ann_style = st.selectbox(
+            "Announcement style",
+            ["violet", "alert", "residual", "soft"],
+            index=["violet", "alert", "residual", "soft"].index(
+                fx.get("announce_style") if fx.get("announce_style") in ("violet", "alert", "residual", "soft") else "violet"
+            ),
+            key="fx_ann_style",
+        )
+
         theme_opts = ["(off)"] + list(THEMES.keys()) + list(SECRET_THEMES.keys())
         cur_force = fx.get("force_theme") or "(off)"
         if cur_force not in theme_opts:
@@ -7543,27 +7706,49 @@ if st.session_state.view == "owner":
             index=theme_opts.index(cur_force),
             key="fx_force_theme",
         )
-        if st.button("Apply site effects", key="fx_apply", type="primary", use_container_width=True):
-            new_fx = {
-                "rainbow_chat": bool(rainbow),
-                "residual_static": bool(static),
-                "soft_bloom": bool(bloom),
-                "quiet_mode": bool(quiet),
-                "creator_watermark": bool(mark),
-                "global_banner": (banner or "").strip()[:160],
-                "force_theme": "" if force_all == "(off)" else force_all,
-            }
-            site_effects_save(new_fx)
-            st.success("Site effects live — everyone picks them up on refresh / navigation.")
-            st.rerun()
-        if st.button("Clear all effects", key="fx_clear", use_container_width=True):
-            site_effects_save(dict(_DEFAULT_SITE_EFFECTS))
-            st.success("Effects cleared.")
-            st.rerun()
-        st.caption(
-            "Rainbow = Meridium chat text shifts colour. "
-            "Static = residual VHS grain. Bloom = pink/gold shell light. "
-            "Force theme overrides non-owners."
+
+        a1, a2 = st.columns(2)
+        with a1:
+            if st.button("⚡ Apply to whole site", key="fx_apply", type="primary", use_container_width=True):
+                new_fx = {
+                    "rainbow_chat": bool(rainbow),
+                    "aurora_shell": bool(aurora),
+                    "neon_buttons": bool(neon),
+                    "matrix_rain": bool(matrix),
+                    "scanlines": bool(scan),
+                    "residual_static": bool(static),
+                    "soft_bloom": bool(bloom),
+                    "quiet_mode": bool(quiet),
+                    "heart_cursor": bool(heart),
+                    "creator_watermark": bool(mark),
+                    "force_theme": "" if force_all == "(off)" else force_all,
+                    "announce_text": (ann_text or "").strip()[:220],
+                    "announce_style": ann_style,
+                    "announce_id": uuid.uuid4().hex[:10] if (ann_text or "").strip() else "",
+                }
+                # keep same announce_id if text unchanged so dismiss state stays
+                if (ann_text or "").strip() == (fx.get("announce_text") or "").strip() and fx.get("announce_id"):
+                    new_fx["announce_id"] = fx.get("announce_id")
+                site_effects_save(new_fx)
+                st.success("Site rewritten. Navigate once — effects hit every session.")
+                st.rerun()
+        with a2:
+            if st.button("Clear everything", key="fx_clear", use_container_width=True):
+                site_effects_save(dict(_DEFAULT_SITE_EFFECTS))
+                st.success("Reality restored.")
+                st.rerun()
+
+        st.markdown(
+            """
+            <div style="margin-top:0.75rem;padding:0.75rem 0.9rem;border-radius:12px;
+              border:1px solid rgba(196,167,231,0.25);background:rgba(20,12,32,0.5);
+              font-size:0.82rem;color:rgba(220,210,240,0.75);line-height:1.45;">
+              <b>Rainbow</b> paints chat · <b>Aurora</b> shifts the whole shell ·
+              <b>Matrix / Scanlines / Static</b> are residual textures ·
+              <b>Announcement</b> is a sticky creator broadcast.
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
 
     with tab_grants:
