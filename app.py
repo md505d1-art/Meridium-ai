@@ -370,6 +370,8 @@ def stop_all_meridium_audio() -> None:
                     || a.getAttribute('data-meridium-lab')
                     || a.getAttribute('data-meridium-voss')
                     || a.getAttribute('data-meridium-residual')
+                    || a.getAttribute('data-meridium-nadir')
+                    || a.getAttribute('data-meridium-door')
                     || a.getAttribute('data-meridium-glitch');
                   if (tag || (a.src && (
                     a.src.indexOf('artmanzh') !== -1 ||
@@ -3080,82 +3082,6 @@ if st.session_state.view == "lab":
         st.session_state.view = "home"
         st.warning("The lab is sealed. Finish the observation puzzle in chat to unlock it.")
         st.rerun()
-
-    # Entrance cutscene — isolated continue control
-    if not st.session_state.get("_lab_cutscene_done"):
-        st.markdown(
-            """
-            <style>
-              .stApp, [data-testid="stAppViewContainer"], section.main {
-                background: #000000 !important;
-              }
-              [data-testid="stHeader"], footer, #MainMenu { display: none !important; }
-              .lab-cut-wrap {
-                min-height: 58vh;
-                display: flex; flex-direction: column;
-                align-items: center; justify-content: center;
-                text-align: center; padding: 2.5rem 1.25rem 1rem;
-              }
-              .lab-cut-text {
-                font-family: Georgia, "Times New Roman", serif;
-                color: #b01010;
-                font-size: clamp(1.35rem, 4vw, 2rem);
-                letter-spacing: 0.02em;
-                line-height: 1.4;
-                max-width: 15em;
-              }
-              .lab-cut-sub {
-                margin-top: 1rem;
-                font-family: ui-monospace, monospace;
-                font-size: 0.7rem;
-                letter-spacing: 0.2em;
-                color: #5a2828;
-              }
-              /* Scope button styles to this cutscene only via following sibling block */
-              .lab-cut-btn-anchor + div button {
-                background-color: #140808 !important;
-                background-image: none !important;
-                color: #f0c8c8 !important;
-                border: 1px solid #6a2828 !important;
-                border-radius: 999px !important;
-                box-shadow: none !important;
-                min-height: 3rem !important;
-                font-size: 1rem !important;
-                font-weight: 600 !important;
-              }
-              .lab-cut-btn-anchor + div button p,
-              .lab-cut-btn-anchor + div button span {
-                color: #f0c8c8 !important;
-                font-size: 1rem !important;
-                font-weight: 600 !important;
-                white-space: nowrap !important;
-                overflow: visible !important;
-                mix-blend-mode: normal !important;
-                opacity: 1 !important;
-              }
-            </style>
-            <div class="lab-cut-wrap">
-              <div class="lab-cut-text">You were not meant to see this.</div>
-              <div class="lab-cut-sub">OBSERVATION LOG · SEAL BROKEN</div>
-            </div>
-            <div class="lab-cut-btn-anchor"></div>
-            """,
-            unsafe_allow_html=True,
-        )
-        mid = st.container()
-        with mid:
-            c1, c2, c3 = st.columns([1, 2, 1])
-            with c2:
-                cont = st.button(
-                    "Continue",
-                    key="lab_cutscene_continue_v2",
-                    use_container_width=True,
-                    type="primary",
-                )
-        if cont:
-            st.session_state._lab_cutscene_done = True
-            st.rerun()
-        st.stop()
 
     if not st.session_state.get("_currently_in_lab"):
         st.session_state._currently_in_lab = True
@@ -6169,8 +6095,34 @@ if st.session_state.view == "nadir":
                 stop_all_meridium_audio()
             except Exception:
                 pass
+            # Force-kill Run Rabbit Run residual audio nodes
+            st.components.v1.html(
+                """
+                <script>
+                (function(){
+                  try {
+                    var roots = [window];
+                    try { if (window.parent) roots.push(window.parent); } catch(e){}
+                    for (var r=0;r<roots.length;r++){
+                      var root = roots[r];
+                      try {
+                        var a = root.__mer_nadir_song;
+                        if (a) { try { a.pause(); a.src=''; a.remove(); } catch(e){} }
+                        root.__mer_nadir_song = null;
+                        var nodes = root.document.querySelectorAll('audio[data-meridium-nadir]');
+                        for (var i=0;i<nodes.length;i++){
+                          try { nodes[i].pause(); nodes[i].src=''; nodes[i].remove(); } catch(e){}
+                        }
+                      } catch(e){}
+                    }
+                  } catch(e){}
+                })();
+                </script>
+                """,
+                height=0,
+            )
             st.session_state._nadir_music_on = False
-            st.session_state.view = "lab"
+            st.session_state.view = "library"
             st.session_state.nadir_active_file = None
             st.session_state.nadir_reader = None
             st.rerun()
@@ -6182,6 +6134,31 @@ if st.session_state.view == "nadir":
                 stop_all_meridium_audio()
             except Exception:
                 pass
+            st.components.v1.html(
+                """
+                <script>
+                (function(){
+                  try {
+                    var roots = [window];
+                    try { if (window.parent) roots.push(window.parent); } catch(e){}
+                    for (var r=0;r<roots.length;r++){
+                      var root = roots[r];
+                      try {
+                        var a = root.__mer_nadir_song;
+                        if (a) { try { a.pause(); a.src=''; a.remove(); } catch(e){} }
+                        root.__mer_nadir_song = null;
+                        var nodes = root.document.querySelectorAll('audio[data-meridium-nadir]');
+                        for (var i=0;i<nodes.length;i++){
+                          try { nodes[i].pause(); nodes[i].src=''; nodes[i].remove(); } catch(e){}
+                        }
+                      } catch(e){}
+                    }
+                  } catch(e){}
+                })();
+                </script>
+                """,
+                height=0,
+            )
             st.session_state._nadir_music_on = False
             st.session_state.nadir_reader = None
             st.session_state.view = "chat"
@@ -6605,19 +6582,6 @@ if st.session_state.view == "library":
         st.session_state.library_page = 0
         st.rerun()
 
-    # Residual dial — type 1818 to reach the Project Nadir door page
-    with st.expander("Residual dial", expanded=False):
-        st.caption("A combination from the margin of Frankenstein. Four digits. Winter print. London.")
-        with st.form(key="lib_nadir_dial_form", clear_on_submit=False):
-            code = st.text_input("Combination", max_chars=8, key="lib_nadir_dial_input", placeholder="····")
-            submitted = st.form_submit_button("Turn dial", use_container_width=True)
-            if submitted:
-                if str(code or "").strip() == "1818":
-                    st.session_state.view = "nadir_door"
-                    st.rerun()
-                else:
-                    st.error("The dial does not turn.")
-
     shelf = LIBRARY_CATALOG
     reading_id = st.session_state.get("library_reading")
     current_book = next((b for b in shelf if b.get("id") == reading_id), None)
@@ -6840,6 +6804,30 @@ if st.session_state.view == "library":
             "Public-domain texts from [Project Gutenberg](https://www.gutenberg.org). "
             "Only free/open works are hosted in Meridium."
         )
+
+        # Residual dial — only after board key (Frankenstein path); bottom of shelf
+        if st.session_state.get("archive_key") or st.session_state.get("lab_door_unlocked"):
+            st.markdown("---")
+            with st.expander("Residual dial", expanded=False):
+                st.caption(
+                    "A combination from the margin of Frankenstein. Four digits. Winter print. London."
+                )
+                with st.form(key="lib_nadir_dial_form", clear_on_submit=False):
+                    code = st.text_input(
+                        "Combination",
+                        max_chars=8,
+                        key="lib_nadir_dial_input",
+                        placeholder="····",
+                    )
+                    submitted = st.form_submit_button("Turn dial", use_container_width=True)
+                    if submitted:
+                        if str(code or "").strip() == "1818":
+                            st.session_state.view = "nadir_door"
+                            st.rerun()
+                        else:
+                            st.error("The dial does not turn.")
+        else:
+            st.caption("")  # dial stays hidden until residual key is earned
     st.stop()
 
 # HOME — bookmark rail + calm main panel
