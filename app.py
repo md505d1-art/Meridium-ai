@@ -1531,6 +1531,22 @@ def moderate_text(text: str):
     return True, text
 
 
+def moderate_chat_message(text: str):
+    """Chatroom filter — block disallowed content; light scrub for excess."""
+    raw = str(text or "").strip()
+    if not raw:
+        return False, "empty"
+    ok, _ = moderate_text(raw)
+    if not ok:
+        return False, "blocked"
+    # Soft length + control-char scrub
+    cleaned = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", raw)
+    cleaned = cleaned[:800]
+    if not cleaned.strip():
+        return False, "empty"
+    return True, cleaned
+
+
 defaults = {
     "view": "home",
     "font": "Inter",
@@ -2952,6 +2968,72 @@ try:
     apply_owner_grants_for_user(st.session_state.get("username") or "")
 except Exception:
     pass
+
+# Creator invite notification — global (any page except already in room)
+_inv_user = (st.session_state.get("username") or "").strip()
+if (
+    _inv_user
+    and st.session_state.get("signed_in")
+    and not is_owner(_inv_user)
+    and st.session_state.get("view") != "owner_room"
+    and chatroom_has_pending(_inv_user)
+):
+    st.markdown(
+        """
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap');
+          .creator-invite-banner {
+            margin: 0.5rem 0 0.85rem;
+            padding: 1.1rem 1.2rem 0.95rem;
+            border-radius: 16px;
+            border: 1px solid rgba(196,167,231,0.5);
+            background:
+              radial-gradient(ellipse at 15% 0%, rgba(196,167,231,0.22), transparent 50%),
+              linear-gradient(165deg, #1a1428 0%, #0e0c16 100%);
+            box-shadow: 0 10px 32px rgba(0,0,0,0.4);
+            text-align: center;
+          }
+          .creator-invite-banner .ci-mark {
+            font-family: ui-monospace, SFMono-Regular, monospace !important;
+            font-size: 0.62rem !important;
+            letter-spacing: 0.22em;
+            color: #c4a7e7 !important;
+            margin-bottom: 0.5rem;
+            opacity: 0.9;
+          }
+          .creator-invite-banner .ci-title {
+            font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif !important;
+            font-size: clamp(1.4rem, 3.5vw, 1.85rem) !important;
+            font-weight: 600 !important;
+            font-style: italic !important;
+            color: #f5f0ff !important;
+            line-height: 1.3 !important;
+          }
+          .creator-invite-banner .ci-sub {
+            margin-top: 0.4rem;
+            font-family: 'Cormorant Garamond', Georgia, serif !important;
+            font-size: 1rem !important;
+            color: #c8bddc !important;
+          }
+        </style>
+        <div class="creator-invite-banner">
+          <div class="ci-mark">MERIDIUM · CREATOR CHANNEL</div>
+          <div class="ci-title">The creator has invited you to chat.</div>
+          <div class="ci-sub">Accept to join the observation desk with Drae.</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    _ia, _ib = st.columns(2)
+    with _ia:
+        if st.button("Accept", key="chat_invite_accept_global", use_container_width=True, type="primary"):
+            if chatroom_accept(_inv_user):
+                st.session_state.view = "owner_room"
+                st.rerun()
+    with _ib:
+        if st.button("Decline", key="chat_invite_decline_global", use_container_width=True):
+            chatroom_decline(_inv_user)
+            st.rerun()
 
 # Personalized intro (once after sign-in)
 if st.session_state.show_intro:
@@ -7241,7 +7323,7 @@ if st.session_state.view == "owner_room":
         <div class="panel">
           <div class="panel-label">Owner chatroom</div>
           <div class="hero" style="font-size:1.25rem;">Observation desk</div>
-          <div class="sub">Shared channel · local JSON · refresh to pull new messages</div>
+          <div class="sub">Live channel · auto-updates · moderated</div>
           <div class="ridge"></div>
         </div>
         """,
@@ -7258,17 +7340,19 @@ if st.session_state.view == "owner_room":
                 st.session_state.view = "owner"
                 st.rerun()
     with b3:
-        if st.button("Refresh", key="room_refresh", use_container_width=True):
+        if st.button("Refresh now", key="room_refresh", use_container_width=True):
             st.rerun()
 
     room = chatroom_load()
     members = room.get("members") or []
-    st.caption("In room: " + (", ".join(members) if members else "—"))
+    st.caption("In room: " + (", ".join(members) if members else "—") + " · live")
 
-    msgs = list(room.get("messages") or [])[-40:]
-    if not msgs:
-        st.info("No messages yet. Say hello.")
-    else:
+    def _render_room_messages():
+        r = chatroom_load()
+        msgs = list(r.get("messages") or [])[-50:]
+        if not msgs:
+            st.info("No messages yet. Say hello.")
+            return
         for m in msgs:
             who = m.get("user") or "?"
             text = m.get("text") or ""
@@ -7276,15 +7360,55 @@ if st.session_state.view == "owner_room":
             with st.chat_message("assistant" if is_owner(who) else "user"):
                 st.markdown(f"**{who}** · `{ts}`  \n{text}")
 
+    # Live auto-refresh of the message list (Streamlit fragment if available)
+    try:
+        from datetime import timedelta as _td
+
+        @st.fragment(run_every=_td(seconds=2))
+        def _live_room_feed():
+            _render_room_messages()
+
+        _live_room_feed()
+    except Exception:
+        _render_room_messages()
+        # Fallback: soft auto-rerun every 3s while in the room
+        st.components.v1.html(
+            """
+            <script>
+            (function(){
+              try {
+                if (window.__mer_room_timer) return;
+                window.__mer_room_timer = setTimeout(function(){
+                  try {
+                    var doc = window.parent.document;
+                    // Prefer Streamlit's own rerun if available
+                    var btns = doc.querySelectorAll('button');
+                    for (var i=0;i<btns.length;i++){
+                      var t = (btns[i].innerText || '').trim();
+                      if (t === 'Refresh now') { btns[i].click(); break; }
+                    }
+                  } catch(e){}
+                }, 3000);
+              } catch(e){}
+            })();
+            </script>
+            """,
+            height=0,
+        )
+
     with st.form(key="owner_room_send", clear_on_submit=True):
         msg = st.text_input("Message", key="owner_room_msg", placeholder="Type a message…")
         sent = st.form_submit_button("Send", use_container_width=True, type="primary")
         if sent:
-            if (msg or "").strip():
-                chatroom_post(me, msg.strip())
-                st.rerun()
+            ok, cleaned = moderate_chat_message(msg)
+            if not ok:
+                if cleaned == "blocked":
+                    st.error("Message blocked by Meridium safety filters.")
+                else:
+                    st.error("Empty message.")
             else:
-                st.error("Empty message.")
+                chatroom_post(me, cleaned)
+                st.rerun()
     st.stop()
 
 
@@ -7385,66 +7509,6 @@ if st.session_state.view == "home":
             st.caption(_combo)
         if st.session_state.get("_egg_flash"):
             st.info(st.session_state.pop("_egg_flash"))
-
-        # Creator chatroom invite notification (accept / decline)
-        _uname = (st.session_state.get("username") or "").strip()
-        if _uname and not is_owner(_uname) and chatroom_has_pending(_uname):
-            st.markdown(
-                """
-                <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
-                <style>
-                  .creator-invite {
-                    margin: 0.75rem 0 1rem;
-                    padding: 1.15rem 1.25rem 1rem;
-                    border-radius: 16px;
-                    border: 1px solid rgba(196,167,231,0.45);
-                    background:
-                      radial-gradient(ellipse at 20% 0%, rgba(196,167,231,0.18), transparent 55%),
-                      linear-gradient(180deg, rgba(28,22,40,0.95), rgba(14,12,22,0.98));
-                    box-shadow: 0 12px 40px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.04);
-                    text-align: center;
-                  }
-                  .creator-invite .ci-mark {
-                    font-family: ui-monospace, monospace;
-                    font-size: 0.62rem;
-                    letter-spacing: 0.22em;
-                    color: rgba(196,167,231,0.75);
-                    margin-bottom: 0.55rem;
-                  }
-                  .creator-invite .ci-title {
-                    font-family: "Cormorant Garamond", Georgia, serif;
-                    font-size: clamp(1.35rem, 3.2vw, 1.75rem);
-                    font-weight: 600;
-                    font-style: italic;
-                    color: #f3eefc;
-                    line-height: 1.35;
-                    letter-spacing: 0.01em;
-                  }
-                  .creator-invite .ci-sub {
-                    margin-top: 0.45rem;
-                    font-family: "Cormorant Garamond", Georgia, serif;
-                    font-size: 0.95rem;
-                    color: rgba(220,210,240,0.7);
-                  }
-                </style>
-                <div class="creator-invite">
-                  <div class="ci-mark">MERIDIUM · CREATOR CHANNEL</div>
-                  <div class="ci-title">The creator has invited you to chat.</div>
-                  <div class="ci-sub">Accept to join the observation desk with Drae.</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            ia, ib = st.columns(2)
-            with ia:
-                if st.button("Accept", key="chat_invite_accept", use_container_width=True, type="primary"):
-                    if chatroom_accept(_uname):
-                        st.session_state.view = "owner_room"
-                        st.rerun()
-            with ib:
-                if st.button("Decline", key="chat_invite_decline", use_container_width=True):
-                    chatroom_decline(_uname)
-                    st.rerun()
 
         _wiki_pill = "Wiki on" if st.session_state.use_wiki_toggle else "Wiki off"
         _web_pill = "Web on" if st.session_state.use_web_toggle else "Web off"
