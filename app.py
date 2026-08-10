@@ -309,6 +309,8 @@ def stop_all_meridium_audio() -> None:
                 kill(root.__mer_lab_song); root.__mer_lab_song = null;
                 kill(root.__mer_voss_song); root.__mer_voss_song = null;
                 kill(root.__mer_residual_song); root.__mer_residual_song = null;
+                kill(root.__mer_door_song); root.__mer_door_song = null;
+                kill(root.__mer_nadir_song); root.__mer_nadir_song = null;
                 root.__mer_note_audio_on = false;
                 root.__mer_residual_audio_on = false;
                 var nodes = root.document.querySelectorAll('audio');
@@ -446,6 +448,90 @@ def play_glitch_sfx() -> None:
             var a = new Audio({url_js});
             a.volume = 0.55;
             a.play().catch(function(){{}});
+          }} catch(e){{}}
+        }})();
+        </script>
+        """,
+        height=0,
+    )
+
+
+# Door unlock · Frank Churchill (1933 recordings on Archive.org)
+DOOR_WOLF_URL = (
+    "https://archive.org/download/"
+    "DocMurphPresentsMusicFromTheEdWolfCollection/"
+    "WhosAfraidOfTheBigBadWolf.mp3"
+)
+# Nadir ambient · Flanagan and Allen
+NADIR_RABBIT_URL = (
+    "https://archive.org/download/"
+    "78_run-rabbit-run_flanagan-and-allen-gay-butler_gbia0006719a/"
+    "Run%2C%20Rabbit%2C%20Run%20-%20Flanagan%20and%20ALlen%20-%20Gay-restored.mp3"
+)
+
+
+def play_meridium_track(url: str, tag: str = "track", volume: float = 0.45, loop: bool = True) -> None:
+    """Play a tagged audio track (stops prior same-tag instance)."""
+    import json as _json
+    url_js = _json.dumps(url)
+    tag_js = _json.dumps(tag)
+    vol_js = float(volume)
+    loop_js = "true" if loop else "false"
+    st.components.v1.html(
+        f"""
+        <script>
+        (function(){{
+          try {{
+            var root = window.parent || window;
+            var tag = {tag_js};
+            var key = '__mer_' + tag + '_song';
+            function kill(a){{
+              if (!a) return;
+              try {{ a.pause(); a.src=''; a.remove(); }} catch(e){{}}
+            }}
+            kill(root[key]);
+            root[key] = null;
+            var nodes = root.document.querySelectorAll('audio[data-meridium-'+tag+']');
+            for (var i = 0; i < nodes.length; i++) kill(nodes[i]);
+            var a = root.document.createElement('audio');
+            a.src = {url_js};
+            a.loop = {loop_js};
+            a.volume = {vol_js};
+            a.setAttribute('data-meridium-' + tag, '1');
+            a.style.display = 'none';
+            root.document.body.appendChild(a);
+            root[key] = a;
+            a.play().catch(function(){{
+              function once(){{ a.play().catch(function(){{}}); }}
+              root.document.addEventListener('click', once, {{once:true}});
+              root.document.addEventListener('touchstart', once, {{once:true, passive:true}});
+            }});
+          }} catch(e){{}}
+        }})();
+        </script>
+        """,
+        height=0,
+    )
+
+
+def stop_meridium_track(tag: str = "track") -> None:
+    import json as _json
+    tag_js = _json.dumps(tag)
+    st.components.v1.html(
+        f"""
+        <script>
+        (function(){{
+          try {{
+            var root = window.parent || window;
+            var tag = {tag_js};
+            var key = '__mer_' + tag + '_song';
+            var a = root[key];
+            if (a) {{ try {{ a.pause(); a.src=''; a.remove(); }} catch(e){{}} }}
+            root[key] = null;
+            var nodes = root.document.querySelectorAll('audio[data-meridium-'+tag+']');
+            for (var i = 0; i < nodes.length; i++) {{
+              try {{ nodes[i].pause(); nodes[i].src=''; nodes[i].remove(); }} catch(e){{}}
+            }}
           }} catch(e){{}}
         }})();
         </script>
@@ -2613,7 +2699,7 @@ if st.session_state.popup:
             st.session_state.popup = False
             st.rerun()
         if lab_is_unlocked():
-            if st.button("Open the lab", use_container_width=True, key="pop_lab"):
+            if st.button("Lab", use_container_width=True, key="pop_lab"):
                 st.session_state.view = "lab"
                 st.session_state.popup = False
                 st.rerun()
@@ -3077,15 +3163,28 @@ if st.session_state.view == "lab":
             unsafe_allow_html=True,
         )
         if unlocked:
-            if st.button("Enter the residual channel — Nadir", use_container_width=True, key="lab_door_enter", type="primary"):
+            if st.button("Enter residual channel - Nadir", use_container_width=True, key="lab_door_enter", type="primary"):
+                try:
+                    stop_meridium_track("nadir")
+                    play_meridium_track(DOOR_WOLF_URL, tag="door", volume=0.5, loop=True)
+                except Exception:
+                    pass
                 st.session_state.view = "nadir_transition"
                 st.rerun()
         elif has_key:
-            if st.button("🔓 Use residual key", use_container_width=True, key="lab_door_unlock", type="primary"):
+            if st.button("Use residual key", use_container_width=True, key="lab_door_unlock", type="primary"):
                 st.session_state.lab_door_unlocked = True
                 st.session_state.archive_key = True
                 try:
                     save_user_data()
+                except Exception:
+                    pass
+                try:
+                    stop_all_meridium_audio()
+                except Exception:
+                    pass
+                try:
+                    play_meridium_track(DOOR_WOLF_URL, tag="door", volume=0.5, loop=True)
                 except Exception:
                     pass
                 st.session_state.view = "nadir_transition"
@@ -3102,10 +3201,18 @@ if st.session_state.view == "lab":
     if show_door and not st.session_state.get("lab_door_unlocked"):
         has_key = bool(st.session_state.get("archive_key"))
         if has_key:
-            if st.button("🔓 Use residual key on the door", use_container_width=True, key="lab_door_unlock_b", type="primary"):
+            if st.button("Use residual key on the door", use_container_width=True, key="lab_door_unlock_b", type="primary"):
                 st.session_state.lab_door_unlocked = True
                 try:
                     save_user_data()
+                except Exception:
+                    pass
+                try:
+                    stop_all_meridium_audio()
+                except Exception:
+                    pass
+                try:
+                    play_meridium_track(DOOR_WOLF_URL, tag="door", volume=0.5, loop=True)
                 except Exception:
                     pass
                 st.session_state.view = "nadir_transition"
@@ -5516,6 +5623,131 @@ NADIR_FILES = [
     },
 ]
 
+def _nadir_match_files(prompt: str) -> list:
+    """Return NADIR_FILES matching a natural-language open request."""
+    p = (prompt or "").lower()
+    out = []
+    for f in NADIR_FILES:
+        blob = " ".join(
+            [
+                f.get("id", ""),
+                f.get("title", ""),
+                f.get("source", ""),
+                f.get("kind", ""),
+            ]
+        ).lower()
+        # category shortcuts
+        if any(w in p for w in ("subject", "subjects", "jaime", "riley", "cohort")) and f.get("kind") == "subject":
+            out.append(f)
+            continue
+        if any(w in p for w in ("voss", "division")) and f.get("kind") == "division":
+            out.append(f)
+            continue
+        if "resist" in p and f.get("kind") == "resistance":
+            out.append(f)
+            continue
+        if any(w in p for w in ("scientist", "scientists", "doctor", "ethics")) and f.get("kind") == "scientist":
+            out.append(f)
+            continue
+        # name / title hits
+        tokens = [t for t in re.split(r"[^a-z0-9]+", p) if len(t) > 2]
+        if any(t in blob for t in tokens):
+            out.append(f)
+    # de-dupe preserve order
+    seen = set()
+    uniq = []
+    for f in out:
+        if f["id"] not in seen:
+            seen.add(f["id"])
+            uniq.append(f)
+    return uniq
+
+
+def _nadir_reply(prompt: str) -> str:
+    """Nadir persona — archive intelligence powered by Meridium."""
+    p = (prompt or "").strip()
+    pl = p.lower()
+    if not p:
+        return "Say a name. Or a kind: subjects, Voss, resistance, scientists."
+
+    # list archive
+    if any(w in pl for w in ("list", "what files", "archive", "inventory", "what do you have", "catalog")):
+        lines = ["Twenty files in the residual archive:", ""]
+        for kind, label in (
+            ("subject", "Subjects"),
+            ("division", "Voss / Division"),
+            ("resistance", "Resistance"),
+            ("scientist", "Scientists"),
+        ):
+            names = [f["title"] for f in NADIR_FILES if f["kind"] == kind]
+            lines.append(f"**{label}** — " + "; ".join(names))
+        lines.append("")
+        lines.append("Ask me to open one. Example: *open Riley* · *show resistance files* · *Voss memo*")
+        return "\n".join(lines)
+
+    # open / show / read
+    wants_open = any(
+        w in pl
+        for w in (
+            "open", "show", "read", "pull", "get", "fetch", "display",
+            "file", "about", "tell me about", "who is", "what about",
+        )
+    )
+    matches = _nadir_match_files(p)
+    if wants_open or matches:
+        if not matches:
+            return (
+                "No file matched that. Try a name — Jaime, Riley, Voss, Mireille, Tomas, "
+                "Sera, Jonah, Wren, Cassian — or a shelf: subjects, resistance, scientists."
+            )
+        # open first match into session + return content; if many, list them
+        if len(matches) == 1 or (wants_open and len(matches) <= 3):
+            chunks = []
+            op = list(st.session_state.get("nadir_files_opened") or [])
+            for f in matches[:3]:
+                if f["id"] not in op:
+                    op.append(f["id"])
+                chunks.append(
+                    f"**{f['title']}**\n"
+                    f"*Source: {f['source']} · {f['kind']}*\n\n"
+                    f"{f['body']}"
+                )
+            st.session_state.nadir_files_opened = op
+            try:
+                save_user_data()
+            except Exception:
+                pass
+            if len(matches) > 3:
+                chunks.append(f"…and {len(matches) - 3} more matched. Name one to open it alone.")
+            return "\n\n---\n\n".join(chunks)
+        # many matches — list
+        lines = [f"I found {len(matches)} files. Name one to open:", ""]
+        for f in matches:
+            lines.append(f"- {f['title']} ({f['source']})")
+        return "\n".join(lines)
+
+    if any(w in pl for w in ("who are you", "what are you", "your name", "nadir")):
+        return (
+            "I am **Nadir**. A residual channel on Meridium substrate — "
+            "not Division hardware. I keep the archive: subjects, Voss, the resistance, "
+            "the scientists who stopped pretending. Ask me to open a file."
+        )
+    if "help" in pl:
+        return (
+            "Commands I understand:\n"
+            "- *list files* / *what do you have*\n"
+            "- *open Riley* / *show Voss* / *resistance files* / *scientists*\n"
+            "- *open Mireille* · *Jonah* · *Cassian* · …\n"
+            "I am Nadir. I open what the Division filed away."
+        )
+
+    return (
+        "I am the archive, not the surface shell. "
+        "Ask me to **open** a file — subjects, Voss, resistance, or scientists — "
+        "or say **list files**."
+    )
+
+
 if st.session_state.view == "nadir_transition":
     st.markdown(
         """
@@ -5541,8 +5773,12 @@ if st.session_state.view == "nadir_transition":
         """,
         unsafe_allow_html=True,
     )
-    # Brief black beat, then enter Nadir
+    # Door music already playing; brief black beat, then enter Nadir
     time.sleep(2.2)
+    try:
+        stop_meridium_track("door")
+    except Exception:
+        pass
     st.session_state.view = "nadir"
     st.rerun()
 
@@ -5551,6 +5787,12 @@ if st.session_state.view == "nadir":
         st.session_state.view = "home"
         st.rerun()
 
+    # Run Rabbit Run while inside Nadir
+    try:
+        play_meridium_track(NADIR_RABBIT_URL, tag="nadir", volume=0.4, loop=True)
+    except Exception:
+        pass
+
     st.markdown(
         """
         <style>
@@ -5558,7 +5800,7 @@ if st.session_state.view == "nadir":
             background: #07060a !important;
           }
           [data-testid="stHeader"] { background: transparent !important; }
-          .block-container { max-width: 880px !important; padding-top: 1.2rem !important; }
+          .block-container { max-width: 820px !important; padding-top: 1.1rem !important; }
           .nadir-head {
             font-family: ui-monospace, monospace; font-size: 0.68rem;
             letter-spacing: 0.22em; color: #7a6a90; margin-bottom: 0.35rem;
@@ -5567,85 +5809,55 @@ if st.session_state.view == "nadir":
             font-family: Georgia, serif; color: #e8e0f0; font-size: 1.55rem;
             margin: 0 0 0.35rem;
           }
-          .nadir-sub { color: #8a8098; font-size: 0.9rem; margin-bottom: 1rem; line-height: 1.5; }
-          .nadir-file {
-            border: 1px solid rgba(140,120,180,0.22);
-            background: rgba(18,16,28,0.85);
-            border-radius: 10px;
-            padding: 0.7rem 0.85rem;
-            margin-bottom: 0.45rem;
-          }
-          .nadir-file .tag {
-            font-family: ui-monospace, monospace; font-size: 0.62rem;
-            letter-spacing: 0.12em; color: #8a7aa8;
-          }
+          .nadir-sub { color: #8a8098; font-size: 0.9rem; margin-bottom: 0.85rem; line-height: 1.5; }
         </style>
-        <div class="nadir-head">RESIDUAL CHANNEL · NOT DIVISION HARDWARE</div>
+        <div class="nadir-head">RESIDUAL CHANNEL · POWERED BY MERIDIUM</div>
         <div class="nadir-title">Nadir</div>
         <div class="nadir-sub">
-          A sideways intelligence running on Meridium substrate.<br/>
-          Twenty files. Subjects, resistance, and the scientists who stopped pretending.
+          Ask me to open archive files — subjects, Voss, resistance, scientists.<br/>
+          <span style="opacity:0.75">Example: “open Riley” · “list files” · “show resistance”</span>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    if st.button("← Leave Nadir", key="nadir_leave"):
+    if st.button("Leave Nadir", key="nadir_leave"):
+        try:
+            stop_meridium_track("nadir")
+            stop_meridium_track("door")
+        except Exception:
+            pass
         st.session_state.view = "lab"
         st.session_state.nadir_active_file = None
         st.rerun()
 
-    opened = set(st.session_state.get("nadir_files_opened") or [])
-    active = st.session_state.get("nadir_active_file")
-    st.caption(f"Files opened: {len(opened)} / {len(NADIR_FILES)}")
-
-    if active:
-        f = next((x for x in NADIR_FILES if x["id"] == active), None)
-        if f:
-            st.markdown(f"### {f['title']}")
-            st.caption(f"Source: {f['source']} · {f['kind']}")
-            st.markdown(
-                f"<div class='nadir-file' style='white-space:pre-wrap;line-height:1.65;"
-                f"color:#d8d0e8;font-family:Georgia,serif'>{f['body']}</div>",
-                unsafe_allow_html=True,
-            )
-            if st.button("← Back to archive", key="nadir_file_back"):
-                st.session_state.nadir_active_file = None
-                st.rerun()
-    else:
-        # Group listing
-        groups = [
-            ("Subjects — Jaime · Riley · cohort", ["subject"]),
-            ("Voss / Division", ["division"]),
-            ("Resistance", ["resistance"]),
-            ("Scientists", ["scientist"]),
+    if "nadir_chat" not in st.session_state or not isinstance(st.session_state.nadir_chat, list):
+        st.session_state.nadir_chat = [
+            {
+                "role": "assistant",
+                "content": (
+                    "Nadir online. Residual archive mounted.\n\n"
+                    "I hold twenty files. Say **list files**, or ask me to **open** "
+                    "a subject, Voss, resistance, or scientist record."
+                ),
+            }
         ]
-        for label, kinds in groups:
-            files = [x for x in NADIR_FILES if x["kind"] in kinds]
-            if not files:
-                continue
-            st.markdown(f"**{label}**")
-            for f in files:
-                seen = "· read" if f["id"] in opened else ""
-                c1, c2 = st.columns([5, 1])
-                with c1:
-                    st.markdown(
-                        f"<div class='nadir-file'><span class='tag'>{f['source']} {seen}</span><br/>"
-                        f"<strong style='color:#e8e0f0'>{f['title']}</strong></div>",
-                        unsafe_allow_html=True,
-                    )
-                with c2:
-                    if st.button("Open", key=f"nadir_open_{f['id']}", use_container_width=True):
-                        st.session_state.nadir_active_file = f["id"]
-                        op = list(st.session_state.get("nadir_files_opened") or [])
-                        if f["id"] not in op:
-                            op.append(f["id"])
-                            st.session_state.nadir_files_opened = op
-                            try:
-                                save_user_data()
-                            except Exception:
-                                pass
-                        st.rerun()
+
+    opened = set(st.session_state.get("nadir_files_opened") or [])
+    st.caption(f"Files opened this channel: {len(opened)} / {len(NADIR_FILES)}  ·  ♪ Run Rabbit Run")
+
+    for msg in st.session_state.nadir_chat:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+
+    if prompt := st.chat_input("Ask Nadir to open a file…", key="nadir_chat_input"):
+        st.session_state.nadir_chat.append({"role": "user", "content": prompt})
+        reply = _nadir_reply(prompt)
+        st.session_state.nadir_chat.append({"role": "assistant", "content": reply})
+        # keep chat from growing forever
+        if len(st.session_state.nadir_chat) > 40:
+            st.session_state.nadir_chat = st.session_state.nadir_chat[-40:]
+        st.rerun()
 
     st.stop()
 
@@ -6300,7 +6512,7 @@ if st.session_state.view == "home":
                 st.session_state.view = "board"
                 st.rerun()
         if lab_is_unlocked():
-            if st.button("🔬  Lab", use_container_width=True, key="bm_lab"):
+            if st.button("Lab", use_container_width=True, key="bm_lab"):
                 st.session_state.view = "lab"
                 st.rerun()
         if st.session_state.get("voss_file_unlocked"):
