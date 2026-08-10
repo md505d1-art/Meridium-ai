@@ -224,7 +224,8 @@ SECRET_THEMES = {
 try:
     from theme_unlocks import unlock_and_persist
 except Exception:
-    def unlock_and_persist(theme_name: str, reason: str = "", apply: bool = True) -> bool:
+    def unlock_and_persist(theme_name: str, reason: str = "", apply: bool = False) -> bool:
+        """Unlock a secret theme. Never auto-switches theme unless apply=True."""
         unlocked = list(st.session_state.get("unlocked_themes") or [])
         newly = theme_name not in unlocked
         if newly:
@@ -232,8 +233,10 @@ except Exception:
             st.session_state.unlocked_themes = unlocked
             st.session_state["_theme_unlock_msg"] = (
                 f"Theme unlocked: **{theme_name}**" + (f" — {reason}" if reason else "")
+                + " · pick it in Menu when you want"
             )
-        if apply:
+        # Only change active theme if explicitly requested
+        if apply and newly:
             st.session_state.theme = theme_name
         try:
             save_user_data()
@@ -254,15 +257,15 @@ def find_glitch(gid: str, label: str = "") -> bool:
     if set(found) >= {"home", "lab", "pixel"}:
         st.session_state.voss_file_unlocked = True
         try:
-            unlock_theme("Voss Residual", "Dr. Voss's file recovered", apply=True)
+            unlock_theme("Voss Residual", "Dr. Voss's file recovered", apply=False)
         except Exception:
             u = list(st.session_state.get("unlocked_themes") or [])
             if "Voss Residual" not in u:
                 u.append("Voss Residual")
                 st.session_state.unlocked_themes = u
-            st.session_state.theme = "Voss Residual"
         st.session_state["_glitch_flash"] = (
-            "All three markers secured. Dr. Voss left you a file. Theme: Voss Residual."
+            "All three markers secured. Dr. Voss left you a file. "
+            "Theme unlocked: Voss Residual (choose it in Menu)."
         )
         st.session_state.voss_cutscene_stage = 0
         st.session_state.view = "voss_file"
@@ -283,7 +286,7 @@ VOSS_FILE_SONG_URL = (
 
 
 def stop_all_meridium_audio() -> None:
-    """Hard-stop note / pixel / lab / voss / any tagged audio."""
+    """Hard-stop note / pixel / lab / voss / residual / any tagged audio."""
     st.components.v1.html(
         """
         <script>
@@ -305,7 +308,9 @@ def stop_all_meridium_audio() -> None:
                 kill(root.__mer_pixel_song); root.__mer_pixel_song = null;
                 kill(root.__mer_lab_song); root.__mer_lab_song = null;
                 kill(root.__mer_voss_song); root.__mer_voss_song = null;
+                kill(root.__mer_residual_song); root.__mer_residual_song = null;
                 root.__mer_note_audio_on = false;
+                root.__mer_residual_audio_on = false;
                 var nodes = root.document.querySelectorAll('audio');
                 for (var i = 0; i < nodes.length; i++) {
                   var a = nodes[i];
@@ -313,6 +318,7 @@ def stop_all_meridium_audio() -> None:
                     || a.getAttribute('data-meridium-note')
                     || a.getAttribute('data-meridium-lab')
                     || a.getAttribute('data-meridium-voss')
+                    || a.getAttribute('data-meridium-residual')
                     || a.getAttribute('data-meridium-glitch');
                   if (tag || (a.src && (
                     a.src.indexOf('artmanzh') !== -1 ||
@@ -324,6 +330,11 @@ def stop_all_meridium_audio() -> None:
                   ))) {
                     kill(a);
                   }
+                }
+                // kill residual YouTube embeds (Dream track)
+                var frames = root.document.querySelectorAll('iframe[data-meridium-residual], iframe.meridium-residual-yt');
+                for (var f = 0; f < frames.length; f++) {
+                  try { frames[f].src = 'about:blank'; frames[f].remove(); } catch(e){}
                 }
               } catch(e){}
             }
@@ -387,6 +398,35 @@ def start_voss_file_audio() -> None:
     )
 
 
+
+def start_residual_dream_audio() -> None:
+    """Play Dream (Old Timey Jazz Orchestra) for residual lock + investigation board."""
+    # YouTube embed loop — tagged so stop_all can remove it
+    st.components.v1.html(
+        """
+        <div style="position:fixed;left:-9999px;width:1px;height:1px;overflow:hidden">
+          <iframe
+            class="meridium-residual-yt"
+            data-meridium-residual="1"
+            src="https://www.youtube.com/embed/VFWVUGBRAQI?autoplay=1&loop=1&playlist=VFWVUGBRAQI&controls=0&modestbranding=1"
+            allow="autoplay; encrypted-media"
+            style="width:1px;height:1px;border:0"
+          ></iframe>
+        </div>
+        <script>
+        (function(){
+          try {
+            var root = window.parent || window;
+            root.__mer_residual_audio_on = true;
+          } catch(e){}
+        })();
+        </script>
+        """,
+        height=0,
+        scrolling=False,
+    )
+
+
 def play_glitch_sfx() -> None:
     """Short glitch / static SFX (royalty-free)."""
     url = "https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"
@@ -441,16 +481,10 @@ def glitches_unlocked() -> bool:
 
 
 def lab_is_unlocked() -> bool:
-    if st.session_state.get("arg_unlocked"):
-        return True
-    unlocked = st.session_state.get("unlocked_themes") or []
-    if "Containment Red" in unlocked or "Voss Static" in unlocked:
-        st.session_state.arg_unlocked = True
-        return True
-    if st.session_state.get("_lab_session_visit"):
-        st.session_state.arg_unlocked = True
-        return True
-    return False
+    """Lab is locked until the ARG puzzle sets arg_unlocked (chat entry phrases).
+    Themes and session flags must NOT grant access — new users stay locked out.
+    """
+    return bool(st.session_state.get("arg_unlocked"))
 
 
 def available_themes() -> list:
@@ -473,9 +507,17 @@ def theme_shell(theme_name: str) -> dict:
     return THEMES["Caelestia"]
 
 
-def unlock_theme(theme_name: str, reason: str = "", apply: bool = True) -> bool:
-    """Unlock a secret theme once. Returns True if newly unlocked."""
-    return unlock_and_persist(theme_name, reason, apply=apply)
+def unlock_theme(theme_name: str, reason: str = "", apply: bool = False) -> bool:
+    """Unlock a secret theme once. Does not switch the active theme unless apply=True.
+    Also reverts any external unlock helper that forces a theme switch.
+    """
+    prev_theme = st.session_state.get("theme")
+    newly = unlock_and_persist(theme_name, reason, apply=apply)
+    if not apply:
+        # Some theme_unlocks modules force-apply; keep the user's current palette
+        if prev_theme and st.session_state.get("theme") != prev_theme:
+            st.session_state.theme = prev_theme
+    return newly
 
 
 
@@ -550,10 +592,45 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
     .clock {{ font-weight: 600; font-variant-numeric: tabular-nums; }}
     .muted {{ color: {SHELL["muted"]}; font-size: 0.8rem; }}
 
-    .panel {{
-        padding: 18px 18px 16px;
+    .bookmark-rail {{
+        background: {SHELL["panel_solid"]} !important;
+        border: 1px solid {SHELL["border"]} !important;
+        border-radius: 18px !important;
+        padding: 16px 12px 14px !important;
         margin-bottom: 14px;
-        animation: fadeUp 0.45s ease both;
+        box-shadow: 0 10px 32px rgba(0,0,0,0.28) !important;
+        animation: railIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+        position: sticky;
+        top: 0.5rem;
+    }}
+    .bookmark-rail .panel-label {{
+        margin-bottom: 12px !important;
+        padding: 0 6px;
+        letter-spacing: 0.16em !important;
+    }}
+    .bookmark-rail div[data-testid="stButton"] button {{
+        text-align: left !important;
+        justify-content: flex-start !important;
+        padding-left: 12px !important;
+        font-size: 0.88rem !important;
+        min-height: 40px !important;
+        border-radius: 11px !important;
+        margin-bottom: 4px !important;
+        transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease !important;
+    }}
+    .bookmark-rail div[data-testid="stButton"] button:hover {{
+        transform: translateX(4px);
+    }}
+
+    .panel {{
+        padding: 20px 20px 16px;
+        margin-bottom: 14px;
+        animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+        transition: border-color 0.2s ease, box-shadow 0.25s ease;
+    }}
+    .panel:hover {{
+        border-color: {SHELL["accent"]}33 !important;
+        box-shadow: 0 12px 36px rgba(0,0,0,0.32) !important;
     }}
     .panel-label {{
         color: {SHELL["muted"]};
@@ -566,17 +643,32 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
     .hero {{
         font-size: 1.85rem; font-weight: 650; letter-spacing: -0.03em;
         margin: 0 0 6px; color: {SHELL["text"]};
-        animation: textIn 0.65s ease both;
+        animation: textIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
     }}
     .hero span {{ color: {SHELL["accent"]}; }}
     .sub {{
         color: {SHELL["muted"]}; margin-bottom: 10px; font-size: 0.95rem;
-        animation: textIn 0.65s ease 0.08s both;
+        animation: textIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
     }}
     .ridge {{
         height: 1px; margin: 10px 0 4px;
         background: linear-gradient(90deg, transparent, {SHELL["accent"]}, transparent);
         opacity: 0.55;
+        animation: ridgeGlow 3.2s ease-in-out infinite;
+    }}
+
+    .home-status {{
+        display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;
+        animation: textIn 0.65s ease 0.18s both;
+    }}
+    .home-pill {{
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 5px 11px; border-radius: 999px;
+        background: {SHELL["accent_soft"]};
+        border: 1px solid {SHELL["border"]};
+        color: {SHELL["accent"]};
+        font-size: 0.72rem; font-weight: 500;
+        letter-spacing: 0.02em;
     }}
 
     .card {{
@@ -595,12 +687,17 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
         border-radius: 12px !important;
         font-weight: 500 !important;
         min-height: 42px !important;
-        transition: all 0.15s ease !important;
+        transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1) !important;
     }}
     .stButton > button:hover {{
         border-color: {SHELL["accent"]} !important;
         background: {SHELL["accent_soft"]} !important;
         color: {SHELL["accent"]} !important;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px {SHELL["accent_soft"]} !important;
+    }}
+    .stButton > button:active {{
+        transform: translateY(0) scale(0.98);
     }}
     .stButton > button[kind="primary"],
     button[data-testid="baseButton-primary"] {{
@@ -746,12 +843,24 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
         50% {{ transform: scale(1.05); }}
     }}
     @keyframes fadeUp {{
-        from {{ opacity: 0; transform: translateY(12px); }}
+        from {{ opacity: 0; transform: translateY(14px); }}
         to {{ opacity: 1; transform: translateY(0); }}
     }}
     @keyframes textIn {{
-        from {{ opacity: 0; transform: translateY(12px); }}
-        to {{ opacity: 1; transform: translateY(0); }}
+        from {{ opacity: 0; transform: translateY(12px); filter: blur(4px); }}
+        to {{ opacity: 1; transform: translateY(0); filter: blur(0); }}
+    }}
+    @keyframes railIn {{
+        from {{ opacity: 0; transform: translateX(-16px); }}
+        to {{ opacity: 1; transform: translateX(0); }}
+    }}
+    @keyframes ridgeGlow {{
+        0%, 100% {{ opacity: 0.35; }}
+        50% {{ opacity: 0.85; }}
+    }}
+    @keyframes softFloat {{
+        0%, 100% {{ transform: translateY(0); }}
+        50% {{ transform: translateY(-4px); }}
     }}
 
     .typing-wrap {{ display: inline-flex; gap: 6px; padding: 4px; }}
@@ -830,6 +939,13 @@ def save_user_data():
         "chats": safe_chats,
         "current_chat_id": st.session_state.get("current_chat_id"),
         "meridium_playlist": st.session_state.get("meridium_playlist") or [],
+        "eq_bands": list(st.session_state.get("eq_bands") or [0,0,0,0,0,0,0]),
+        "eq_preset": st.session_state.get("eq_preset") or "Flat",
+        "eq_custom_presets": dict(st.session_state.get("eq_custom_presets") or {}),
+        "eq_enabled": bool(st.session_state.get("eq_enabled", True)),
+        "callaghan_safe_unlocked": bool(st.session_state.get("callaghan_safe_unlocked")),
+        "board_unlocked": bool(st.session_state.get("board_unlocked")),
+        "board_read": list(st.session_state.get("board_read") or []),
         "saved_at": datetime.now().isoformat(),
     }
     raw = json.dumps(payload, ensure_ascii=False, indent=2)
@@ -872,6 +988,20 @@ def load_user_data(username: str) -> bool:
         st.session_state.use_wiki_toggle = data.get("use_wiki_toggle", True)
         st.session_state.use_web_toggle = data.get("use_web_toggle", True)
         st.session_state.meridium_playlist = data.get("meridium_playlist") or []
+        _eb = data.get("eq_bands")
+        if isinstance(_eb, list) and len(_eb) == 7:
+            st.session_state.eq_bands = [float(x) for x in _eb]
+        st.session_state.eq_preset = data.get("eq_preset") or "Flat"
+        _ec = data.get("eq_custom_presets")
+        if isinstance(_ec, dict):
+            st.session_state.eq_custom_presets = {
+                str(k): [float(x) for x in v] for k, v in _ec.items()
+                if isinstance(v, list) and len(v) == 7
+            }
+        st.session_state.eq_enabled = bool(data.get("eq_enabled", True))
+        st.session_state.callaghan_safe_unlocked = bool(data.get("callaghan_safe_unlocked"))
+        st.session_state.board_unlocked = bool(data.get("board_unlocked"))
+        st.session_state.board_read = list(data.get("board_read") or [])
         chats = data.get("chats") or {}
         if isinstance(chats, dict) and chats:
             st.session_state.chats = chats
@@ -1001,7 +1131,76 @@ defaults = {
     "unlocked_themes": [],
     "meridium_playlist": [],
     "music_status": "",
+    "eq_bands": [0, 0, 0, 0, 0, 0, 0],
+    "eq_preset": "Flat",
+    "eq_custom_presets": {},
+    "eq_enabled": True,
+    "stabilize_at": None,
+    "qotd_opens": 0,
+    "lab_found": [],
+    "_currently_in_lab": False,
+    "_lab_session_visit": False,
+    "voss_cutscene_stage": 0,
+    "callaghan_safe_unlocked": False,
+    "board_unlocked": False,
+    "board_evidence_open": None,
+    "board_read": [],
 }
+
+# Keys that belong to a specific user and must not leak across sign-in/switch-user
+_USER_SCOPED_KEYS = (
+    "font", "theme", "popup", "chats", "current_chat_id",
+    "show_widgets", "show_spotify", "show_intro",
+    "use_wiki_toggle", "use_web_toggle",
+    "provider", "model_name", "api_key_val",
+    "arg_unlocked", "anomaly_warned", "glitches_found",
+    "voss_file_unlocked", "lab_visits", "arg_stabilized",
+    "unlocked_themes", "meridium_playlist", "music_status",
+    "eq_bands", "eq_preset", "eq_custom_presets", "eq_enabled",
+    "stabilize_at", "qotd_opens", "lab_found",
+    "_currently_in_lab", "_lab_session_visit", "voss_cutscene_stage",
+    "callaghan_safe_unlocked", "board_unlocked", "board_evidence_open", "board_read",
+    "view", "library_reading", "library_page",
+    "_theme_unlock_msg", "_glitch_flash", "_egg_flash",
+    "_title_egg_done", "_last_speak", "_lyrics_key", "_lyrics_data",
+    "_lyrics_ai", "_prev_cover_url", "voice_log",
+)
+
+
+def reset_user_session(keep_auth: bool = False) -> None:
+    """Wipe user-scoped progress so a new sign-in starts clean.
+    Call on Switch user, and before load_user_data on every sign-in.
+    """
+    for k in _USER_SCOPED_KEYS:
+        if k in defaults:
+            val = defaults[k]
+            # copy mutable defaults
+            if isinstance(val, list):
+                st.session_state[k] = list(val)
+            elif isinstance(val, dict):
+                st.session_state[k] = dict(val)
+            else:
+                st.session_state[k] = val
+        elif k in st.session_state:
+            del st.session_state[k]
+    if not keep_auth:
+        st.session_state.username = ""
+        st.session_state.signed_in = False
+    # Fresh empty chat shell
+    st.session_state.chats = {}
+    st.session_state.current_chat_id = None
+    st.session_state.view = "home"
+    st.session_state.arg_unlocked = False
+    st.session_state.unlocked_themes = []
+    st.session_state.glitches_found = []
+    st.session_state.voss_file_unlocked = False
+    st.session_state.lab_visits = 0
+    st.session_state.lab_found = []
+    st.session_state.arg_stabilized = False
+    st.session_state.theme = "Caelestia"
+    st.session_state.font = "Inter"
+
+
 for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
@@ -1453,7 +1652,18 @@ def estimate_lyrics_ai(track_name: str, artist: str) -> str:
         return ""
 
 def render_spotify_panel(key_prefix="sp"):
-    """Show connect / now playing / controls / lyrics. Returns True if connected."""
+    """Show connect / now playing / controls / lyrics. Returns True if connected.
+
+    Compact mode (home only): stacked cover → controls → lyrics.
+    Full mode (chat + music): art/controls LEFT · lyrics RIGHT.
+    """
+    # Home only stays stacked (half-width column). Chat uses the split layout.
+    compact = key_prefix == "home" or (
+        key_prefix not in ("chat", "musicpage")
+        and not str(key_prefix).startswith("music")
+        and st.session_state.get("view") == "home"
+    )
+
     cid, secret, _ = _spotify_creds()
     if not cid or not secret:
         st.warning("Spotify keys missing. In Streamlit → Settings → Secrets add SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET.")
@@ -1475,108 +1685,71 @@ def render_spotify_panel(key_prefix="sp"):
             st.rerun()
         return True
 
-    # Animated now playing banner
     import html as _html
-    _tname = _html.escape(str(track.get("name") or "Unknown"))
-    _tarts = _html.escape(str(track.get("artists") or ""))
-    _status = "Now playing" if track.get("playing") else "Paused"
-    st.markdown(
-        f"""
-        <style>
-          @keyframes npIn {{
-            from {{ opacity: 0; transform: translateY(12px) scale(0.98); filter: blur(4px); }}
-            to {{ opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }}
-          }}
-          @keyframes npPulse {{
-            0%,100% {{ opacity: 0.92; }}
-            50% {{ opacity: 1; }}
-          }}
-          .np-banner {{
-            text-align: center;
-            padding: 0.7rem 1rem;
-            margin-bottom: 0.75rem;
-            border-radius: 14px;
-            border: 1px solid rgba(255,255,255,0.12);
-            background: rgba(255,255,255,0.04);
-            animation: npIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both,
-                       npPulse 2.8s ease-in-out 0.55s infinite;
-          }}
-          .np-label {{
-            font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase;
-            opacity: 0.7; margin-bottom: 0.2rem;
-          }}
-          .np-title {{
-            font-size: 1.1rem; font-weight: 650; letter-spacing: -0.02em;
-          }}
-        </style>
-        <div class="np-banner">
-          <div class="np-label">{_status}</div>
-          <div class="np-title">Now playing: {_tname}</div>
-          <div style="opacity:0.7;font-size:0.85rem;margin-top:0.2rem;">{_tarts}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    art = track.get("art") or ""
+    _aname = _html.escape(str(track.get("name") or "Unknown"))
+    _aarts = _html.escape(str(track.get("artists") or ""))
+    _adev = _html.escape(str(track.get("device") or ""))
+    # Do not HTML-escape the URL for src= — only quote-safe characters matter
+    _art_src = (art or "").replace('"', "%22")
+    _track_uid = _html.escape(str(track.get("uri") or track.get("name") or "x"))
+    _prev_art = str(st.session_state.get("_prev_cover_url") or "")
+    _prev_esc = (_prev_art or "").replace('"', "%22")
+    # Remember current cover for the next track's crossfade (after reading prev)
+    if art and art != _prev_art:
+        # only update after we've used the previous value for this render
+        st.session_state._pending_prev_cover = art
+    elif art and not st.session_state.get("_prev_cover_url"):
+        st.session_state._pending_prev_cover = art
 
-    # Layout: art + controls LEFT · lyrics RIGHT (where user pointed)
-    left, right = st.columns([1.05, 1.35], gap="medium")
+    cover_px = 140 if compact else 200
+    html_h = 210 if compact else 280
+    status_label = "Now playing" if track.get("playing") else "Paused"
 
-    with left:
-        art = track.get("art") or ""
-        _aname = _html.escape(str(track.get("name") or "Unknown"))
-        _aarts = _html.escape(str(track.get("artists") or ""))
-        _adev = _html.escape(str(track.get("device") or ""))
-        _art_src = _html.escape(art)
-        _track_uid = _html.escape(str(track.get("uri") or track.get("name") or "x"))
-        _prev_art = str(st.session_state.get("_prev_cover_url") or "")
-        _prev_esc = _html.escape(_prev_art)
-        # Remember current cover for the next track's crossfade
-        if art:
-            st.session_state._prev_cover_url = art
-
+    def _render_cover_block():
+        prev_img = (
+            f'<img class="prev" src="{_prev_esc}" alt="" />'
+            if _prev_art and _prev_art != art
+            else ""
+        )
+        curr_img = f'<img class="curr" src="{_art_src}" alt="" />' if art else ""
         st.components.v1.html(
             f"""
             <style>
               html, body {{
-                margin: 0; padding: 0;
-                overflow: visible;
-                background: transparent;
+                margin: 0; padding: 0; overflow: hidden;
+                background: transparent !important;
                 font-family: Inter, system-ui, sans-serif;
                 color: #e8e6f0;
               }}
               @keyframes merArtIn {{
-                from {{ opacity: 0; transform: scale(0.92); filter: blur(6px); }}
-                to {{ opacity: 1; transform: scale(1); filter: blur(0); }}
+                from {{ opacity: 0; transform: scale(0.88) translateY(14px); filter: blur(8px); }}
+                to {{ opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }}
               }}
               @keyframes merArtOut {{
                 from {{ opacity: 1; transform: scale(1); filter: blur(0); }}
-                to {{ opacity: 0; transform: scale(1.04); filter: blur(4px); }}
+                to {{ opacity: 0; transform: scale(1.06); filter: blur(6px); }}
               }}
               @keyframes merTextIn {{
-                from {{ opacity: 0; transform: translateY(8px); }}
+                from {{ opacity: 0; transform: translateY(10px); }}
                 to {{ opacity: 1; transform: translateY(0); }}
               }}
-              .mer-track-block {{
-                text-align: center;
-                padding: 8px 4px 10px;
-                box-sizing: border-box;
-              }}
+              .mer-track-block {{ text-align: center; padding: 4px 0 4px; }}
               .cover-stage {{
                 position: relative;
-                width: 220px;
-                height: 220px;
-                margin: 0 auto 14px;
-                overflow: visible;
+                width: {cover_px}px; height: {cover_px}px;
+                margin: 0 auto 10px;
+                background: rgba(255,255,255,0.04);
+                border-radius: 14px;
+                overflow: hidden;
               }}
               .cover-stage img {{
-                position: absolute;
-                left: 0; top: 0;
-                width: 220px;
-                height: 220px;
-                object-fit: contain;   /* full cover visible, no crop */
+                position: absolute; inset: 0;
+                width: {cover_px}px; height: {cover_px}px;
+                object-fit: cover;
                 border-radius: 14px;
                 box-shadow: 0 12px 32px rgba(0,0,0,0.4);
-                background: rgba(0,0,0,0.25);
+                display: block;
               }}
               .cover-stage img.prev {{
                 animation: merArtOut 0.45s ease forwards;
@@ -1587,29 +1760,46 @@ def render_spotify_panel(key_prefix="sp"):
                 z-index: 2;
               }}
               .mer-t-name {{
-                font-size: 1.15rem; font-weight: 650; letter-spacing: -0.02em;
+                font-size: {('1rem' if compact else '1.2rem')};
+                font-weight: 650; letter-spacing: -0.02em;
                 margin-top: 0.25rem;
-                padding: 0 6px;
                 animation: merTextIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+                max-width: 100%;
+                padding: 0 6px;
               }}
               .mer-t-arts {{
-                opacity: 0.7; font-size: 0.86rem; margin-top: 0.2rem;
-                padding: 0 6px;
+                opacity: 0.7; font-size: {('0.8rem' if compact else '0.88rem')};
+                margin-top: 0.15rem;
                 animation: merTextIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.16s both;
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+                max-width: 100%;
+                padding: 0 6px;
+              }}
+              .mer-t-status {{
+                font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase;
+                opacity: 0.55; margin-bottom: 6px;
               }}
             </style>
             <div class="mer-track-block" data-track="{_track_uid}">
+              <div class="mer-t-status">{status_label}</div>
               <div class="cover-stage">
-                {f'<img class="prev" src="{_prev_esc}" alt="" />' if _prev_art and _prev_art != art else ''}
-                {f'<img class="curr" src="{_art_src}" alt="" />' if art else ''}
+                {prev_img}
+                {curr_img}
               </div>
               <div class="mer-t-name">{_aname}</div>
               <div class="mer-t-arts">{_aarts}{(' · ' + _adev) if _adev else ''}</div>
             </div>
             """,
-            height=320,
+            height=html_h,
             scrolling=False,
         )
+        # Commit pending prev cover after paint so next track can crossfade
+        pending = st.session_state.pop("_pending_prev_cover", None)
+        if pending:
+            st.session_state._prev_cover_url = pending
+
+    def _render_controls():
         p1, p2, p3, p4 = st.columns(4)
         with p1:
             if st.button("⏮", key=f"{key_prefix}_prev", use_container_width=True):
@@ -1636,11 +1826,11 @@ def render_spotify_panel(key_prefix="sp"):
                     st.caption(str(e))
         with p4:
             if st.button("↻", key=f"{key_prefix}_ref", use_container_width=True):
-                # force fresh lyrics + progress
                 st.session_state._lyrics_key = None
                 st.rerun()
 
-    with right:
+    def _render_lyrics(lrc_height: int = 340, component_height: int = 380):
+        """Synced / plain lyrics + fullscreen + AI estimate. Shared by compact & full."""
         st.markdown("#### Lyrics")
         try:
             cache_key = f"lyrics::{track.get('uri') or track['name']}"
@@ -1668,7 +1858,6 @@ def render_spotify_panel(key_prefix="sp"):
                             for ms, text in parsed
                         ]
                         payload = _json.dumps(lines_payload)
-                        # slight lead so highlight feels on-beat (LRC often lags a bit)
                         prog_js = max(0, int(progress) + 150)
                         play_js = "true" if playing else "false"
                         st.components.v1.html(
@@ -1712,7 +1901,7 @@ def render_spotify_panel(key_prefix="sp"):
                             <div id="mer-lrc-wrap" style="
                               font-family: Inter, system-ui, sans-serif;
                               color: #e8e6f0;
-                              height: 340px;
+                              height: {lrc_height}px;
                               overflow-y: auto;
                               overflow-x: hidden;
                               padding: 10px 6px;
@@ -1801,7 +1990,7 @@ def render_spotify_panel(key_prefix="sp"):
                             }})();
                             </script>
                             """,
-                            height=380,
+                            height=component_height,
                             scrolling=False,
                         )
                     else:
@@ -1810,7 +1999,6 @@ def render_spotify_panel(key_prefix="sp"):
                     st.text(lyric_data.get("plain") or "")
                     st.caption("Plain lyrics (not timed)")
 
-            # Fullscreen lyrics (Spotify-style) — available whenever we have lyrics
             if lyric_data and (lyric_data.get("synced") or lyric_data.get("plain")):
                 if st.button("⛶ Fullscreen lyrics", key=f"{key_prefix}_lyrics_fs", use_container_width=True):
                     st.session_state._lyrics_fs_track = {
@@ -1841,7 +2029,61 @@ def render_spotify_panel(key_prefix="sp"):
         except Exception:
             st.caption("Lyrics unavailable right now.")
 
-    # Re-anchor Spotify progress so lyrics stay accurate while playing
+    if compact:
+        # Home / chat: stack cover → controls → lyrics (no side-by-side crush)
+        _render_cover_block()
+        _render_controls()
+        _render_lyrics(lrc_height=260, component_height=300)
+    else:
+        # Music page: banner + art LEFT · lyrics RIGHT
+        _tname = _aname
+        _tarts = _aarts
+        _status = status_label
+        st.markdown(
+            f"""
+            <style>
+              @keyframes npIn {{
+                from {{ opacity: 0; transform: translateY(12px) scale(0.98); filter: blur(4px); }}
+                to {{ opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }}
+              }}
+              @keyframes npPulse {{
+                0%,100% {{ opacity: 0.92; }}
+                50% {{ opacity: 1; }}
+              }}
+              .np-banner {{
+                text-align: center;
+                padding: 0.7rem 1rem;
+                margin-bottom: 0.75rem;
+                border-radius: 14px;
+                border: 1px solid rgba(255,255,255,0.12);
+                background: rgba(255,255,255,0.04);
+                animation: npIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both,
+                           npPulse 2.8s ease-in-out 0.55s infinite;
+              }}
+              .np-label {{
+                font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase;
+                opacity: 0.7; margin-bottom: 0.2rem;
+              }}
+              .np-title {{
+                font-size: 1.1rem; font-weight: 650; letter-spacing: -0.02em;
+              }}
+            </style>
+            <div class="np-banner">
+              <div class="np-label">{_status}</div>
+              <div class="np-title">Now playing: {_tname}</div>
+              <div style="opacity:0.7;font-size:0.85rem;margin-top:0.2rem;">{_tarts}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        left, right = st.columns([1.05, 1.35], gap="medium")
+        with left:
+            _render_cover_block()
+            _render_controls()
+        with right:
+            _render_lyrics(lrc_height=340, component_height=380)
+
     if track.get("playing"):
         try:
             from streamlit_autorefresh import st_autorefresh
@@ -2106,7 +2348,8 @@ def quote_of_the_day():
 _pending = st.session_state.pop("_pending_theme_unlocks", None) or []
 for _item in _pending:
     if isinstance(_item, (list, tuple)) and len(_item) >= 1:
-        unlock_theme(_item[0], _item[1] if len(_item) > 1 else "", apply=True)
+        # Never auto-apply from other modules — unlock only
+        unlock_theme(_item[0], _item[1] if len(_item) > 1 else "", apply=False)
 
 inject_css(st.session_state.font, st.session_state.get("theme", "Caelestia"), st.session_state.popup)
 if st.session_state.get("_theme_unlock_msg"):
@@ -2210,10 +2453,25 @@ if not st.session_state.get("signed_in") or not st.session_state.get("username")
             if not ok:
                 st.error(result)
             else:
+                # Always clear previous user's progress before loading this account
+                reset_user_session(keep_auth=False)
                 st.session_state.username = result[:32]
                 st.session_state.signed_in = True
                 found = load_user_data(st.session_state.username)
-                if not found and not st.session_state.get("chats"):
+                if not found:
+                    # Brand-new user — force locked ARG + default shell
+                    st.session_state.arg_unlocked = False
+                    st.session_state.unlocked_themes = []
+                    st.session_state.glitches_found = []
+                    st.session_state.voss_file_unlocked = False
+                    st.session_state.lab_visits = 0
+                    st.session_state.lab_found = []
+                    st.session_state.arg_stabilized = False
+                    st.session_state.theme = "Caelestia"
+                    st.session_state.font = "Inter"
+                    st.session_state.view = "home"
+                    create_new_chat()
+                elif not st.session_state.get("chats"):
                     create_new_chat()
                 st.session_state.show_intro = True
                 save_user_data()
@@ -2334,6 +2592,11 @@ if st.session_state.popup:
             st.session_state.view = "chat"
             st.session_state.popup = False
             st.rerun()
+        if st.button("🎬  Cinema", use_container_width=True, key="pop_cinema"):
+            st.session_state.cinema_watching = None
+            st.session_state.view = "cinema"
+            st.session_state.popup = False
+            st.rerun()
         if lab_is_unlocked():
             if st.button("Open the lab", use_container_width=True, key="pop_lab"):
                 st.session_state.view = "lab"
@@ -2348,12 +2611,16 @@ if st.session_state.popup:
             st.session_state.view = "music"
             st.session_state.popup = False
             st.rerun()
+        if st.button("📚  Library", use_container_width=True, key="pop_library"):
+            st.session_state.library_reading = None
+            st.session_state.view = "library"
+            st.session_state.popup = False
+            st.rerun()
         if st.button("✕  Close menu", use_container_width=True, key="pop_close"):
             st.session_state.popup = False
             st.rerun()
         if st.button("↩  Switch user", use_container_width=True, key="pop_signout"):
-            st.session_state.signed_in = False
-            st.session_state.username = ""
+            reset_user_session(keep_auth=False)
             st.session_state.show_intro = False
             st.session_state.popup = False
             st.rerun()
@@ -2637,8 +2904,13 @@ if st.session_state.get("view") == "voss_file":
     st.stop()
 
 
-# LAB first — full black, no waybar/nav chrome
+# LAB first — full black, no waybar/nav chrome (gated behind ARG puzzle)
 if st.session_state.view == "lab":
+    if not lab_is_unlocked():
+        # New users / incomplete puzzle cannot open the lab
+        st.session_state.view = "home"
+        st.warning("The lab is sealed. Finish the observation puzzle in chat to unlock it.")
+        st.rerun()
     if not st.session_state.get("_currently_in_lab"):
         st.session_state._currently_in_lab = True
         st.session_state.lab_visits = int(st.session_state.get("lab_visits") or 0) + 1
@@ -2646,23 +2918,24 @@ if st.session_state.view == "lab":
             save_user_data()
         except Exception:
             pass
+    # arg_unlocked already required by lab_is_unlocked — keep it true
     st.session_state.arg_unlocked = True
     try:
         save_user_data()
     except Exception:
         pass
     mark_lab_visit()
-    unlock_theme("Containment Red", "you entered the observation log")
+    unlock_theme("Containment Red", "you entered the observation log", apply=False)
     # All 6 fragments?
     found = st.session_state.get("lab_found") or set()
     if isinstance(found, (list, set)) and len(set(found)) >= 6:
-        unlock_theme("Voss Static", "all fragments recovered")
+        unlock_theme("Voss Static", "all fragments recovered", apply=False)
     render_lab()
 if st.session_state.view == "note":
     render_note()
 
 # ===== DESIGN 1 WAYBAR + NAV (hidden in lab) =====
-if st.session_state.view not in ("lab", "note", "voss_file", "lyrics_full"):
+if st.session_state.view not in ("lab", "note", "voss_file", "lyrics_full", "callaghan_safe", "board"):
     st.markdown(f"""
 <div class="waybar">
   <div class="waybar-left">
@@ -2679,35 +2952,25 @@ if st.session_state.view not in ("lab", "note", "voss_file", "lyrics_full"):
 </div>
 """, unsafe_allow_html=True)
 
-    n1, n2, n3 = st.columns(3)
-    with n1:
-        if st.button("⌂ Home", use_container_width=True, key="n_home"):
-            st.session_state.view = "home"
-            st.rerun()
-    with n2:
-        if st.button("💬 Chat", use_container_width=True, key="n_chat"):
-            st.session_state.view = "chat"
-            st.rerun()
-    with n3:
-        if st.button("♫ Music", use_container_width=True, key="n_music"):
-            st.session_state.view = "music"
-            st.rerun()
-    n4, n5, n6 = st.columns(3)
-    with n4:
-        if st.button("◎ Listen", use_container_width=True, key="n_listen"):
-            st.session_state.view = "listen"
-            st.rerun()
-    with n5:
-        if st.button("☰ Menu", use_container_width=True, key="n_menu"):
-            st.session_state.popup = True
-            st.rerun()
-    with n6:
-        if lab_is_unlocked():
-            if st.button("Open the lab", use_container_width=True, key="n_lab"):
-                st.session_state.view = "lab"
+    # Slim top nav — full shortcuts live in the home bookmark rail
+    if st.session_state.view != "home":
+        n1, n2, n3, n4 = st.columns(4)
+        with n1:
+            if st.button("⌂ Home", use_container_width=True, key="n_home"):
+                st.session_state.view = "home"
                 st.rerun()
-        else:
-            st.caption("")
+        with n2:
+            if st.button("💬 Chat", use_container_width=True, key="n_chat"):
+                st.session_state.view = "chat"
+                st.rerun()
+        with n3:
+            if st.button("♫ Music", use_container_width=True, key="n_music"):
+                st.session_state.view = "music"
+                st.rerun()
+        with n4:
+            if st.button("☰ Menu", use_container_width=True, key="n_menu"):
+                st.session_state.popup = True
+                st.rerun()
 
 # ===== FULLSCREEN LYRICS (Spotify-style) =====
 if st.session_state.view == "lyrics_full":
@@ -3123,56 +3386,404 @@ if st.session_state.view == "lyrics_full":
 
     st.stop()
 
+
+# ============================================================
+# EQUALIZER — Web Audio API (real filters on browser audio)
+# Spotify Connect (phone/desktop app) is outside the browser:
+# this EQ shapes audio elements / media on this page.
+# ============================================================
+EQ_BAND_FREQS = [60, 150, 400, 1000, 2400, 6000, 15000]
+EQ_BAND_LABELS = ["60", "150", "400", "1k", "2.4k", "6k", "15k"]
+EQ_BUILTIN_PRESETS = {
+    "Flat":        [0, 0, 0, 0, 0, 0, 0],
+    "Bass boost":  [8, 5, 2, 0, -1, 0, 0],
+    "Treble":      [-2, -1, 0, 1, 3, 6, 7],
+    "Vocal":       [-3, -2, 1, 5, 4, 1, -1],
+    "Electronic":  [5, 3, -1, 0, 2, 4, 5],
+    "Rock":        [5, 3, -1, 1, 3, 4, 3],
+    "Jazz":        [3, 2, 0, 2, -1, 2, 3],
+    "Loudness":    [6, 3, 0, -2, 0, 3, 5],
+}
+
+
+def render_equalizer_panel() -> None:
+    """Interactive 7-band EQ with presets. Applies via Web Audio in the browser."""
+    if "eq_bands" not in st.session_state or not isinstance(st.session_state.eq_bands, list) or len(st.session_state.eq_bands) != 7:
+        st.session_state.eq_bands = [0.0] * 7
+    if "eq_custom_presets" not in st.session_state or not isinstance(st.session_state.eq_custom_presets, dict):
+        st.session_state.eq_custom_presets = {}
+    if "eq_preset" not in st.session_state:
+        st.session_state.eq_preset = "Flat"
+    if "eq_enabled" not in st.session_state:
+        st.session_state.eq_enabled = True
+
+    custom = st.session_state.eq_custom_presets
+    all_presets = {**EQ_BUILTIN_PRESETS, **{f"★ {k}": v for k, v in custom.items()}}
+
+    with st.expander("Equalizer", expanded=False):
+        st.caption(
+            "Meridium’s browser EQ only affects audio **in this tab**. "
+            "For Spotify playback on your phone or desktop app, use **Spotify’s own equalizer** (below)."
+        )
+
+        # Spotify has no public deep-link straight into EQ — open app + show path
+        s1, s2 = st.columns(2)
+        with s1:
+            st.link_button(
+                "Open Spotify app",
+                "spotify:",
+                use_container_width=True,
+                help="Opens the Spotify desktop/mobile app if installed",
+            )
+        with s2:
+            st.link_button(
+                "Open Spotify Web",
+                "https://open.spotify.com",
+                use_container_width=True,
+            )
+
+        with st.expander("How to open Spotify’s equalizer", expanded=False):
+            st.markdown(
+                """
+**Desktop (Windows / Mac)**  
+Profile picture → **Settings** → **Playback** → **Equalizer** → turn on
+
+**iPhone / iPad**  
+Profile → **Settings and privacy** → **Playback** → **Equalizer**
+
+**Android**  
+Profile → **Settings** → **Equalizer**  
+*(often opens your phone’s system EQ)*
+
+> Spotify does not provide a direct link into the EQ screen — those steps are the official path.
+> EQ only applies on the device that is **actually playing** sound (not on a Connect target).
+                """
+            )
+
+        top = st.columns([2, 1, 1])
+        with top[0]:
+            names = list(all_presets.keys())
+            cur = st.session_state.eq_preset
+            if cur not in names:
+                cur = "Flat"
+            pick = st.selectbox("Preset", names, index=names.index(cur), key="eq_preset_select", label_visibility="collapsed")
+            if pick != st.session_state.eq_preset:
+                st.session_state.eq_preset = pick
+                key = pick[2:] if pick.startswith("★ ") else pick
+                bands = custom.get(key) if pick.startswith("★ ") else EQ_BUILTIN_PRESETS.get(pick)
+                if bands and len(bands) == 7:
+                    st.session_state.eq_bands = [float(x) for x in bands]
+                    save_user_data()
+                    st.rerun()
+        with top[1]:
+            en = st.toggle("On", value=bool(st.session_state.eq_enabled), key="eq_on_toggle")
+            if en != st.session_state.eq_enabled:
+                st.session_state.eq_enabled = en
+                save_user_data()
+                st.rerun()
+        with top[2]:
+            if st.button("Reset", key="eq_reset", use_container_width=True):
+                st.session_state.eq_bands = [0.0] * 7
+                st.session_state.eq_preset = "Flat"
+                save_user_data()
+                st.rerun()
+
+        cols = st.columns(7)
+        new_bands = []
+        changed = False
+        for i, col in enumerate(cols):
+            with col:
+                st.markdown(
+                    f"<div style='text-align:center;font-size:0.7rem;opacity:0.55;margin-bottom:2px'>{EQ_BAND_LABELS[i]}</div>",
+                    unsafe_allow_html=True,
+                )
+                val = float(st.session_state.eq_bands[i])
+                v = st.slider(
+                    EQ_BAND_LABELS[i],
+                    min_value=-12.0,
+                    max_value=12.0,
+                    value=val,
+                    step=0.5,
+                    key=f"eq_band_{i}",
+                    label_visibility="collapsed",
+                )
+                new_bands.append(float(v))
+                if abs(v - val) > 0.01:
+                    changed = True
+        if changed:
+            st.session_state.eq_bands = new_bands
+            st.session_state.eq_preset = "Custom"
+            save_user_data()
+
+        c1, c2, c3 = st.columns([3, 1, 1])
+        with c1:
+            pname = st.text_input(
+                "Save as",
+                placeholder="Preset name",
+                key="eq_save_name",
+                label_visibility="collapsed",
+            )
+        with c2:
+            if st.button("Save", key="eq_save_btn", use_container_width=True):
+                name = (pname or "").strip()[:32]
+                if not name:
+                    st.warning("Name your preset")
+                elif name in EQ_BUILTIN_PRESETS:
+                    st.warning("That name is reserved")
+                else:
+                    custom = dict(st.session_state.eq_custom_presets)
+                    custom[name] = list(st.session_state.eq_bands)
+                    st.session_state.eq_custom_presets = custom
+                    st.session_state.eq_preset = f"★ {name}"
+                    save_user_data()
+                    st.toast(f"Saved preset")
+                    st.rerun()
+        with c3:
+            if custom and st.button("Delete", key="eq_del_btn", use_container_width=True):
+                cur = st.session_state.eq_preset or ""
+                key = cur[2:] if cur.startswith("★ ") else cur
+                if key in custom:
+                    custom = dict(custom)
+                    custom.pop(key, None)
+                    st.session_state.eq_custom_presets = custom
+                    st.session_state.eq_preset = "Flat"
+                    st.session_state.eq_bands = [0.0] * 7
+                    save_user_data()
+                    st.rerun()
+
+        bands_js = ",".join(str(float(x)) for x in st.session_state.eq_bands)
+        freqs_js = ",".join(str(f) for f in EQ_BAND_FREQS)
+        enabled_js = "true" if st.session_state.eq_enabled else "false"
+        st.components.v1.html(
+            f"""
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"/>
+<style>
+  html,body {{ margin:0; background:transparent; font-family: system-ui,sans-serif; color:#c8c4d4; }}
+  .wrap {{ padding: 4px 2px 8px; }}
+  .bars {{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    height: 56px; gap: 6px; margin-bottom: 8px;
+  }}
+  .bar {{
+    flex:1; border-radius: 4px 4px 2px 2px;
+    background: linear-gradient(180deg, #c4a7e7, #7aa2f7);
+    opacity: 0.85; min-height: 4px; transition: height 0.08s linear;
+  }}
+  .meta {{ font-size: 11px; opacity: 0.55; text-align: center; }}
+  button#arm {{
+    display:block; width:100%; margin-top: 8px; padding: 8px 10px;
+    border-radius: 10px; border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06); color: #e8e4f0; cursor: pointer;
+    font-size: 12px;
+  }}
+  button#arm:hover {{ background: rgba(196,167,231,0.18); }}
+</style></head>
+<body>
+<div class="wrap">
+  <div class="bars" id="bars"></div>
+  <div class="meta" id="status">EQ ready · click Arm to process audio on this page</div>
+  <button id="arm" type="button">Arm equalizer (required once)</button>
+</div>
+<script>
+(function() {{
+  const freqs = [{freqs_js}];
+  let gainsDb = [{bands_js}];
+  let enabled = {enabled_js};
+  const barsEl = document.getElementById('bars');
+  const status = document.getElementById('status');
+  const armBtn = document.getElementById('arm');
+  freqs.forEach(() => {{
+    const d = document.createElement('div');
+    d.className = 'bar';
+    d.style.height = '8px';
+    barsEl.appendChild(d);
+  }});
+  const barNodes = [...barsEl.children];
+
+  let ctx, filters = [], sourceMap = new WeakMap(), analyser, raf;
+
+  function buildChain() {{
+    if (!ctx) return;
+    filters = [];
+    freqs.forEach((f, i) => {{
+      const fil = ctx.createBiquadFilter();
+      if (i === 0) {{ fil.type = 'lowshelf'; fil.frequency.value = f; }}
+      else if (i === freqs.length - 1) {{ fil.type = 'highshelf'; fil.frequency.value = f; }}
+      else {{
+        fil.type = 'peaking';
+        fil.frequency.value = f;
+        fil.Q.value = 1.1;
+      }}
+      fil.gain.value = enabled ? gainsDb[i] : 0;
+      if (i > 0) filters[i-1].connect(fil);
+      filters.push(fil);
+    }});
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 256;
+    if (filters.length) {{
+      filters[filters.length-1].connect(analyser);
+    }}
+    analyser.connect(ctx.destination);
+  }}
+
+  function applyGains() {{
+    filters.forEach((fil, i) => {{
+      fil.gain.value = enabled ? gainsDb[i] : 0;
+    }});
+    barNodes.forEach((el, i) => {{
+      const g = enabled ? gainsDb[i] : 0;
+      const h = 8 + ((g + 12) / 24) * 44;
+      el.style.height = h + 'px';
+      el.style.opacity = enabled ? '0.9' : '0.25';
+    }});
+  }}
+
+  function connectMediaElement(el) {{
+    if (!ctx || !filters.length) return;
+    if (sourceMap.has(el)) return;
+    try {{
+      const src = ctx.createMediaElementSource(el);
+      src.connect(filters[0]);
+      sourceMap.set(el, src);
+      el.dataset.merEq = '1';
+    }} catch (e) {{}}
+  }}
+
+  function scan() {{
+    document.querySelectorAll('audio, video').forEach(connectMediaElement);
+  }}
+
+  function pulse() {{
+    if (!analyser) {{
+      applyGains();
+      raf = requestAnimationFrame(pulse);
+      return;
+    }}
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(data);
+    const step = Math.floor(data.length / barNodes.length) || 1;
+    barNodes.forEach((el, i) => {{
+      let sum = 0;
+      for (let k = 0; k < step; k++) sum += data[i * step + k] || 0;
+      const avg = sum / step;
+      const base = enabled ? ((gainsDb[i] + 12) / 24) * 20 : 0;
+      el.style.height = (6 + base + avg / 8) + 'px';
+    }});
+    raf = requestAnimationFrame(pulse);
+  }}
+
+  armBtn.addEventListener('click', async () => {{
+    try {{
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === 'suspended') await ctx.resume();
+      buildChain();
+      applyGains();
+      scan();
+      setInterval(scan, 1500);
+      pulse();
+      // Audible test: short noise burst through the EQ chain so you can hear it
+      try {{
+        const dur = 0.55;
+        const buffer = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) {{
+          data[i] = (Math.random() * 2 - 1) * Math.exp(-3 * i / data.length);
+        }}
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+        const vol = ctx.createGain();
+        vol.gain.value = 0.22;
+        noise.connect(vol);
+        vol.connect(filters[0]);
+        noise.start();
+      }} catch (e) {{}}
+      status.textContent = enabled
+        ? 'EQ armed · test tone played through filters'
+        : 'EQ armed · currently bypassed (Off)';
+      armBtn.textContent = 'Equalizer armed';
+      armBtn.disabled = true;
+    }} catch (e) {{
+      status.textContent = 'Could not start audio context: ' + e;
+    }}
+  }});
+
+  applyGains();
+}})();
+</script>
+</body></html>
+            """,
+            height=140,
+            scrolling=False,
+        )
+
+
 # MUSIC — dedicated player + Meridium playlist
 if st.session_state.view == "music":
     st.session_state.show_spotify = True
     st.markdown("""
     <style>
       @keyframes musicFadeUp {
-        from { opacity: 0; transform: translateY(14px); }
+        from { opacity: 0; transform: translateY(10px); }
         to { opacity: 1; transform: translateY(0); }
       }
-      @keyframes equalizer {
-        0%,100% { height: 6px; }
-        50% { height: 18px; }
-      }
       .music-hero {
-        text-align: center;
-        max-width: 440px;
-        margin: 0 auto 14px;
-        padding: 18px 16px;
-        animation: musicFadeUp 0.5s ease both;
+        text-align: center; padding: 6px 0 14px;
+        animation: musicFadeUp 0.45s ease both;
       }
-      .music-eq {
-        display: flex; gap: 4px; justify-content: center; align-items: flex-end;
-        height: 22px; margin-bottom: 10px;
+      .music-hero h1 {
+        font-size: 1.5rem; font-weight: 650; letter-spacing: -0.03em; margin: 0 0 4px;
       }
-      .music-eq span {
-        width: 4px; border-radius: 2px; background: #c4a7e7;
-        animation: equalizer 0.9s ease-in-out infinite;
+      .music-hero p { margin: 0; opacity: 0.5; font-size: 0.88rem; }
+      .pl-row {
+        display: flex; align-items: center; gap: 12px;
+        padding: 10px 12px; margin-bottom: 6px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.07);
       }
-      .music-eq span:nth-child(2) { animation-delay: 0.15s; }
-      .music-eq span:nth-child(3) { animation-delay: 0.3s; }
-      .music-eq span:nth-child(4) { animation-delay: 0.45s; }
-      .music-eq span:nth-child(5) { animation-delay: 0.2s; }
+      .pl-row.is-playing {
+        background: rgba(80,200,120,0.10);
+        border-color: rgba(80,200,120,0.35);
+      }
+      .pl-num {
+        font-size: 0.75rem; opacity: 0.45; min-width: 28px; text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .pl-body { flex: 1; min-width: 0; }
+      .pl-title {
+        font-size: 0.92rem; font-weight: 560; margin: 0;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .pl-sub {
+        font-size: 0.78rem; opacity: 0.55; margin: 2px 0 0;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .pl-badge {
+        font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase;
+        color: #5dce8a; font-weight: 650; margin-left: 6px;
+      }
+      .hit-row {
+        padding: 8px 10px; margin-bottom: 4px; border-radius: 10px;
+        background: rgba(255,255,255,0.025);
+        border: 1px solid rgba(255,255,255,0.06);
+      }
     </style>
-    <div class="panel music-hero">
-      <div class="music-eq"><span></span><span></span><span></span><span></span><span></span></div>
-      <div class="panel-label">Music</div>
-      <div class="hero" style="font-size:1.35rem;">Now playing</div>
-      <div class="ridge"></div>
+    <div class="music-hero">
+      <h1>Music</h1>
+      <p>Player · search · playlist</p>
     </div>
     """, unsafe_allow_html=True)
-    render_spotify_panel("musicpage")
 
-    st.markdown("---")
+    render_spotify_panel("musicpage")
+    render_equalizer_panel()
 
     MAX_PLAYLIST = 500
+    PAGE_SIZE = 12  # compact pages — less clutter
     sp = get_spotify()
     playlist = list(st.session_state.get("meridium_playlist") or [])
 
     def _sanitize_spotify_query(q: str) -> str:
-        """Strip Spotify search operators so 'Artist - Song' works."""
         q = (q or "").strip()
         q = re.sub(r"\s+-\s+", " ", q)
         q = re.sub(r"[\"():]", " ", q)
@@ -3190,7 +3801,6 @@ if st.session_state.view == "music":
         }
 
     def _add_hit_to_playlist(hit: dict) -> str:
-        """Add a search hit. Returns status message."""
         pl = list(st.session_state.get("meridium_playlist") or [])
         if len(pl) >= MAX_PLAYLIST:
             return f"Playlist is full ({MAX_PLAYLIST} tracks)."
@@ -3210,7 +3820,7 @@ if st.session_state.view == "music":
         save_user_data()
         return f"Added: {hit['name']}"
 
-    def _spotify_search_tracks(query: str, limit: int = 10):
+    def _spotify_search_tracks(query: str, limit: int = 8):
         if not sp or not query:
             return []
         clean = _sanitize_spotify_query(query)
@@ -3230,37 +3840,164 @@ if st.session_state.view == "music":
                 st.session_state._pl_search_error = str(e2)
                 return []
 
-    # Two separate menus: Search | Playlist
+    def _is_track_uri(u: str) -> bool:
+        u = (u or "").strip()
+        return u.startswith("spotify:track:") and len(u) > len("spotify:track:")
+
+    def _resolve_and_persist_uris(items: list, max_resolve: int = 60) -> list:
+        """
+        Build a list of valid track URIs for `items`.
+        Persist any newly found URIs back into meridium_playlist so page 2+ keeps working.
+        """
+        pl = list(st.session_state.get("meridium_playlist") or [])
+        # Map index in full playlist by identity
+        dirty = False
+        uris = []
+        resolved = 0
+        for item in items:
+            u = (item.get("uri") or "").strip()
+            if _is_track_uri(u):
+                uris.append(u)
+                continue
+            if not sp or resolved >= max_resolve:
+                continue
+            q = _sanitize_spotify_query(
+                item.get("title") or f"{item.get('name','')} {item.get('artists','')}"
+            )
+            if len(q) < 2:
+                continue
+            try:
+                results = sp.search(q=q, type="track", limit=1)
+                tracks = (results.get("tracks") or {}).get("items") or []
+                if not tracks:
+                    continue
+                found = tracks[0].get("uri")
+                if not _is_track_uri(found):
+                    continue
+                uris.append(found)
+                resolved += 1
+                # persist into matching playlist entry
+                for p in pl:
+                    if p is item or (
+                        (p.get("name") or "") == (item.get("name") or "")
+                        and (p.get("artists") or "") == (item.get("artists") or "")
+                        and not _is_track_uri(p.get("uri") or "")
+                    ):
+                        p["uri"] = found
+                        if not p.get("name"):
+                            p["name"] = tracks[0].get("name") or p.get("name")
+                        dirty = True
+                        break
+                item["uri"] = found
+            except Exception:
+                continue
+        if dirty:
+            st.session_state.meridium_playlist = pl
+            try:
+                save_user_data()
+            except Exception:
+                pass
+        return uris
+
+    def _apply_repeat_mode():
+        if not sp:
+            return
+        mode = st.session_state.get("pl_repeat") or "off"
+        state = {"off": "off", "all": "context", "one": "track"}.get(mode, "off")
+        try:
+            sp.repeat(state)
+        except Exception:
+            pass
+
+    def _play_playlist_from(start_index: int = 0) -> str:
+        """
+        Play from start_index. Queue the next window of tracks (Spotify accepts a
+        finite URI list). Missing URIs are resolved + saved so later pages work.
+        """
+        if not sp:
+            return "Connect Spotify first."
+        items = list(st.session_state.get("meridium_playlist") or [])
+        if not items:
+            return "Playlist is empty."
+        start_index = max(0, min(int(start_index), len(items) - 1))
+
+        ordered = items[start_index:]
+        if st.session_state.get("pl_repeat") == "all" and start_index > 0:
+            ordered = ordered + items[:start_index]
+
+        # Spotify start_playback URI list is more reliable with a moderate window
+        WINDOW = 50
+        window = ordered[:WINDOW]
+        uris = _resolve_and_persist_uris(window, max_resolve=WINDOW)
+        # drop any non-track / duplicates while keeping order
+        seen = set()
+        clean = []
+        for u in uris:
+            if u and u not in seen and _is_track_uri(u):
+                seen.add(u)
+                clean.append(u)
+        uris = clean
+        if not uris:
+            return (
+                "Couldn't resolve track URIs for this page. "
+                "Re-add the song via Search, or check Spotify connection."
+            )
+        try:
+            # Explicit offset 0 on the URI list — critical when starting mid-playlist
+            sp.start_playback(uris=uris, offset={"position": 0})
+            time.sleep(0.3)
+            _apply_repeat_mode()
+            first = window[0] if window else {}
+            first_name = first.get("name") or first.get("title") or "track"
+            extra = f" · {len(uris)} queued from #{start_index + 1}"
+            mode = st.session_state.get("pl_repeat") or "off"
+            if mode == "all":
+                extra += " · repeat all"
+            elif mode == "one":
+                extra += " · repeat one"
+            return f"▶ Playing **{first_name}**{extra}"
+        except Exception as e:
+            err = str(e)
+            low = err.lower()
+            if "premium" in low:
+                return "Spotify Premium is required for playlist playback control."
+            if "no_active_device" in low or "active device" in low:
+                return "No active Spotify device. Open Spotify and play something once, then try again."
+            # Fallback: play only the first resolved URI
+            try:
+                sp.start_playback(uris=[uris[0]])
+                time.sleep(0.2)
+                _apply_repeat_mode()
+                return f"▶ Playing single track (queue fallback): {uris[0]}"
+            except Exception as e2:
+                return f"Playback failed: {e2}"
+
     tab_search, tab_playlist = st.tabs([
-        "🔍 Search Spotify",
-        f"♫ Playlist ({len(playlist)})",
+        "Search",
+        f"Playlist · {len(playlist)}",
     ])
 
-    # ========== TAB: SEARCH ==========
+    # ========== SEARCH ==========
     with tab_search:
-        st.markdown("#### Search Spotify")
-        st.caption("Type a song or artist · press **Enter** to add the top result · or tap ＋ on any match.")
-
         if not sp:
-            st.info("Connect Spotify on this page (above) to search and add tracks.")
+            st.info("Connect Spotify above to search and add tracks.")
         else:
             with st.form("pl_search_form", clear_on_submit=False):
                 search_q = st.text_input(
-                    "Search Spotify",
-                    placeholder="e.g. Alex G · Zaliya think about you",
+                    "Search",
+                    placeholder="Song or artist",
                     key="pl_search",
                     label_visibility="collapsed",
                 )
-                submitted = st.form_submit_button("Search / Add top result", use_container_width=True)
+                submitted = st.form_submit_button("Search", use_container_width=True)
 
             search_q = (search_q or "").strip()
-
             if search_q and len(search_q) >= 2:
                 cache_key = f"pl_search::{_sanitize_spotify_query(search_q).lower()}"
                 need_search = submitted or st.session_state.get("_pl_search_key") != cache_key
                 if need_search:
                     st.session_state._pl_search_error = None
-                    hits = _spotify_search_tracks(search_q, limit=10)
+                    hits = _spotify_search_tracks(search_q, limit=8)
                     st.session_state._pl_search_key = cache_key
                     st.session_state._pl_search_results = hits
 
@@ -3269,225 +4006,103 @@ if st.session_state.view == "music":
                     st.caption(f"Search error: {err}")
 
                 hits = st.session_state.get("_pl_search_results") or []
+                if submitted and hits:
+                    msg = _add_hit_to_playlist(hits[0])
+                    st.toast(msg)
+                    st.rerun()
+                elif submitted and not hits:
+                    st.warning("No match. Try a simpler name.")
 
-                if submitted:
-                    if hits:
-                        msg = _add_hit_to_playlist(hits[0])
-                        st.toast(msg)
-                        st.rerun()
-                    else:
-                        st.warning("No Spotify match. Try a simpler name.")
-
-                if not hits:
-                    st.caption("No Spotify matches. Try a different spelling.")
-                else:
-                    st.markdown("**Results**")
+                if hits:
                     for hi, hit in enumerate(hits):
-                        bc1, bc2 = st.columns([5, 1])
-                        with bc1:
+                        c1, c2 = st.columns([5, 1])
+                        with c1:
                             st.markdown(
-                                f"**{hit['name']}**  \n"
-                                f"<span style='opacity:0.7;font-size:0.85rem'>{hit['artists']}</span>",
+                                f"<div class='hit-row'><div class='pl-title'>{hit['name']}</div>"
+                                f"<div class='pl-sub'>{hit['artists']}</div></div>",
                                 unsafe_allow_html=True,
                             )
-                        with bc2:
-                            if st.button("＋", key=f"pl_hit_{hi}", help="Add to playlist", use_container_width=True):
+                        with c2:
+                            if st.button("＋", key=f"pl_hit_{hi}", help="Add", use_container_width=True):
                                 msg = _add_hit_to_playlist(hit)
                                 st.toast(msg)
                                 st.rerun()
             else:
-                st.caption("Start typing to search Spotify.")
+                st.caption("Search Spotify and add tracks to your Meridium playlist.")
 
-    # ========== TAB: PLAYLIST ==========
+    # ========== PLAYLIST ==========
     with tab_playlist:
-        st.markdown("#### Meridium playlist")
-        st.caption(
-            f"Up to {MAX_PLAYLIST} tracks · **{len(playlist)}** saved · "
-            "songs play in order — when one ends, the next starts."
-        )
-
         playlist = list(st.session_state.get("meridium_playlist") or [])
-
-        # Repeat mode: off | all | one  (synced to Spotify when possible)
         if "pl_repeat" not in st.session_state:
-            st.session_state.pl_repeat = "off"  # off | all | one
-
-        def _resolve_playlist_uris(items, max_resolve=40):
-            """Return list of Spotify URIs for playlist items; resolve missing via search."""
-            uris = []
-            resolved = 0
-            for item in items:
-                u = item.get("uri")
-                if u:
-                    uris.append(u)
-                    continue
-                if not sp or resolved >= max_resolve:
-                    continue
-                q = _sanitize_spotify_query(item.get("title") or item.get("name") or "")
-                if not q:
-                    continue
-                try:
-                    results = sp.search(q=q, type="track", limit=1)
-                    tracks = (results.get("tracks") or {}).get("items") or []
-                    if tracks:
-                        uris.append(tracks[0]["uri"])
-                        resolved += 1
-                except Exception:
-                    pass
-            return uris
-
-        def _apply_repeat_mode():
-            """Push Meridium repeat preference to Spotify device."""
-            if not sp:
-                return
-            mode = st.session_state.get("pl_repeat") or "off"
-            state = {"off": "off", "all": "context", "one": "track"}.get(mode, "off")
-            try:
-                sp.repeat(state)
-            except Exception:
-                pass
-
-        def _play_playlist_from(start_index: int = 0) -> str:
-            """
-            Start sequential playback from start_index through the rest of the list.
-            If repeat=all, wrap so the queue loops the full playlist.
-            Spotify advances automatically when each track ends.
-            """
-            if not sp:
-                return "Connect Spotify first."
-            items = list(st.session_state.get("meridium_playlist") or [])
-            if not items:
-                return "Playlist is empty."
-            start_index = max(0, min(start_index, len(items) - 1))
-            # Build ordered queue from start_index → end (then wrap if repeat all)
-            ordered = items[start_index:]
-            if st.session_state.get("pl_repeat") == "all" and start_index > 0:
-                ordered = ordered + items[:start_index]
-            # Spotify start_playback uris limit is generous but keep under ~80
-            uris = _resolve_playlist_uris(ordered, max_resolve=50)
-            uris = uris[:80]
-            if not uris:
-                return "Couldn't resolve any tracks on Spotify."
-            try:
-                sp.start_playback(uris=uris)
-                time.sleep(0.25)
-                _apply_repeat_mode()
-                first_name = ordered[0].get("name") or ordered[0].get("title") or "track"
-                extra = f" · {len(uris)} in queue"
-                if st.session_state.get("pl_repeat") == "all":
-                    extra += " · repeat all"
-                elif st.session_state.get("pl_repeat") == "one":
-                    extra += " · repeat one"
-                return f"▶ Playing **{first_name}**{extra}"
-            except Exception as e:
-                err = str(e)
-                if "premium" in err.lower():
-                    return "Spotify Premium is required for playlist playback control."
-                if "NO_ACTIVE_DEVICE" in err or "active device" in err.lower():
-                    return "No active Spotify device. Open Spotify and play something once, then try again."
-                return f"Playback failed: {e}"
+            st.session_state.pl_repeat = "off"
 
         if not playlist:
-            st.info("Playlist is empty. Switch to **Search Spotify** to add tracks.")
+            st.info("Playlist is empty — use **Search** to add tracks.")
         else:
-            t1, t2, t3, t4 = st.columns([2, 2, 2, 2])
-            with t1:
-                if sp and st.button("▶ Play", use_container_width=True, key="pl_play_first", help="Play from the top — continues in order"):
+            a1, a2, a3, a4 = st.columns(4)
+            with a1:
+                if sp and st.button("▶ Play", use_container_width=True, key="pl_play_first"):
                     msg = _play_playlist_from(0)
-                    if msg.startswith("▶"):
-                        st.success(msg)
-                    else:
-                        st.warning(msg)
-                    time.sleep(0.2)
+                    (st.success if msg.startswith("▶") else st.warning)(msg)
+                    time.sleep(0.15)
                     st.rerun()
-            with t2:
-                # Cycle repeat: off → all → one → off
+            with a2:
                 mode = st.session_state.get("pl_repeat") or "off"
-                repeat_label = {
-                    "off": "Repeat: Off",
-                    "all": "Repeat: All",
-                    "one": "Repeat: One",
-                }.get(mode, "Repeat: Off")
-                if st.button(f"🔁 {repeat_label}", use_container_width=True, key="pl_repeat_btn",
-                             type="primary" if mode != "off" else "secondary"):
+                labels = {"off": "Repeat off", "all": "Repeat all", "one": "Repeat one"}
+                if st.button(
+                    f"🔁 {labels.get(mode, 'Repeat off')}",
+                    use_container_width=True,
+                    key="pl_repeat_btn",
+                    type="primary" if mode != "off" else "secondary",
+                ):
                     order = ["off", "all", "one"]
                     st.session_state.pl_repeat = order[(order.index(mode) + 1) % len(order)]
                     _apply_repeat_mode()
                     st.rerun()
-            with t3:
-                if sp and st.button("▶ From here", use_container_width=True, key="pl_play_page",
-                                    help="Play from the first track on this page onward"):
-                    page_start = int(st.session_state.get("pl_page") or 0) * 25
-                    msg = _play_playlist_from(page_start)
-                    if msg.startswith("▶"):
-                        st.success(msg)
-                    else:
-                        st.warning(msg)
+            with a3:
+                page_now = int(st.session_state.get("pl_page") or 0)
+                if sp and st.button("▶ Page", use_container_width=True, key="pl_play_page",
+                                    help="Play from the first track on this page"):
+                    msg = _play_playlist_from(page_now * PAGE_SIZE)
+                    (st.success if msg.startswith("▶") else st.warning)(msg)
                     st.rerun()
-            with t4:
-                if st.button("🗑 Clear all", use_container_width=True, key="pl_clear"):
+            with a4:
+                if st.button("Clear", use_container_width=True, key="pl_clear"):
                     st.session_state.meridium_playlist = []
                     st.session_state.pl_page = 0
                     save_user_data()
                     st.rerun()
 
-            mode = st.session_state.get("pl_repeat") or "off"
-            if mode == "all":
-                st.caption("🔁 Repeat **all** — when the last song ends, the playlist starts again.")
-            elif mode == "one":
-                st.caption("🔁 Repeat **one** — the current song loops.")
-            else:
-                st.caption("Repeat is off — playback stops after the last queued track.")
-
-            # Show ALL songs with pagination (every track accessible)
-            PAGE_SIZE = 25
             total = len(playlist)
             pages = max(1, (total + PAGE_SIZE - 1) // PAGE_SIZE)
             if "pl_page" not in st.session_state:
                 st.session_state.pl_page = 0
-            st.session_state.pl_page = max(0, min(st.session_state.pl_page, pages - 1))
-            page = st.session_state.pl_page
+            st.session_state.pl_page = max(0, min(int(st.session_state.pl_page), pages - 1))
+            page = int(st.session_state.pl_page)
             start = page * PAGE_SIZE
             end = min(start + PAGE_SIZE, total)
 
+            # Pagination — compact
             if pages > 1:
-                nav1, nav2, nav3, nav4 = st.columns([1, 1, 2, 1])
-                with nav1:
-                    if st.button("← Prev", use_container_width=True, key="pl_prev", disabled=(page <= 0)):
+                n1, n2, n3 = st.columns([1, 2, 1])
+                with n1:
+                    if st.button("←", use_container_width=True, key="pl_prev", disabled=page <= 0):
                         st.session_state.pl_page = page - 1
                         st.rerun()
-                with nav2:
-                    if st.button("Next →", use_container_width=True, key="pl_next", disabled=(page >= pages - 1)):
-                        st.session_state.pl_page = page + 1
-                        st.rerun()
-                with nav3:
+                with n2:
                     st.markdown(
-                        f"<div style='text-align:center;padding-top:8px'>"
-                        f"Page **{page+1}** / {pages} · tracks {start+1}–{end} of **{total}**"
-                        f"</div>",
+                        f"<div style='text-align:center;padding-top:6px;opacity:0.65;font-size:0.85rem'>"
+                        f"{start+1}–{end} of {total} · page {page+1}/{pages}</div>",
                         unsafe_allow_html=True,
                     )
-                with nav4:
-                    jump = st.number_input(
-                        "Go to page",
-                        min_value=1,
-                        max_value=pages,
-                        value=page + 1,
-                        step=1,
-                        key="pl_page_jump",
-                        label_visibility="collapsed",
-                    )
-                    if int(jump) - 1 != page:
-                        st.session_state.pl_page = int(jump) - 1
+                with n3:
+                    if st.button("→", use_container_width=True, key="pl_next", disabled=page >= pages - 1):
+                        st.session_state.pl_page = page + 1
                         st.rerun()
-            else:
-                st.caption(f"Showing all **{total}** tracks")
 
-            # Now-playing indicator (green title when this track is active on Spotify)
+            # Now-playing match
             now = None
-            now_uri = ""
-            now_name = ""
-            now_artists = ""
+            now_uri = now_name = now_artists = ""
             if sp:
                 try:
                     now = current_track(sp)
@@ -3497,10 +4112,9 @@ if st.session_state.view == "music":
                 now_uri = (now.get("uri") or "").strip()
                 now_name = (now.get("name") or "").strip().lower()
                 now_artists = (now.get("artist_primary") or now.get("artists") or "").strip().lower()
-                # Gentle refresh so the green highlight advances with the queue
                 try:
                     from streamlit_autorefresh import st_autorefresh
-                    st_autorefresh(interval=3500, key="pl_now_playing_refresh")
+                    st_autorefresh(interval=4000, key="pl_now_playing_refresh")
                 except Exception:
                     pass
 
@@ -3508,8 +4122,7 @@ if st.session_state.view == "music":
                 s = (s or "").lower().strip()
                 s = re.sub(r"\s+-\s+", " ", s)
                 s = re.sub(r"[^\w\s]", " ", s)
-                s = re.sub(r"\s+", " ", s).strip()
-                return s
+                return re.sub(r"\s+", " ", s).strip()
 
             def _is_now_playing(item: dict) -> bool:
                 if not now:
@@ -3517,24 +4130,17 @@ if st.session_state.view == "music":
                 uri = (item.get("uri") or "").strip()
                 if now_uri and uri and uri == now_uri:
                     return True
-                # Compare normalized names (handles "Song - Artist" titles)
                 item_name = _norm(item.get("name") or "")
                 item_title = _norm(item.get("title") or "")
                 item_arts = _norm(item.get("artists") or "")
-                nn = _norm(now_name)
-                na = _norm(now_artists)
+                nn, na = _norm(now_name), _norm(now_artists)
                 if not nn:
                     return False
-                # Direct name hits
                 if item_name and (item_name == nn or nn in item_name or item_name in nn):
                     if not item_arts or not na or na in item_arts or item_arts in na:
                         return True
-                if item_title:
-                    if item_title == nn or nn in item_title:
-                        return True
-                    # "name artist" contained in title
-                    if na and nn in item_title and (na.split()[0] in item_title if na else True):
-                        return True
+                if item_title and (item_title == nn or nn in item_title):
+                    return True
                 return False
 
             for i in range(start, end):
@@ -3542,57 +4148,46 @@ if st.session_state.view == "music":
                 title = item.get("name") or item.get("title") or "Track"
                 artists = item.get("artists") or ""
                 playing_now = _is_now_playing(item)
-                c1, c2, c3 = st.columns([5, 1, 1])
-                with c1:
-                    if playing_now:
-                        # Green = currently playing on Spotify (class beats theme CSS)
-                        if artists:
-                            st.markdown(
-                                f"<div class='mer-now-playing'>"
-                                f"<strong>{i+1}. {title}</strong>"
-                                f"<span class='mer-now-badge'>● now playing</span>"
-                                f"<br/><span class='mer-now-sub'>{artists}</span>"
-                                f"</div>",
-                                unsafe_allow_html=True,
-                            )
-                        else:
-                            st.markdown(
-                                f"<div class='mer-now-playing'>"
-                                f"<strong>{i+1}. {title}</strong>"
-                                f"<span class='mer-now-badge'>● now playing</span>"
-                                f"</div>",
-                                unsafe_allow_html=True,
-                            )
-                    else:
-                        if artists:
-                            st.markdown(
-                                f"**{i+1}.** {title}  \n"
-                                f"<span style='opacity:0.65;font-size:0.82rem'>{artists}</span>",
-                                unsafe_allow_html=True,
-                            )
-                        else:
-                            st.markdown(f"**{i+1}.** {title}")
-                with c2:
-                    if sp and st.button("▶", key=f"pl_play_{i}", help="Play from this track onward (in order)", use_container_width=True):
+                has_uri = _is_track_uri(item.get("uri") or "")
+                cls = "pl-row is-playing" if playing_now else "pl-row"
+                badge = '<span class="pl-badge">playing</span>' if playing_now else ""
+                uri_hint = "" if has_uri else " · needs resolve"
+                st.markdown(
+                    f"""
+                    <div class="{cls}">
+                      <div class="pl-num">{i+1}</div>
+                      <div class="pl-body">
+                        <div class="pl-title">{title}{badge}</div>
+                        <div class="pl-sub">{artists}{uri_hint}</div>
+                      </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                b1, b2 = st.columns([1, 1])
+                with b1:
+                    if sp and st.button(
+                        "Play",
+                        key=f"pl_play_{i}_{page}",
+                        use_container_width=True,
+                        help="Play from this track",
+                    ):
                         msg = _play_playlist_from(i)
-                        if msg.startswith("▶"):
-                            st.toast(msg.replace("**", ""))
-                        else:
-                            st.toast(msg)
+                        st.toast(msg.replace("**", ""))
                         st.rerun()
-                with c3:
-                    if st.button("✕", key=f"pl_del_{i}", help="Remove", use_container_width=True):
+                with b2:
+                    if st.button("Remove", key=f"pl_del_{i}_{page}", use_container_width=True):
                         pl = list(playlist)
                         pl.pop(i)
                         st.session_state.meridium_playlist = pl
-                        new_total = len(pl)
-                        new_pages = max(1, (new_total + PAGE_SIZE - 1) // PAGE_SIZE)
+                        new_pages = max(1, (len(pl) + PAGE_SIZE - 1) // PAGE_SIZE)
                         if st.session_state.pl_page >= new_pages:
                             st.session_state.pl_page = max(0, new_pages - 1)
                         save_user_data()
                         st.rerun()
 
     st.stop()
+
 
 # LISTEN — voice assistant (process only on Send)
 if st.session_state.view == "listen":
@@ -3815,6 +4410,1034 @@ def paginate_text(text: str, page_size: int = 2200) -> list:
     return pages or [""]
 
 
+# ============================================================
+# CINEMA — YouTube only, grouped by channel
+# ============================================================
+CINEMA_CATALOG = [
+    # —— simple, actually (10) ——
+    {"id": "sa_lotus", "title": "How To Force Your Brain To Do Hard Things (Lotus Method)", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "GpsWTFciswE", "tags": ["productivity"]},
+    {"id": "sa_cs", "title": "How to study computer science so FAST that it feels ILLEGAL", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "TbZj_hlJitA", "tags": ["study"]},
+    {"id": "sa_chem", "title": "How to study CHEMISTRY so FAST that it feels ILLEGAL", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "0oHMoSSelo0", "tags": ["study"]},
+    {"id": "sa_bio", "title": "How to study BIOLOGY so FAST that it feels ILLEGAL", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "-qU1mQ0ilxo", "tags": ["study"]},
+    {"id": "sa_physics", "title": "How to study PHYSICS so FAST that it feels ILLEGAL", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "kGBv_vZFnvw", "tags": ["study"]},
+    {"id": "sa_study_fast", "title": "How to STUDY so FAST that it feels ILLEGAL", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "ZTFcn5rbBFg", "tags": ["study"]},
+    {"id": "sa_stoic", "title": "How To Never Get Angry Or Bothered By Anyone (STOICISM)", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "OgJQkabvdA4", "tags": ["mindset"]},
+    {"id": "sa_cant_study", "title": "Please Watch This If YOU Can't Study", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "Wm-qGO_dme4", "tags": ["study"]},
+    {"id": "sa_hours", "title": "How to Study for Hours Without Getting Distracted", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "XQFsva8fi9k", "tags": ["study"]},
+    {"id": "sa_memory", "title": "How to Build a MEMORY PALACE That Actually Works", "creator": "simple, actually", "channel": "simple, actually", "channel_url": "https://www.youtube.com/@simpleactuallyus", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@simpleactuallyus", "kind": "youtube", "youtube_id": "mTK3T8p4md8", "tags": ["study"]},
+    # —— riskambition (10) ——
+    {"id": "ra_peak", "title": "how to reach peak performance in anything you do.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@riskambition", "kind": "youtube", "youtube_id": "18Nh2H0RwLM", "tags": ["productivity"]},
+    {"id": "ra_polymath", "title": "how to actually become a polymath.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@riskambition", "kind": "youtube", "youtube_id": "jndWxpCzO5g", "tags": ["productivity"]},
+    {"id": "ra_flow", "title": "how to easily enter flow state anytime you want", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@riskambition", "kind": "youtube", "youtube_id": "_e--tk58Lvo", "tags": ["focus"]},
+    {"id": "ra_passion", "title": "how to develop extreme passion.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@riskambition", "kind": "youtube", "youtube_id": "_BXXXiCgNiM", "tags": ["mindset"]},
+    {"id": "ra_hobby", "title": "how to find a hobby you like.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@riskambition", "kind": "youtube", "youtube_id": "zl2eZkh6rMU", "tags": ["mindset"]},
+    {"id": "ra_deep", "title": "how to enter deep work properly.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@riskambition", "kind": "youtube", "youtube_id": "mbxqRzCVJao", "tags": ["focus"]},
+    {"id": "ra_discipline", "title": "how to easily become more disciplined.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@riskambition", "kind": "youtube", "youtube_id": "4r3A5cxOcmA", "tags": ["productivity"]},
+    {"id": "ra_high", "title": "how to become a high performer.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@riskambition", "kind": "youtube", "youtube_id": "BJWUaxh-ojM", "tags": ["productivity"]},
+    {"id": "ra_hyper", "title": "how to hyperfocus and get more done in less time.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@riskambition", "kind": "youtube", "youtube_id": "9_t-NYyhDkM", "tags": ["focus"]},
+    {"id": "ra_focus8", "title": "how to focus for 8+ hours a day.", "creator": "riskambition", "channel": "riskambition", "channel_url": "https://www.youtube.com/@riskambition", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@riskambition", "kind": "youtube", "youtube_id": "BOEROJ-CjBY", "tags": ["focus"]},
+    # —— Veritasium (10) ——
+    {"id": "ve_molecular", "title": "Your Body's Molecular Machines", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "shelf_category": "Science", "note": "@veritasium", "kind": "youtube", "youtube_id": "X_tYrnv_o6A", "tags": ["science"]},
+    {"id": "ve_future", "title": "The Future of Veritasium", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "shelf_category": "Science", "note": "@veritasium", "kind": "youtube", "youtube_id": "piHGnG4LsmQ", "tags": ["science"]},
+    {"id": "ve_fingerprint", "title": "The Problem With Fingerprint Analysis", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "shelf_category": "Science", "note": "@veritasium", "kind": "youtube", "youtube_id": "mvcesPWvUIc", "tags": ["science"]},
+    {"id": "ve_pattern", "title": "We're 99.9% sure this pattern is true, but no one can prove it", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "shelf_category": "Science", "note": "@veritasium", "kind": "youtube", "youtube_id": "8HBDE-msUjw", "tags": ["math"]},
+    {"id": "ve_bet", "title": "A Physics Prof Bet Me $10,000 I'm Wrong", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "shelf_category": "Science", "note": "@veritasium", "kind": "youtube", "youtube_id": "yCsgoLc_fzI", "tags": ["science"]},
+    {"id": "ve_life", "title": "My Life Story", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "shelf_category": "Science", "note": "@veritasium", "kind": "youtube", "youtube_id": "S1tFT4smd6E", "tags": ["science"]},
+    {"id": "ve_maps", "title": "Google Maps is unreasonably fast. Let me explain", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "shelf_category": "Science", "note": "@veritasium", "kind": "youtube", "youtube_id": "kS-CGkiPetQ", "tags": ["science"]},
+    {"id": "ve_gps", "title": "Something is jamming GPS over Europe. Here's what we found", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "shelf_category": "Science", "note": "@veritasium", "kind": "youtube", "youtube_id": "tz23G_UXCGA", "tags": ["science"]},
+    {"id": "ve_antimatter", "title": "What happens if you drop 0.125 grams of antimatter?", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "shelf_category": "Science", "note": "@veritasium", "kind": "youtube", "youtube_id": "jjp3WC8Unj8", "tags": ["science"]},
+    {"id": "ve_ftl", "title": "There Is Something Faster Than Light", "creator": "Veritasium", "channel": "Veritasium", "channel_url": "https://www.youtube.com/@veritasium", "category": "youtube", "shelf_category": "Science", "note": "@veritasium", "kind": "youtube", "youtube_id": "NIk_0AW5hFU", "tags": ["science"]},
+    # —— Practical Engineering (10) ——
+    {"id": "pe_landfills", "title": "The Hidden Engineering of Landfills", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "shelf_category": "Science", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "HRx_dZawN44", "tags": ["engineering"]},
+    {"id": "pe_baseplates", "title": "What's the Deal with Base Plates?", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "shelf_category": "Science", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "nGa1244hK9Y", "tags": ["engineering"]},
+    {"id": "pe_powergrid", "title": "The Most Confusing Part of the Power Grid", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "shelf_category": "Science", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "ZwkNTwWJP5k", "tags": ["engineering"]},
+    {"id": "pe_blackstart", "title": "What Is A Black Start Of The Power Grid?", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "shelf_category": "Science", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "uOSnQM1Zu4w", "tags": ["engineering"]},
+    {"id": "pe_fish", "title": "How Fish Survive Hydro Turbines", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "shelf_category": "Science", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "HCE_lFUMXNg", "tags": ["engineering"]},
+    {"id": "pe_pump", "title": "Recreating an Ancient Pump (with no moving parts)", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "shelf_category": "Science", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "7OHCOFFUamQ", "tags": ["engineering"]},
+    {"id": "pe_flood", "title": "How Flood Tunnels Work", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "shelf_category": "Science", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "r4G0aTq5oSM", "tags": ["engineering"]},
+    {"id": "pe_loco", "title": "Why Locomotives Don't Have Tires", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "shelf_category": "Science", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "nGhBHrr5CYQ", "tags": ["engineering"]},
+    {"id": "pe_budget", "title": "Why Construction Projects Always Go Over Budget", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "shelf_category": "Science", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "dOe_6vuaR_s", "tags": ["engineering"]},
+    {"id": "pe_million", "title": "1E6 Views and a Few Announcements", "creator": "Practical Engineering", "channel": "Practical Engineering", "channel_url": "https://www.youtube.com/@PracticalEngineeringChannel", "category": "youtube", "shelf_category": "Science", "note": "@PracticalEngineeringChannel", "kind": "youtube", "youtube_id": "qeSXSQFMvbo", "tags": ["engineering"]},
+    # —— Outdoor Boys (10) ——
+    {"id": "ob_ketchikan", "title": "7 Days Remote Camping, Fishing & Exploring Ketchikan Alaska", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "shelf_category": "Outdoors", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "LxVczipWxos", "tags": ["outdoors"]},
+    {"id": "ob_valdez", "title": "4 Days Camping, Fishing & Eating What We Catch in Alaska", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "shelf_category": "Outdoors", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "qUhW2hJJVxA", "tags": ["outdoors"]},
+    {"id": "ob_trail", "title": "4 Days Camping & Building a Trail", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "shelf_category": "Outdoors", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "IyCEpSLheUw", "tags": ["outdoors"]},
+    {"id": "ob_family10", "title": "1 Week Fishing, Camping, & Hiking Adventure (Family of 10 to Alaska)", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "shelf_category": "Outdoors", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "4OCJ0Bt66ms", "tags": ["outdoors"]},
+    {"id": "ob_proenneke", "title": "3 Days Camping & Fishing Alaska's Wilderness (Near Dick Proenneke's Cabin)", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "shelf_category": "Outdoors", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "93zzKz-2PZU", "tags": ["outdoors"]},
+    {"id": "ob_shrimp", "title": "3 Days Camping in Alaska & Eating What We Catch", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "shelf_category": "Outdoors", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "0Gx60dye-_U", "tags": ["outdoors"]},
+    {"id": "ob_alone", "title": "4 Days Alone in Alaska - Bushcraft Camping & Foraging Food", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "shelf_category": "Outdoors", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "sSsTR8qqDl4", "tags": ["outdoors"]},
+    {"id": "ob_frozen", "title": "Camping on Frozen Ocean - 6 Days Fishing for King Crab", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "shelf_category": "Outdoors", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "8hvbcAvkuJs", "tags": ["outdoors"]},
+    {"id": "ob_swamp", "title": "5 Days Fishing & Camping in Swamp - Catch & Cook", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "shelf_category": "Outdoors", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "J-sMBdJyclo", "tags": ["outdoors"]},
+    {"id": "ob_atv", "title": "ATV Camping & Fishing on Deserted Island", "creator": "Outdoor Boys", "channel": "Outdoor Boys", "channel_url": "https://www.youtube.com/@OutdoorBoys", "category": "youtube", "shelf_category": "Outdoors", "note": "@OutdoorBoys", "kind": "youtube", "youtube_id": "5LUgUW0yox4", "tags": ["outdoors"]},
+    # —— SmarterEveryDay (10) ——
+    {"id": "sed_taco", "title": "They Call it \"The Taco Turn\" and it's Genius - Smarter Every Day 315", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "shelf_category": "Science", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "5lCWqEFVzbY", "tags": ["science"]},
+    {"id": "sed_johari", "title": "What Everyone Sees... But I Don't (The Johari Window) - Smarter Every Day 314", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "shelf_category": "Science", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "WtQ64nSbdY4", "tags": ["science"]},
+    {"id": "sed_spin", "title": "Why Do Spinning Things Do This? - Smarter Every Day 312", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "shelf_category": "Science", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "XwBZx1cXEdM", "tags": ["science"]},
+    {"id": "sed_nuclear", "title": "I Went Into a Nuclear Plant and It Changed How I Think About Radiation - Smarter Every Day 309", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "shelf_category": "Science", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "cRaKMTK7ea0", "tags": ["science"]},
+    {"id": "sed_reactor", "title": "Refueling a NUCLEAR REACTOR - Smarter Every Day 311", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "shelf_category": "Science", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "v0afQ6w3Bjw", "tags": ["science"]},
+    {"id": "sed_america", "title": "I Tried To Make Something In America - Smarter Every Day 308", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "shelf_category": "Science", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "3ZTGwcHQfLY", "tags": ["science"]},
+    {"id": "sed_pompeii", "title": "Pompeii Changed How I Think About The Roman Empire - Smarter Every Day 310", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "shelf_category": "Science", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "dt_CG_xRnrY", "tags": ["science"]},
+    {"id": "sed_shorts", "title": "YouTube Shorts is Changing YouTube - Smarter Every Day 266", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "shelf_category": "Science", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "ZVaUoyabjAg", "tags": ["science"]},
+    {"id": "sed_war", "title": "The Future of War, and How It Affects YOU - Smarter Every Day 211", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "shelf_category": "Science", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "qOTYgcdNrXE", "tags": ["science"]},
+    {"id": "sed_eclipse", "title": "I Accidentally Photographed Something Unknown During the Eclipse - Smarter Every Day 298", "creator": "SmarterEveryDay", "channel": "SmarterEveryDay", "channel_url": "https://www.youtube.com/@smartereveryday", "category": "youtube", "shelf_category": "Science", "note": "@smartereveryday", "kind": "youtube", "youtube_id": "bQF51mqzrY4", "tags": ["science"]},
+
+    # —— Clarified Mind (10) ——
+    {"id": "cm_jubilee", "title": "Jubilee's Spectrum But It's Philosophers on God", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "Gh7P3UWjHp8", "tags": ["philosophy"]},
+    {"id": "cm_socrates", "title": "Socrates Debates Lao Tzu's Philosophy Of Flow", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "rywxXv7rKLA", "tags": ["philosophy"]},
+    {"id": "cm_nietzsche_marcus", "title": "Nietzsche debates Marcus Aurelius' Stoic way of living", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "wAxYObrcHrY", "tags": ["philosophy"]},
+    {"id": "cm_nietzsche_jung", "title": "Nietzsche debates Jung on what makes life worth living", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "wXD0SPhncBs", "tags": ["philosophy"]},
+    {"id": "cm_trolley", "title": "AI Decides on Absurd Trolley Problems", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "1boxiCcpZ-w", "tags": ["philosophy"]},
+    {"id": "cm_trolley2", "title": "AI Decides on EVEN MORE Absurd Trolley Problems", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "yQlX7yToj-8", "tags": ["philosophy"]},
+    {"id": "cm_machiavelli", "title": "Machiavelli debates Marcus Aurelius' Stoicism", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "rbjYKZe-Ds0", "tags": ["philosophy"]},
+    {"id": "cm_god", "title": "Does God Exist? AI debates (Atheist vs Believer)", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "EjxL2oB7J-o", "tags": ["philosophy"]},
+    {"id": "cm_freewill", "title": "Does Free Will Exist? AI Debates", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "1zEjQ_LILJA", "tags": ["philosophy"]},
+    {"id": "cm_econ", "title": "Best Economic System? AI debates (Capitalist vs Socialist)", "creator": "Clarified Mind", "channel": "Clarified Mind", "channel_url": "https://www.youtube.com/@clarifiedmind", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@clarifiedmind", "kind": "youtube", "youtube_id": "ZB4soi4FZJc", "tags": ["philosophy"]},
+    # —— Just Explained (10) ——
+    {"id": "je_prog", "title": "Every Programming Language Explained in 16 Minutes", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "uerEG_yigco", "tags": ["tech"]},
+    {"id": "je_usb", "title": "Every USB Port COLOR Explained in 13 Minutes", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "r2sBNRWcvTY", "tags": ["tech"]},
+    {"id": "je_illegal_os", "title": "Every Illegal Operating System Explained in 15 Minutes", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "2D2Z-eqK0YM", "tags": ["tech"]},
+    {"id": "je_tv", "title": "Every Type of TV SCREEN Explained in 11 Minutes", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "9BcQk1myhbc", "tags": ["tech"]},
+    {"id": "je_ai", "title": "Every AI Model Explained in 17 Minutes", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "h1MEtoxegzw", "tags": ["tech"]},
+    {"id": "je_underrated", "title": "Every Underrated Tech Invention That Changed The World", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "yr8NqTSxZ2w", "tags": ["tech"]},
+    {"id": "je_watch_tv", "title": "Every Way People Watched TV Explained", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "FbTBA389Ks0", "tags": ["tech"]},
+    {"id": "je_network", "title": "Every Mobile Network Explained in 12 Minutes", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "nfyyidvGZuI", "tags": ["tech"]},
+    {"id": "je_browser", "title": "Every Web Browser Explained in 18 Minutes", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "zF-4OO5p_Yg", "tags": ["tech"]},
+    {"id": "je_os", "title": "Every Operating System Explained in 20 Minutes", "creator": "Just Explained", "channel": "Just Explained", "channel_url": "https://www.youtube.com/@justexplainedyt", "category": "youtube", "shelf_category": "Simple But Effective", "note": "@justexplainedyt", "kind": "youtube", "youtube_id": "6Bjj1i6oMow", "tags": ["tech"]},
+    # —— Uncovering (10) ——
+    {"id": "uc_nyc", "title": "The NYC Gang War, Mapped", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "shelf_category": "Documentaries", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "tk2W7mjfFpY", "tags": ["docs"]},
+    {"id": "uc_afghan", "title": "72 Hours to Escape Afghanistan", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "shelf_category": "Documentaries", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "MwfDVUyGLTo", "tags": ["docs"]},
+    {"id": "uc_astroworld", "title": "The Deadly Pit at an Astroworld Concert", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "shelf_category": "Documentaries", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "HUxHBgeO8JE", "tags": ["docs"]},
+    {"id": "uc_titanic", "title": "The Last 4 Survivors of the Titanic", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "shelf_category": "Documentaries", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "xUZAkSaxMUo", "tags": ["docs"]},
+    {"id": "uc_atomic", "title": "The Man Who Survived Both Atomic Bombs", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "shelf_category": "Documentaries", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "FGOpRAuIbUo", "tags": ["docs"]},
+    {"id": "uc_911", "title": "The Last 4 Survivors of 9/11", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "shelf_category": "Documentaries", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "FiGgO-wfEzs", "tags": ["docs"]},
+    {"id": "uc_japan", "title": "The Dark Truth Behind Japan's Free Homes", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "shelf_category": "Documentaries", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "Cn-LVCWHIx0", "tags": ["docs"]},
+    {"id": "uc_chicago", "title": "The Chicago Gang War, Mapped", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "shelf_category": "Documentaries", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "4wHJWlDRVN8", "tags": ["docs"]},
+    {"id": "uc_bermuda", "title": "Why Planes Disappear in the Bermuda Triangle", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "shelf_category": "Documentaries", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "AeetW-9BOgs", "tags": ["docs"]},
+    {"id": "uc_binladen", "title": "Exposing Bin Laden's 19 Hideouts", "creator": "Uncovering", "channel": "Uncovering", "channel_url": "https://www.youtube.com/@uncovering_yt", "category": "youtube", "shelf_category": "Documentaries", "note": "@uncovering_yt", "kind": "youtube", "youtube_id": "LyQy5_He0Xk", "tags": ["docs"]},
+    # —— The Big Lez Show (official) ——
+    {"id": "bl_s1_all", "title": "THE BIG LEZ SHOW — ALL OF SEASON 1", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "The Big Lez Saga", "note": "@THEBIGLEZSHOWOFFICIAL · Season 1 complete", "kind": "youtube", "youtube_id": "VuihdCwvm80", "tags": ["comedy"]},
+    {"id": "bl_s2_all", "title": "THE BIG LEZ SHOW — ALL OF SEASON 2", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "The Big Lez Saga", "note": "@THEBIGLEZSHOWOFFICIAL · Season 2 complete", "kind": "youtube", "youtube_id": "OgX31m23zeg", "tags": ["comedy"]},
+    {"id": "bl_s3_all", "title": "THE BIG LEZ SHOW — ALL OF SEASON 3", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "The Big Lez Saga", "note": "@THEBIGLEZSHOWOFFICIAL · Season 3 complete", "kind": "youtube", "youtube_id": "HRJuo0vO3BA", "tags": ["comedy"]},
+    {"id": "bl_s4_all", "title": "THE BIG LEZ SHOW — ALL OF SEASON 4", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "The Big Lez Saga", "note": "@THEBIGLEZSHOWOFFICIAL · Season 4 complete", "kind": "youtube", "youtube_id": "G2wVHFCfjsE", "tags": ["comedy"]},
+    {"id": "bl_s1e01", "title": "S01 EP01 · The Flowers", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "Season 1 Episodes", "note": "Official episode", "kind": "youtube", "youtube_id": "N1n0r3UnpeY", "tags": ["comedy"]},
+    {"id": "bl_s1e02", "title": "S01 EP02 · The Volcano Bong", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "Season 1 Episodes", "note": "Official episode", "kind": "youtube", "youtube_id": "p48-G4KmRXk", "tags": ["comedy"]},
+    {"id": "bl_s1e03", "title": "S01 EP03 · Norton's Revenge", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "Season 1 Episodes", "note": "Official episode", "kind": "youtube", "youtube_id": "ilnYCCvAqsM", "tags": ["comedy"]},
+    {"id": "bl_s1e11", "title": "S01 EP11 · Choomah Island", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "Season 1 Episodes", "note": "Official episode", "kind": "youtube", "youtube_id": "BiFJDQkmXMA", "tags": ["comedy"]},
+    {"id": "bl_s2e01", "title": "S02 EP01 · They're Back", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "Season 2 Episodes", "note": "Official episode", "kind": "youtube", "youtube_id": "E7AFfJFJhtE", "tags": ["comedy"]},
+    {"id": "bl_s2e02", "title": "S02 EP02 · The Trippa Snippa", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "Season 2 Episodes", "note": "Official episode", "kind": "youtube", "youtube_id": "FhykvrPZwA4", "tags": ["comedy"]},
+    {"id": "bl_choomah2", "title": "Choomah Island 2", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "Specials", "note": "Official special", "kind": "youtube", "youtube_id": "7WwLT32_VAk", "tags": ["comedy"]},
+    {"id": "bl_sassy1", "title": "Sassy the Sasquatch EP01 · Seen a Dinosaur", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "Sassy the Sasquatch", "note": "Spin-off", "kind": "youtube", "youtube_id": "9OmR0ypCyOU", "tags": ["comedy"]},
+    {"id": "bl_sassy2", "title": "Sassy the Sasquatch EP02 · Water You Talkinabeet", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "Sassy the Sasquatch", "note": "Spin-off", "kind": "youtube", "youtube_id": "tvCUmH92HfU", "tags": ["comedy"]},
+    {"id": "bl_mike1", "title": "The Mike Nolan Show EP01 · Yeah Nah Yeah", "creator": "THE BIG LEZ SHOW OFFICIAL", "channel": "THE BIG LEZ SHOW", "channel_url": "https://www.youtube.com/@THEBIGLEZSHOWOFFICIAL", "category": "youtube", "shelf_category": "Shows", "playlist": "Mike Nolan Show", "note": "Spin-off", "kind": "youtube", "youtube_id": "uuc9frxacfE", "tags": ["comedy"]},
+
+    # —— Salad Fingers (David Firth official) ——
+    {"id": "sf_01", "title": "Salad Fingers 1: Spoons", "creator": "David Firth", "channel": "Salad Fingers", "channel_url": "https://www.youtube.com/@davidfirth", "category": "youtube", "shelf_category": "Shows", "playlist": "Salad Fingers", "note": "David Firth · official", "kind": "youtube", "youtube_id": "M3iOROuTuMA", "tags": ["indie"]},
+    {"id": "sf_02", "title": "Salad Fingers 2: Friends", "creator": "David Firth", "channel": "Salad Fingers", "channel_url": "https://www.youtube.com/@davidfirth", "category": "youtube", "shelf_category": "Shows", "playlist": "Salad Fingers", "note": "David Firth · official", "kind": "youtube", "youtube_id": "cuCw5k-Lph0", "tags": ["indie"]},
+    {"id": "sf_03", "title": "Salad Fingers 3: Nettles", "creator": "David Firth", "channel": "Salad Fingers", "channel_url": "https://www.youtube.com/@davidfirth", "category": "youtube", "shelf_category": "Shows", "playlist": "Salad Fingers", "note": "David Firth · official", "kind": "youtube", "youtube_id": "ojoICRzSCOo", "tags": ["indie"]},
+    {"id": "sf_04", "title": "Salad Fingers 4: Cage", "creator": "David Firth", "channel": "Salad Fingers", "channel_url": "https://www.youtube.com/@davidfirth", "category": "youtube", "shelf_category": "Shows", "playlist": "Salad Fingers", "note": "David Firth · official", "kind": "youtube", "youtube_id": "tBNrtrntkJ4", "tags": ["indie"]},
+    {"id": "sf_05", "title": "Salad Fingers 5: Picnic", "creator": "David Firth", "channel": "Salad Fingers", "channel_url": "https://www.youtube.com/@davidfirth", "category": "youtube", "shelf_category": "Shows", "playlist": "Salad Fingers", "note": "David Firth · official", "kind": "youtube", "youtube_id": "P_zbGGNI7lo", "tags": ["indie"]},
+    {"id": "sf_06", "title": "Salad Fingers 6: Present", "creator": "David Firth", "channel": "Salad Fingers", "channel_url": "https://www.youtube.com/@davidfirth", "category": "youtube", "shelf_category": "Shows", "playlist": "Salad Fingers", "note": "David Firth · official", "kind": "youtube", "youtube_id": "rU2D0ncBFm0", "tags": ["indie"]},
+    {"id": "sf_08", "title": "Salad Fingers 8: Cupboard", "creator": "David Firth", "channel": "Salad Fingers", "channel_url": "https://www.youtube.com/@davidfirth", "category": "youtube", "shelf_category": "Shows", "playlist": "Salad Fingers", "note": "David Firth · official", "kind": "youtube", "youtube_id": "oykmawhKWhc", "tags": ["indie"]},
+    {"id": "sf_09", "title": "Salad Fingers 9: Letter", "creator": "David Firth", "channel": "Salad Fingers", "channel_url": "https://www.youtube.com/@davidfirth", "category": "youtube", "shelf_category": "Shows", "playlist": "Salad Fingers", "note": "David Firth · official", "kind": "youtube", "youtube_id": "MSOnIS84x1k", "tags": ["indie"]},
+    {"id": "sf_11", "title": "Salad Fingers 11: Glass Brother", "creator": "David Firth", "channel": "Salad Fingers", "channel_url": "https://www.youtube.com/@davidfirth", "category": "youtube", "shelf_category": "Shows", "playlist": "Salad Fingers", "note": "David Firth · official", "kind": "youtube", "youtube_id": "qeE-J-GjAyQ", "tags": ["indie"]},
+    {"id": "sf_market", "title": "Salad Fingers — Market", "creator": "David Firth", "channel": "Salad Fingers", "channel_url": "https://www.youtube.com/@davidfirth", "category": "youtube", "shelf_category": "Shows", "playlist": "Salad Fingers", "note": "David Firth · official", "kind": "youtube", "youtube_id": "62weI2Wq0TQ", "tags": ["indie"]},
+    # —— Don't Hug Me I'm Scared (original web series, official) ——
+    {"id": "dhmis_1", "title": "Don't Hug Me I'm Scared 1 — Creativity", "creator": "Don't Hug Me I'm Scared", "channel": "Don't Hug Me I'm Scared", "channel_url": "https://www.youtube.com/@DontHugMeImScared", "category": "youtube", "shelf_category": "Shows", "playlist": "Original Web Series", "note": "Official web series · not the TV reboot", "kind": "youtube", "youtube_id": "9C_HReR_McQ", "tags": ["indie"]},
+    {"id": "dhmis_2", "title": "Don't Hug Me I'm Scared 2 — Time", "creator": "Don't Hug Me I'm Scared", "channel": "Don't Hug Me I'm Scared", "channel_url": "https://www.youtube.com/@DontHugMeImScared", "category": "youtube", "shelf_category": "Shows", "playlist": "Original Web Series", "note": "Official web series", "kind": "youtube", "youtube_id": "vtkGtXtDlQA", "tags": ["indie"]},
+    {"id": "dhmis_3", "title": "Don't Hug Me I'm Scared 3 — Love", "creator": "Don't Hug Me I'm Scared", "channel": "Don't Hug Me I'm Scared", "channel_url": "https://www.youtube.com/@DontHugMeImScared", "category": "youtube", "shelf_category": "Shows", "playlist": "Original Web Series", "note": "Official web series", "kind": "youtube", "youtube_id": "sXOdn6vLCuU", "tags": ["indie"]},
+    {"id": "dhmis_4", "title": "Don't Hug Me I'm Scared 4 — Computer", "creator": "Don't Hug Me I'm Scared", "channel": "Don't Hug Me I'm Scared", "channel_url": "https://www.youtube.com/@DontHugMeImScared", "category": "youtube", "shelf_category": "Shows", "playlist": "Original Web Series", "note": "Official web series", "kind": "youtube", "youtube_id": "G9FGgwCQ22w", "tags": ["indie"]},
+    {"id": "dhmis_5", "title": "Don't Hug Me I'm Scared 5 — Healthy", "creator": "Don't Hug Me I'm Scared", "channel": "Don't Hug Me I'm Scared", "channel_url": "https://www.youtube.com/@DontHugMeImScared", "category": "youtube", "shelf_category": "Shows", "playlist": "Original Web Series", "note": "Official web series", "kind": "youtube", "youtube_id": "tS_Xq7gSCBM", "tags": ["indie"]},
+    {"id": "dhmis_bad", "title": "Bad Things That Could Happen", "creator": "Don't Hug Me I'm Scared", "channel": "Don't Hug Me I'm Scared", "channel_url": "https://www.youtube.com/@DontHugMeImScared", "category": "youtube", "shelf_category": "Shows", "playlist": "Original Web Series", "note": "Official short", "kind": "youtube", "youtube_id": "5hIKKYv_3Ic", "tags": ["indie"]},
+    # —— asdfmovie (TomSka official) ——
+    {"id": "asdf_1", "title": "asdfmovie", "creator": "TomSka", "channel": "asdfmovie", "channel_url": "https://www.youtube.com/@TomSka", "category": "youtube", "shelf_category": "Shows", "playlist": "asdfmovie", "note": "TomSka · official", "kind": "youtube", "youtube_id": "IYnsfV5N2n8", "tags": ["indie"]},
+    {"id": "asdf_6", "title": "asdfmovie6", "creator": "TomSka", "channel": "asdfmovie", "channel_url": "https://www.youtube.com/@TomSka", "category": "youtube", "shelf_category": "Shows", "playlist": "asdfmovie", "note": "TomSka · official", "kind": "youtube", "youtube_id": "hrzIykdka4s", "tags": ["indie"]},
+    {"id": "asdf_13", "title": "asdfmovie13", "creator": "TomSka", "channel": "asdfmovie", "channel_url": "https://www.youtube.com/@TomSka", "category": "youtube", "shelf_category": "Shows", "playlist": "asdfmovie", "note": "TomSka · official", "kind": "youtube", "youtube_id": "QL3H7CUJMDU", "tags": ["indie"]},
+    {"id": "asdf_14", "title": "asdfmovie14", "creator": "TomSka", "channel": "asdfmovie", "channel_url": "https://www.youtube.com/@TomSka", "category": "youtube", "shelf_category": "Shows", "playlist": "asdfmovie", "note": "TomSka · official", "kind": "youtube", "youtube_id": "vc6aHpPGPYU", "tags": ["indie"]},
+    {"id": "asdf_15", "title": "asdfmovie15", "creator": "TomSka", "channel": "asdfmovie", "channel_url": "https://www.youtube.com/@TomSka", "category": "youtube", "shelf_category": "Shows", "playlist": "asdfmovie", "note": "TomSka · official", "kind": "youtube", "youtube_id": "uApthBVk7mw", "tags": ["indie"]},
+    {"id": "asdf_16", "title": "asdfmovie16", "creator": "TomSka", "channel": "asdfmovie", "channel_url": "https://www.youtube.com/@TomSka", "category": "youtube", "shelf_category": "Shows", "playlist": "asdfmovie", "note": "TomSka · official", "kind": "youtube", "youtube_id": "qcwqUf_B5mM", "tags": ["indie"]},
+    # —— Eddsworld (official) ——
+    {"id": "edd_fundeath", "title": "Eddsworld — Fun Dead", "creator": "Eddsworld", "channel": "Eddsworld", "channel_url": "https://www.youtube.com/@eddsworld", "category": "youtube", "shelf_category": "Shows", "playlist": "Eddisodes", "note": "Official", "kind": "youtube", "youtube_id": "3w1pFW44xkM", "tags": ["indie"]},
+    {"id": "edd_power", "title": "Eddsworld — PowerEdd", "creator": "Eddsworld", "channel": "Eddsworld", "channel_url": "https://www.youtube.com/@eddsworld", "category": "youtube", "shelf_category": "Shows", "playlist": "Eddisodes", "note": "Official", "kind": "youtube", "youtube_id": "Uy4ksRIwOzQ", "tags": ["indie"]},
+    {"id": "edd_end1", "title": "Eddsworld — The End (Part 1)", "creator": "Eddsworld", "channel": "Eddsworld", "channel_url": "https://www.youtube.com/@eddsworld", "category": "youtube", "shelf_category": "Shows", "playlist": "Eddisodes", "note": "Official", "kind": "youtube", "youtube_id": "6ux0ERfzDSU", "tags": ["indie"]},
+    {"id": "edd_end2", "title": "Eddsworld — The End (Part 2)", "creator": "Eddsworld", "channel": "Eddsworld", "channel_url": "https://www.youtube.com/@eddsworld", "category": "youtube", "shelf_category": "Shows", "playlist": "Eddisodes", "note": "Official", "kind": "youtube", "youtube_id": "PxtRL1tclds", "tags": ["indie"]},
+    {"id": "edd_saloon", "title": "Eddsworld — Saloonatics", "creator": "Eddsworld", "channel": "Eddsworld", "channel_url": "https://www.youtube.com/@eddsworld", "category": "youtube", "shelf_category": "Shows", "playlist": "Eddisodes", "note": "Official", "kind": "youtube", "youtube_id": "pbBI1dmJX9c", "tags": ["indie"]},
+    {"id": "edd_beaster", "title": "Eddsworld — The Beaster Bunny", "creator": "Eddsworld", "channel": "Eddsworld", "channel_url": "https://www.youtube.com/@eddsworld", "category": "youtube", "shelf_category": "Shows", "playlist": "Beyond", "note": "Official", "kind": "youtube", "youtube_id": "IN9AUtvhvdM", "tags": ["indie"]},
+    {"id": "edd_surf1", "title": "Eddsworld — Surf & Turf Wars pt. 1", "creator": "Eddsworld", "channel": "Eddsworld", "channel_url": "https://www.youtube.com/@eddsworld", "category": "youtube", "shelf_category": "Shows", "playlist": "Beyond", "note": "Official", "kind": "youtube", "youtube_id": "V721mZcriMY", "tags": ["indie"]},
+    {"id": "edd_surf2", "title": "Eddsworld — Surf & Turf Wars pt. 2", "creator": "Eddsworld", "channel": "Eddsworld", "channel_url": "https://www.youtube.com/@eddsworld", "category": "youtube", "shelf_category": "Shows", "playlist": "Beyond", "note": "Official", "kind": "youtube", "youtube_id": "tVwQoNOp2v4", "tags": ["indie"]},
+    {"id": "edd_hide", "title": "Eddsworld — Hide and Seek", "creator": "Eddsworld", "channel": "Eddsworld", "channel_url": "https://www.youtube.com/@eddsworld", "category": "youtube", "shelf_category": "Shows", "playlist": "Eddisodes", "note": "Official", "kind": "youtube", "youtube_id": "D1O8fVG8_pk", "tags": ["indie"]},
+    {"id": "edd_casting", "title": "Eddsworld — Casting Call", "creator": "Eddsworld", "channel": "Eddsworld", "channel_url": "https://www.youtube.com/@eddsworld", "category": "youtube", "shelf_category": "Shows", "playlist": "Beyond", "note": "Official", "kind": "youtube", "youtube_id": "H-_qv3gioes", "tags": ["indie"]},
+    # —— Homestar Runner (official) ——
+    {"id": "hr_sb100", "title": "Strong Bad Email #100 — Flashback", "creator": "Homestar Runner", "channel": "Homestar Runner", "channel_url": "https://www.youtube.com/@homestarrunnerdotcom", "category": "youtube", "shelf_category": "Shows", "playlist": "Strong Bad Emails", "note": "homestarrunnerdotcom · official", "kind": "youtube", "youtube_id": "DyZQl0NmQls", "tags": ["indie"]},
+
+    # —— Chilling Scares ——
+    {"id": "cs_audio", "title": "5 Most Disturbing Audio Recordings", "creator": "Chilling Scares", "channel": "Chilling Scares", "channel_url": "https://www.youtube.com/@ChillingScares", "category": "youtube", "shelf_category": "Horror", "note": "@ChillingScares", "kind": "youtube", "youtube_id": "x6qMEB81bgE", "tags": ["horror"]},
+    {"id": "cs_mysteries", "title": "Disturbing Internet Mysteries", "creator": "Chilling Scares", "channel": "Chilling Scares", "channel_url": "https://www.youtube.com/@ChillingScares", "category": "youtube", "shelf_category": "Horror", "note": "@ChillingScares", "kind": "youtube", "youtube_id": "P6X-EOofsOQ", "tags": ["horror"]},
+    {"id": "cs_corners", "title": "5 Most Disturbing Corners of the Internet", "creator": "Chilling Scares", "channel": "Chilling Scares", "channel_url": "https://www.youtube.com/@ChillingScares", "category": "youtube", "shelf_category": "Horror", "note": "@ChillingScares", "kind": "youtube", "youtube_id": "YBppWMY6FZU", "tags": ["horror"]},
+    {"id": "cs_tv", "title": "5 Most Disturbing Moments in TV History", "creator": "Chilling Scares", "channel": "Chilling Scares", "channel_url": "https://www.youtube.com/@ChillingScares", "category": "youtube", "shelf_category": "Horror", "note": "@ChillingScares", "kind": "youtube", "youtube_id": "_O_AiwQkCtg", "tags": ["horror"]},
+    {"id": "cs_rabbit", "title": "5 Most Disturbing Internet Rabbit Holes", "creator": "Chilling Scares", "channel": "Chilling Scares", "channel_url": "https://www.youtube.com/@ChillingScares", "category": "youtube", "shelf_category": "Horror", "note": "@ChillingScares", "kind": "youtube", "youtube_id": "jTKLn6yLqik", "tags": ["horror"]},
+    {"id": "cs_forest", "title": "6 Most Disturbing Forest Encounters Caught on Camera", "creator": "Chilling Scares", "channel": "Chilling Scares", "channel_url": "https://www.youtube.com/@ChillingScares", "category": "youtube", "shelf_category": "Horror", "note": "@ChillingScares", "kind": "youtube", "youtube_id": "cweBJSGeNiE", "tags": ["horror"]},
+    {"id": "cs_4chan", "title": "6 Most Disturbing 4Chan Threads", "creator": "Chilling Scares", "channel": "Chilling Scares", "channel_url": "https://www.youtube.com/@ChillingScares", "category": "youtube", "shelf_category": "Horror", "note": "@ChillingScares", "kind": "youtube", "youtube_id": "4c8uTVaB9Ow", "tags": ["horror"]},
+    {"id": "cs_camping", "title": "6 Most Disturbing Camping Encounters Caught on Camera", "creator": "Chilling Scares", "channel": "Chilling Scares", "channel_url": "https://www.youtube.com/@ChillingScares", "category": "youtube", "shelf_category": "Horror", "note": "@ChillingScares", "kind": "youtube", "youtube_id": "JyC7HujBvA0", "tags": ["horror"]},
+    {"id": "cs_locations", "title": "6 Most Disturbing Mysterious Locations", "creator": "Chilling Scares", "channel": "Chilling Scares", "channel_url": "https://www.youtube.com/@ChillingScares", "category": "youtube", "shelf_category": "Horror", "note": "@ChillingScares", "kind": "youtube", "youtube_id": "9wTSaVOVAGo", "tags": ["horror"]},
+    {"id": "cs_dashcam", "title": "8 Most Disturbing Things Caught on Dashcam Footage (Vol. 6)", "creator": "Chilling Scares", "channel": "Chilling Scares", "channel_url": "https://www.youtube.com/@ChillingScares", "category": "youtube", "shelf_category": "Horror", "note": "@ChillingScares", "kind": "youtube", "youtube_id": "BUfXcCWAeMw", "tags": ["horror"]},
+    # —— Nick Crowley ——
+    {"id": "nc_corners6", "title": "The Internet's Darkest Corners 6", "creator": "Nick Crowley", "channel": "Nick Crowley", "channel_url": "https://www.youtube.com/@NickCrowley", "category": "youtube", "shelf_category": "Documentaries", "note": "@NickCrowley", "kind": "youtube", "youtube_id": "PiAiYBxMjYU", "tags": ["docs"]},
+    {"id": "nc_corners5", "title": "The Internet's Darkest Corners 5", "creator": "Nick Crowley", "channel": "Nick Crowley", "channel_url": "https://www.youtube.com/@NickCrowley", "category": "youtube", "shelf_category": "Documentaries", "note": "@NickCrowley", "kind": "youtube", "youtube_id": "UfD4ORdDRZQ", "tags": ["docs"]},
+    {"id": "nc_corners4", "title": "The Internet's Darkest Corners 4", "creator": "Nick Crowley", "channel": "Nick Crowley", "channel_url": "https://www.youtube.com/@NickCrowley", "category": "youtube", "shelf_category": "Documentaries", "note": "@NickCrowley", "kind": "youtube", "youtube_id": "51MkSH-P3MU", "tags": ["docs"]},
+    {"id": "nc_deadliest", "title": "The Internet's Deadliest Video", "creator": "Nick Crowley", "channel": "Nick Crowley", "channel_url": "https://www.youtube.com/@NickCrowley", "category": "youtube", "shelf_category": "Documentaries", "note": "@NickCrowley", "kind": "youtube", "youtube_id": "Hob2BgTOIhA", "tags": ["docs"]},
+    {"id": "nc_yt_dark2", "title": "YouTube's Darkest Videos 2", "creator": "Nick Crowley", "channel": "Nick Crowley", "channel_url": "https://www.youtube.com/@NickCrowley", "category": "youtube", "shelf_category": "Documentaries", "note": "@NickCrowley", "kind": "youtube", "youtube_id": "YXIlY4kFT7Y", "tags": ["docs"]},
+    {"id": "nc_smart", "title": "smartschoolboy9: An Internet Rabbit Hole", "creator": "Nick Crowley", "channel": "Nick Crowley", "channel_url": "https://www.youtube.com/@NickCrowley", "category": "youtube", "shelf_category": "Documentaries", "note": "@NickCrowley", "kind": "youtube", "youtube_id": "V0folj9X9nQ", "tags": ["docs"]},
+    # —— TA Outdoors ——
+    {"id": "ta_rain", "title": "Heavy Rain Camping in the Forest", "creator": "TA Outdoors", "channel": "TA Outdoors", "channel_url": "https://www.youtube.com/@TAOutdoors", "category": "youtube", "shelf_category": "Outdoors", "note": "@TAOutdoors", "kind": "youtube", "youtube_id": "qwhWQxb248s", "tags": ["outdoors"]},
+    {"id": "ta_100yrs", "title": "Camping like they did 100 Years Ago", "creator": "TA Outdoors", "channel": "TA Outdoors", "channel_url": "https://www.youtube.com/@TAOutdoors", "category": "youtube", "shelf_category": "Outdoors", "note": "@TAOutdoors", "kind": "youtube", "youtube_id": "fLBZYbT3Xqk", "tags": ["outdoors"]},
+    {"id": "ta_viking", "title": "Viking House: Full Bushcraft Shelter Build with Hand Tools", "creator": "TA Outdoors", "channel": "TA Outdoors", "channel_url": "https://www.youtube.com/@TAOutdoors", "category": "youtube", "shelf_category": "Outdoors", "note": "@TAOutdoors", "kind": "youtube", "youtube_id": "D8ba5tt6Sqo", "tags": ["outdoors"]},
+    {"id": "ta_roundhouse", "title": "Iron Age Roundhouse: 12 Day Bushcraft Shelter Build", "creator": "TA Outdoors", "channel": "TA Outdoors", "channel_url": "https://www.youtube.com/@TAOutdoors", "category": "youtube", "shelf_category": "Outdoors", "note": "@TAOutdoors", "kind": "youtube", "youtube_id": "rsVGkZG0fv0", "tags": ["outdoors"]},
+    {"id": "ta_super", "title": "Bushcraft Camp: Full Super Shelter Build from Start to Finish", "creator": "TA Outdoors", "channel": "TA Outdoors", "channel_url": "https://www.youtube.com/@TAOutdoors", "category": "youtube", "shelf_category": "Outdoors", "note": "@TAOutdoors", "kind": "youtube", "youtube_id": "rcihSMpsDn0", "tags": ["outdoors"]},
+    {"id": "ta_pallet", "title": "Building a Cabin from Pallet Wood: Cheap Off Grid Homestead", "creator": "TA Outdoors", "channel": "TA Outdoors", "channel_url": "https://www.youtube.com/@TAOutdoors", "category": "youtube", "shelf_category": "Outdoors", "note": "@TAOutdoors", "kind": "youtube", "youtube_id": "1HA4zY8xCyY", "tags": ["outdoors"]},
+    {"id": "ta_5shelters", "title": "5 Bushcraft Shelters - Full Camp Builds Start to Finish", "creator": "TA Outdoors", "channel": "TA Outdoors", "channel_url": "https://www.youtube.com/@TAOutdoors", "category": "youtube", "shelf_category": "Outdoors", "note": "@TAOutdoors", "kind": "youtube", "youtube_id": "-_ve7ExM29Y", "tags": ["outdoors"]},
+    {"id": "ta_treehouse", "title": "First Night in the Tree House: A Solo Camping Adventure", "creator": "TA Outdoors", "channel": "TA Outdoors", "channel_url": "https://www.youtube.com/@TAOutdoors", "category": "youtube", "shelf_category": "Outdoors", "note": "@TAOutdoors", "kind": "youtube", "youtube_id": "Hszx4FXSYl0", "tags": ["outdoors"]},
+    {"id": "ta_tree_shelter", "title": "24 Hours: Building & Camping in Bushcraft Tree Shelter", "creator": "TA Outdoors", "channel": "TA Outdoors", "channel_url": "https://www.youtube.com/@TAOutdoors", "category": "youtube", "shelf_category": "Outdoors", "note": "@TAOutdoors", "kind": "youtube", "youtube_id": "86GC9Hb2bAE", "tags": ["outdoors"]},
+    {"id": "ta_watchtower", "title": "Bushcraft Camp with Watch Tower: Off Grid Shelter Build", "creator": "TA Outdoors", "channel": "TA Outdoors", "channel_url": "https://www.youtube.com/@TAOutdoors", "category": "youtube", "shelf_category": "Outdoors", "note": "@TAOutdoors", "kind": "youtube", "youtube_id": "LaoTnH61rMk", "tags": ["outdoors"]},
+
+]
+
+
+
+def _youtube_id_from_url(url: str) -> str:
+    """Extract a YouTube video id from common URL shapes."""
+    u = (url or "").strip()
+    if not u:
+        return ""
+    # Already an id
+    if re.fullmatch(r"[\w-]{11}", u):
+        return u
+    m = re.search(r"(?:v=|/embed/|/shorts/|youtu\.be/)([\w-]{11})", u)
+    return m.group(1) if m else ""
+
+
+def render_cinema_player(item: dict) -> None:
+    """Play a catalog item: YouTube embed or direct MP4/WebM."""
+    import html as _html
+    kind = (item.get("kind") or "").lower()
+    title = item.get("title") or "Untitled"
+    safe_title = _html.escape(title)
+    st.markdown(f"### {title}")
+    meta_bits = []
+    if item.get("creator"):
+        meta_bits.append(item["creator"])
+    if item.get("year"):
+        meta_bits.append(str(item["year"]))
+    if item.get("note"):
+        meta_bits.append(item["note"])
+    if meta_bits:
+        st.caption(" · ".join(meta_bits))
+
+    if kind == "youtube":
+        yid = item.get("youtube_id") or _youtube_id_from_url(item.get("url") or "")
+        yid = (yid or "").strip()
+        if not yid:
+            st.warning("Missing YouTube id for this title.")
+            return
+        watch_url = f"https://www.youtube.com/watch?v={yid}"
+        # Reliable path: many channels disable iframe embeds ("Video unavailable")
+        st.link_button("▶  Open on YouTube", watch_url, use_container_width=True)
+        st.caption(
+            "If the embedded player says **unavailable**, use the button above. "
+            "Some channels turn off embedding — YouTube itself still works."
+        )
+        embed_src = (
+            f"https://www.youtube-nocookie.com/embed/{yid}"
+            f"?rel=0&modestbranding=1&playsinline=1"
+        )
+        st.components.v1.html(
+            f"""
+            <div style="position:relative;width:100%;padding-bottom:56.25%;height:0;overflow:hidden;
+                        border-radius:14px;background:#0a0a0e;box-shadow:0 12px 32px rgba(0,0,0,0.45);">
+              <iframe
+                src="{embed_src}"
+                title="{safe_title}"
+                style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen
+                referrerpolicy="strict-origin-when-cross-origin"
+                loading="lazy"
+              ></iframe>
+            </div>
+            """,
+            height=420,
+            scrolling=False,
+        )
+    elif kind == "direct":
+        url = (item.get("url") or "").strip()
+        if not url:
+            st.warning("Missing video URL.")
+            return
+        try:
+            st.video(url)
+        except Exception as e:
+            st.error(f"Could not play video: {e}")
+            st.link_button("Open video link", url, use_container_width=True)
+    else:
+        st.info("Unknown media type for this entry.")
+
+
+# ===== CINEMA =====
+if st.session_state.view == "cinema":
+    st.markdown(
+        """
+        <style>
+          .cin-hero {
+            text-align: center; padding: 8px 0 18px;
+          }
+          .cin-hero h1 {
+            font-size: 1.55rem; font-weight: 650; letter-spacing: -0.03em;
+            margin: 0 0 6px;
+          }
+          .cin-hero p {
+            margin: 0; opacity: 0.55; font-size: 0.9rem;
+          }
+          .cin-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.10);
+            border-radius: 16px;
+            padding: 18px 16px 14px;
+            margin-bottom: 10px;
+            transition: border-color 0.2s ease, transform 0.2s ease;
+            min-height: 110px;
+          }
+          .cin-card:hover {
+            border-color: rgba(196,167,231,0.45);
+            transform: translateY(-2px);
+          }
+          .cin-card .cin-kicker {
+            font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase;
+            opacity: 0.5; margin-bottom: 8px; font-weight: 600;
+          }
+          .cin-card .cin-title {
+            font-size: 1.05rem; font-weight: 600; margin: 0 0 6px;
+            line-height: 1.3;
+          }
+          .cin-card .cin-meta {
+            font-size: 0.8rem; opacity: 0.55; margin: 0;
+          }
+          .cin-vid {
+            background: rgba(255,255,255,0.035);
+            border: 1px solid rgba(255,255,255,0.09);
+            border-radius: 14px;
+            padding: 14px 14px 10px;
+            margin-bottom: 8px;
+            min-height: 96px;
+          }
+          .cin-vid .cin-title {
+            font-size: 0.92rem; font-weight: 550; margin: 0 0 6px;
+            line-height: 1.35;
+          }
+        </style>
+        <div class="cin-hero">
+          <h1>Cinema</h1>
+          <p>Categories · channels · videos</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    watching_id = st.session_state.get("cinema_watching")
+    selected_ch = st.session_state.get("cinema_channel")
+    current = next((x for x in CINEMA_CATALOG if x.get("id") == watching_id), None)
+    custom_item = st.session_state.get("_cinema_custom")
+    is_custom = (
+        isinstance(watching_id, str)
+        and watching_id.startswith("custom::")
+        and isinstance(custom_item, dict)
+    )
+
+    # ---- PLAYER ----
+    if current or is_custom:
+        play = custom_item if is_custom else current
+        nav1, nav2, nav3 = st.columns([1, 1, 1])
+        with nav1:
+            if st.button("← Shelf", key="cinema_back_shelf", use_container_width=True):
+                st.session_state.cinema_watching = None
+                st.rerun()
+        with nav2:
+            if st.button("Channels", key="cinema_back_channels", use_container_width=True):
+                st.session_state.cinema_watching = None
+                st.session_state.cinema_channel = None
+                st.session_state.cinema_playlist = None
+                st.session_state.cinema_shelf_cat = None
+                st.rerun()
+        with nav3:
+            if current and not is_custom:
+                ch_name = current.get("channel") or current.get("creator")
+                same = [
+                    x for x in CINEMA_CATALOG
+                    if (x.get("channel") or x.get("creator")) == ch_name
+                ]
+                ids = [x["id"] for x in same]
+                try:
+                    ni = ids.index(current["id"]) + 1
+                except ValueError:
+                    ni = len(ids)
+                if ni < len(ids):
+                    if st.button("Next →", key="cinema_next", use_container_width=True):
+                        st.session_state.cinema_watching = ids[ni]
+                        st.rerun()
+                else:
+                    st.caption("Last in channel")
+        render_cinema_player(play)
+
+    # ---- CATEGORY → CHANNEL → VIDEOS ----
+    else:
+        # state: cinema_shelf_cat, cinema_channel, cinema_playlist
+        shelf_cat = st.session_state.get("cinema_shelf_cat")
+        selected_ch = st.session_state.get("cinema_channel")
+        selected_pl = st.session_state.get("cinema_playlist")
+
+        if st.button("← Home", key="cinema_back_home"):
+            st.session_state.view = "home"
+            st.session_state.cinema_watching = None
+            st.session_state.cinema_channel = None
+            st.session_state.cinema_shelf_cat = None
+            st.session_state.cinema_playlist = None
+            st.rerun()
+
+        # Build maps
+        by_shelf = {}
+        for it in CINEMA_CATALOG:
+            sc = it.get("shelf_category") or "Other"
+            ch = it.get("channel") or it.get("creator") or "Unknown"
+            by_shelf.setdefault(sc, {}).setdefault(ch, []).append(it)
+
+        # Level 1: categories
+        if not shelf_cat:
+            st.markdown(
+                "<p style='opacity:0.55;text-align:center;margin:4px 0 14px;font-size:0.9rem'>"
+                "Pick a category</p>",
+                unsafe_allow_html=True,
+            )
+            cats = sorted(by_shelf.keys(), key=lambda s: (s != "Simple But Effective", s.lower()))
+            for i in range(0, len(cats), 2):
+                cols = st.columns(2)
+                for j, col in enumerate(cols):
+                    if i + j >= len(cats):
+                        break
+                    name = cats[i + j]
+                    n_ch = len(by_shelf[name])
+                    n_vid = sum(len(v) for v in by_shelf[name].values())
+                    with col:
+                        st.markdown(
+                            f"""
+                            <div class="cin-card">
+                              <div class="cin-kicker">Category</div>
+                              <div class="cin-title">{name}</div>
+                              <p class="cin-meta">{n_ch} channels · {n_vid} videos</p>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+                        if st.button("Open", key=f"cin_cat_{name}", use_container_width=True):
+                            st.session_state.cinema_shelf_cat = name
+                            st.rerun()
+
+            with st.expander("Paste a YouTube link", expanded=False):
+                custom = st.text_input(
+                    "URL or video id",
+                    placeholder="https://www.youtube.com/watch?v=…",
+                    key="cinema_custom_url_home",
+                    label_visibility="collapsed",
+                )
+                if st.button("Play link", key="cinema_play_custom_home", use_container_width=True):
+                    yid = _youtube_id_from_url(custom)
+                    if yid:
+                        st.session_state.cinema_watching = f"custom::{yid}"
+                        st.session_state._cinema_custom = {
+                            "id": f"custom::{yid}",
+                            "title": "Custom YouTube",
+                            "creator": "",
+                            "note": "Pasted link",
+                            "kind": "youtube",
+                            "youtube_id": yid,
+                        }
+                        st.rerun()
+                    else:
+                        st.warning("Could not read a YouTube id from that link.")
+
+        # Level 2: channels in category
+        elif not selected_ch:
+            if st.button("← Categories", key="cin_back_cats"):
+                st.session_state.cinema_shelf_cat = None
+                st.rerun()
+            st.markdown(
+                f"<p style='opacity:0.65;margin:4px 0 12px'><strong>{shelf_cat}</strong></p>",
+                unsafe_allow_html=True,
+            )
+            channels = by_shelf.get(shelf_cat) or {}
+            ch_names = sorted(channels.keys(), key=lambda s: s.lower())
+            for i in range(0, len(ch_names), 3):
+                cols = st.columns(3)
+                for j, col in enumerate(cols):
+                    if i + j >= len(ch_names):
+                        break
+                    name = ch_names[i + j]
+                    items = channels[name]
+                    handle = items[0].get("note") or ""
+                    # strip long notes
+                    handle = (items[0].get("channel_url") or "").replace("https://www.youtube.com/", "")
+                    n = len(items)
+                    with col:
+                        st.markdown(
+                            f"""
+                            <div class="cin-card">
+                              <div class="cin-kicker">Channel</div>
+                              <div class="cin-title">{name}</div>
+                              <p class="cin-meta">{handle} · {n} video{"s" if n != 1 else ""}</p>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+                        if st.button("Open", key=f"cin_ch_{shelf_cat}_{name}", use_container_width=True):
+                            st.session_state.cinema_channel = name
+                            st.session_state.cinema_playlist = None
+                            st.rerun()
+
+        # Level 3: playlists / videos in channel
+        else:
+            ch_items = [
+                x for x in CINEMA_CATALOG
+                if (x.get("channel") or x.get("creator") or "Unknown") == selected_ch
+            ]
+            ch_url = next((x.get("channel_url") for x in ch_items if x.get("channel_url")), None)
+            playlists = {}
+            for it in ch_items:
+                pl = it.get("playlist") or "Videos"
+                playlists.setdefault(pl, []).append(it)
+
+            b1, b2 = st.columns([1, 3])
+            with b1:
+                if st.button("← Channels", key="cin_back_ch"):
+                    st.session_state.cinema_channel = None
+                    st.session_state.cinema_playlist = None
+                    st.rerun()
+            with b2:
+                link = f" · <a href='{ch_url}' target='_blank' rel='noopener'>YouTube</a>" if ch_url else ""
+                st.markdown(
+                    f"<div style='padding-top:8px;opacity:0.7;font-size:0.9rem'>"
+                    f"<strong>{selected_ch}</strong>{link}</div>",
+                    unsafe_allow_html=True,
+                )
+
+            # If multiple playlists, pick one first
+            if len(playlists) > 1 and not selected_pl:
+                st.caption("Playlists")
+                for pl_name, items in sorted(playlists.items(), key=lambda x: x[0].lower()):
+                    c1, c2 = st.columns([4, 1])
+                    with c1:
+                        st.markdown(f"**{pl_name}**  \n<span style='opacity:0.55;font-size:0.85rem'>{len(items)} videos</span>", unsafe_allow_html=True)
+                    with c2:
+                        if st.button("Open", key=f"cin_pl_{selected_ch}_{pl_name}", use_container_width=True):
+                            st.session_state.cinema_playlist = pl_name
+                            st.rerun()
+            else:
+                pl_name = selected_pl if selected_pl in playlists else next(iter(playlists))
+                if len(playlists) > 1:
+                    if st.button("← Playlists", key="cin_back_pl"):
+                        st.session_state.cinema_playlist = None
+                        st.rerun()
+                    st.caption(pl_name)
+                show = playlists.get(pl_name) or ch_items
+                for i in range(0, len(show), 2):
+                    cols = st.columns(2)
+                    for j, col in enumerate(cols):
+                        if i + j >= len(show):
+                            break
+                        item = show[i + j]
+                        title = item.get("title") or "Untitled"
+                        short = title if len(title) <= 72 else title[:69] + "…"
+                        with col:
+                            st.markdown(
+                                f"""
+                                <div class="cin-vid">
+                                  <div class="cin-title">{short}</div>
+                                  <p class="cin-meta">{item.get('note') or ''}</p>
+                                </div>
+                                """,
+                                unsafe_allow_html=True,
+                            )
+                            if st.button("Play", key=f"cin_play_{item.get('id')}", use_container_width=True):
+                                st.session_state.cinema_watching = item.get("id")
+                                st.rerun()
+
+            with st.expander("Paste a YouTube link", expanded=False):
+                custom = st.text_input(
+                    "URL or video id",
+                    placeholder="https://www.youtube.com/watch?v=…",
+                    key="cinema_custom_url",
+                    label_visibility="collapsed",
+                )
+                if st.button("Play link", key="cinema_play_custom", use_container_width=True):
+                    yid = _youtube_id_from_url(custom)
+                    if yid:
+                        st.session_state.cinema_watching = f"custom::{yid}"
+                        st.session_state._cinema_custom = {
+                            "id": f"custom::{yid}",
+                            "title": "Custom YouTube",
+                            "creator": "",
+                            "note": "Pasted link",
+                            "kind": "youtube",
+                            "youtube_id": yid,
+                        }
+                        st.rerun()
+                    else:
+                        st.warning("Could not read a YouTube id from that link.")
+
+
+    st.stop()
+
+
+
+
+
+# ===== INVESTIGATION BOARD =====
+BOARD_EVIDENCE = {
+    "riley": {
+        "title": "Riley Callaghan",
+        "tag": "RESIDUAL · NSW",
+        "color": "#c07040",
+        "body": """**Subject file · residual only**
+
+Riley Callaghan. Australian. Taken during a coastal intake off a jetty in New South Wales — paperwork stamped *voluntary*, signatures that do not match any parent on file.
+
+Observation Division preferred children who still asked questions. Riley asked too many. The bloom never set cleanly. Tissue rejected the medium the way salt rejects a soft wound. Folder marked **RESIDUAL**. Name stopped being spoken in the wing.
+
+Riley left a dial in the margin of *Frankenstein*, page eighty-eight, under residual light. Combination: the year the creature first woke — **1818**. Not a code for escape. A proof of personhood.
+
+*If someone patient enough turns the dial, they will know I was still here.*""",
+    },
+    "jaime": {
+        "title": "Jaime Santos",
+        "tag": "PIXEL · CARRIER",
+        "color": "#70a0c0",
+        "body": """**Subject file · designation PIXEL**
+
+Jaime Santos. The Division sold the name **PIXEL** to committees who wanted a success story. Natural carrier. Walked away from a leak that cooked the volunteers. That made Jaime valuable. It did not make Jaime safe.
+
+Internal notes conflict:
+- One line calls Jaime the first natural carrier who did not scream when the bloom took.
+- Another line, unsigned, reads: *Santos still asks for the residual kid from NSW.*
+
+Jaime and Riley shared a corridor for eleven days. After Riley was reclassified residual, Jaime’s sessions show elevated static on the observation glass — spectrum lines that only appear when someone is dying slowly enough to notice, or when someone is refusing to forget a name.""",
+    },
+    "voss": {
+        "title": "Dr. E. Voss",
+        "tag": "OBSERVATION DIVISION",
+        "color": "#c05050",
+        "body": """**Internal memo · not the recovered personal file**
+
+Voss did not invent the bloom. Voss learned how to *want* it.
+
+Committees asked for soldiers. Voss gave them red rooms and a spectrum that answers to hunger. Riley Callaghan was logged as a failed set. Jaime Santos was logged as a product. Voss logged both as *witnesses*.
+
+Handwritten margin in a destroyed draft:
+
+> Residual subjects are not waste. They are the ones who remember the room after the room is gone. Callaghan left a dial. Santos left a designation. I left the anomalies because curiosity is how the medium feeds.
+
+This board is not Voss’s invitation. It is what Riley built so the invitation could be refused — or answered on different terms.""",
+    },
+    "intake": {
+        "title": "NSW Intake Transfer",
+        "tag": "LOGISTICS",
+        "color": "#8a7a50",
+        "body": """**Logistics scrap · partially redacted**
+
+Coastal intake · New South Wales · jetty coordinates struck through.
+Subject age: estimated 11–13.
+Escort: Observation Division, not state child services.
+Transit inland overnight. No family contact logged after hour four.
+
+Stamp: **RESIDUAL CANDIDATE — BLOOM UNCERTAIN**
+
+A second hand (pencil, smaller) wrote under the stamp:
+*Tell Jaime I still count editions.*""",
+    },
+    "bloom": {
+        "title": "Bloom Failure Note",
+        "tag": "LAB · REDACTED",
+        "color": "#905070",
+        "body": """**Lab note · partial**
+
+Forced sets scream. Natural carriers do not. Residuals do something worse — they *remember the attempt*.
+
+Riley Callaghan: three exposure windows. Medium fogged the glass from the inside with something warmer than condensation. No full set. No clean death. Reclassified residual. Scheduled for quiet archive.
+
+Archive never completed. Subject left reading material in the recovery wing. Staff reported a locked dial carved into a paperback margin. Combination unknown at time of report.
+
+Later addendum (different ink): *Combination is literary. Check Shelley.*""",
+    },
+    "margin": {
+        "title": "Page 88 Margin",
+        "tag": "PHYSICAL EVIDENCE",
+        "color": "#6a8a60",
+        "body": """**Physical residual · Frankenstein p.88**
+
+Only visible under **Voss Residual** theme — the spectrum the Division uses when it wants witnesses to lean closer.
+
+Tiny safe set into the margin. Engraving: **R.C. · residual**.
+
+Inside: four-digit dial. Hinge scrap in a child’s hand:
+
+> Not the page. The year the first edition woke. Four numbers. Winter print. London.
+
+**1818.**
+
+Opening the dial does not free Riley. It opens the board Riley left for anyone still willing to read.""",
+    },
+    "string": {
+        "title": "Red String Notes",
+        "tag": "CONNECTIONS",
+        "color": "#a04040",
+        "body": """**Board connections · Riley’s hand**
+
+- **Riley ↔ Jaime** — shared corridor, eleven days. Jaime still asks.
+- **Jaime ↔ Voss** — product and author. PIXEL was a brand; Santos was a person Voss could not fully sell.
+- **Voss ↔ residual class** — Voss kept residuals on purpose. Curiosity feeds the medium.
+- **Riley ↔ Frankenstein** — the dial is a signature, not an escape key.
+- **You ↔ board** — you turned 1818. You are now part of the witness chain.
+
+Riley’s last pinned line:
+
+*Do not stabilise for them. Stabilise for each other.*""",
+    },
+}
+
+
+if st.session_state.view == "board":
+    if not (st.session_state.get("board_unlocked") or st.session_state.get("callaghan_safe_unlocked")):
+        st.session_state.view = "home"
+        st.rerun()
+
+    st.session_state.board_unlocked = True
+    st.session_state.callaghan_safe_unlocked = True
+
+    # Keep residual track playing on the board
+    try:
+        start_residual_dream_audio()
+    except Exception:
+        pass
+
+    open_id = st.session_state.get("board_evidence_open")
+    read = set(st.session_state.get("board_read") or [])
+
+    st.markdown(
+        """
+        <style>
+          .stApp, [data-testid="stAppViewContainer"] { background: #0c0a08 !important; }
+          [data-testid="stHeader"] { background: transparent !important; }
+          .block-container { max-width: 920px !important; padding-top: 1.2rem !important; }
+          .board-head {
+            font-family: ui-monospace, monospace;
+            font-size: 0.68rem; letter-spacing: 0.22em;
+            color: #8a6050; margin-bottom: 0.35rem;
+          }
+          .board-title {
+            font-family: Georgia, serif; color: #e8d8c8;
+            font-size: 1.45rem; margin: 0 0 0.4rem;
+          }
+          .board-sub { color: #7a6a5a; font-size: 0.88rem; margin-bottom: 1rem; }
+          .board-cork {
+            background:
+              radial-gradient(ellipse at 20% 30%, rgba(90,50,30,0.25), transparent 50%),
+              radial-gradient(ellipse at 80% 70%, rgba(60,30,20,0.2), transparent 45%),
+              linear-gradient(165deg, #1a1410 0%, #0e0b09 100%);
+            border: 1px solid #3a2a20;
+            border-radius: 10px;
+            padding: 1.1rem 1rem 1.3rem;
+            box-shadow: inset 0 0 40px rgba(0,0,0,0.35);
+          }
+          .ev-card {
+            border: 1px solid #3a2a22;
+            background: #14100c;
+            border-radius: 8px;
+            padding: 0.75rem 0.8rem;
+            min-height: 92px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+          }
+          .ev-card:hover {
+            border-color: #6a4030;
+            box-shadow: 0 0 16px rgba(120,40,20,0.25);
+          }
+          .ev-tag {
+            font-family: ui-monospace, monospace;
+            font-size: 0.62rem; letter-spacing: 0.14em;
+            color: #8a7060; margin-bottom: 0.35rem;
+          }
+          .ev-title { color: #e0d0c0; font-size: 0.98rem; font-family: Georgia, serif; }
+          .ev-dot {
+            display: inline-block; width: 8px; height: 8px;
+            border-radius: 50%; margin-right: 6px;
+            box-shadow: 0 0 6px currentColor;
+          }
+          .ev-file {
+            background: #100e0c;
+            border: 1px solid #4a3028;
+            border-radius: 8px;
+            padding: 1.1rem 1.15rem;
+            color: #d0c0b0;
+            font-family: Georgia, serif;
+            line-height: 1.65;
+            font-size: 0.95rem;
+            margin-top: 0.8rem;
+          }
+          .ev-file h3 {
+            font-size: 1.15rem; color: #f0e0d0; margin: 0 0 0.35rem;
+          }
+        </style>
+        <div class="board-head">OBSERVATION DIVISION · UNOFFICIAL</div>
+        <div class="board-title">Investigation Board</div>
+        <div class="board-sub">Riley Callaghan left the pins. You turned the dial. Read everything.</div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Evidence grid
+    if open_id and open_id in BOARD_EVIDENCE:
+        ev = BOARD_EVIDENCE[open_id]
+        if open_id not in read:
+            read.add(open_id)
+            st.session_state.board_read = list(read)
+            try:
+                save_user_data()
+            except Exception:
+                pass
+        st.markdown(
+            f"""
+            <div class="ev-file">
+              <div class="ev-tag" style="color:{ev['color']}">{ev['tag']}</div>
+              <h3>{ev['title']}</h3>
+              <div style="white-space:pre-wrap">{ev['body']}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("← Back to board", use_container_width=True, key="board_back_pins"):
+            st.session_state.board_evidence_open = None
+            st.rerun()
+    else:
+        st.markdown('<div class="board-cork">', unsafe_allow_html=True)
+        keys = list(BOARD_EVIDENCE.keys())
+        # 3 columns of pins
+        for i in range(0, len(keys), 3):
+            cols = st.columns(3)
+            for j, col in enumerate(cols):
+                if i + j >= len(keys):
+                    break
+                kid = keys[i + j]
+                ev = BOARD_EVIDENCE[kid]
+                seen = " · read" if kid in read else ""
+                with col:
+                    st.markdown(
+                        f"""
+                        <div class="ev-card">
+                          <div class="ev-tag"><span class="ev-dot" style="color:{ev['color']};background:{ev['color']}"></span>{ev['tag']}{seen}</div>
+                          <div class="ev-title">{ev['title']}</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                    if st.button("Open", key=f"board_open_{kid}", use_container_width=True):
+                        st.session_state.board_evidence_open = kid
+                        st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        n_read = len(read)
+        st.caption(f"Evidence reviewed: {n_read} / {len(BOARD_EVIDENCE)}")
+        if n_read >= len(BOARD_EVIDENCE):
+            st.markdown(
+                """
+                <p style="color:#8a7060;font-size:0.85rem;margin-top:0.6rem">
+                  All pins read. The board is quiet. Riley’s chain is complete — for now.
+                </p>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    b1, b2 = st.columns(2)
+    with b1:
+        if st.button("← Library", use_container_width=True, key="board_to_lib"):
+            try:
+                stop_all_meridium_audio()
+            except Exception:
+                pass
+            st.session_state.board_evidence_open = None
+            st.session_state.view = "library"
+            st.session_state.library_reading = "frankenstein"
+            st.rerun()
+    with b2:
+        if st.button("⌂ Home", use_container_width=True, key="board_to_home"):
+            try:
+                stop_all_meridium_audio()
+            except Exception:
+                pass
+            st.session_state.board_evidence_open = None
+            st.session_state.view = "home"
+            st.rerun()
+    st.stop()
+
+
+# ===== RILEY CALLAGHAN RESIDUAL SAFE =====
+if st.session_state.view == "callaghan_safe":
+    # Full black ominous lock
+    st.markdown(
+        """
+        <style>
+          .stApp { background: #000 !important; }
+          [data-testid="stAppViewContainer"] { background: #000 !important; }
+          [data-testid="stHeader"] { background: transparent !important; }
+          .block-container { padding-top: 2.5rem !important; max-width: 520px !important; }
+          .santos-lock {
+            text-align: center; color: #c8b8a8;
+            font-family: Georgia, "Times New Roman", serif;
+            padding: 1.2rem 0.6rem 0.4rem;
+          }
+          .santos-lock .mark {
+            font-family: ui-monospace, monospace;
+            font-size: 0.62rem; letter-spacing: 0.28em;
+            color: #6a4030; margin-bottom: 1.1rem;
+          }
+          .santos-lock h1 {
+            font-size: 1.15rem; font-weight: 500; color: #e0d0c0;
+            letter-spacing: 0.04em; margin: 0 0 0.6rem;
+          }
+          .santos-lock p {
+            font-size: 0.88rem; line-height: 1.55; color: #9a8878;
+            margin: 0.35rem auto 0.8rem; max-width: 26rem;
+          }
+          .santos-lock .hint {
+            font-size: 0.78rem; color: #5a4030; font-style: italic;
+            margin-top: 1rem;
+          }
+          .santos-dial {
+            width: 64px; height: 64px; margin: 1rem auto 0.4rem;
+            border-radius: 50%;
+            border: 2px solid #4a3020;
+            background: radial-gradient(circle at 40% 35%, #2a1a12, #0a0604 70%);
+            box-shadow: 0 0 24px rgba(80,20,10,0.35);
+          }
+        </style>
+        <div class="santos-lock">
+          <div class="mark">OBSERVATION DIVISION · RESIDUAL LOCK</div>
+          <div class="santos-dial"></div>
+          <h1>Riley Callaghan</h1>
+          <p>
+            Another child under glass. Not Jaime. Not PIXEL.
+            Riley Callaghan — logged out of a coastal intake in New South Wales,
+            shipped inland, then filed under residual when the bloom would not take cleanly.
+            They left a four-digit dial in the margin of a book
+            the Division never finished reading.
+          </p>
+          <p class="hint">
+            “Four teeth in the year the creature first woke.”
+          </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Play Dream — The Old Timey Jazz Orchestra
+    try:
+        start_residual_dream_audio()
+    except Exception:
+        pass
+    st.markdown(
+        "<p style='text-align:center;color:#4a3830;font-size:11px;margin:0 0 10px;font-family:Georgia,serif'>"
+        "♪ Dream — The Old Timey Jazz Orchestra</p>",
+        unsafe_allow_html=True,
+    )
+
+    already = bool(st.session_state.get("callaghan_safe_unlocked"))
+    if already:
+        st.markdown(
+            """
+            <div style="color:#c8b8a8;font-family:Georgia,serif;text-align:center;padding:1rem 0.5rem">
+              <p style="letter-spacing:0.2em;font-size:0.7rem;color:#6a4030">LOCK OPEN</p>
+              <p style="opacity:0.75">The residual dial turned. The board is waiting.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("Enter the board", use_container_width=True, key="callaghan_to_board"):
+            st.session_state.board_unlocked = True
+            st.session_state.view = "board"
+            st.session_state.board_evidence_open = None
+            try:
+                save_user_data()
+            except Exception:
+                pass
+            st.rerun()
+        if st.button("Step away", use_container_width=True, key="callaghan_leave_open"):
+            try:
+                stop_all_meridium_audio()
+            except Exception:
+                pass
+            st.session_state.view = "library"
+            st.session_state.library_reading = "frankenstein"
+            st.rerun()
+    else:
+        code = st.text_input(
+            "Four digits",
+            max_chars=4,
+            placeholder="····",
+            key="callaghan_code_input",
+            label_visibility="collapsed",
+        )
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("Try the dial", use_container_width=True, key="callaghan_try"):
+                entered = "".join(ch for ch in (code or "") if ch.isdigit())
+                if entered == "1818":
+                    st.session_state.callaghan_safe_unlocked = True
+                    st.session_state.board_unlocked = True
+                    st.session_state.board_evidence_open = None
+                    try:
+                        find_glitch("callaghan_safe", "Riley Callaghan residual lock opened")
+                    except Exception:
+                        pass
+                    try:
+                        save_user_data()
+                    except Exception:
+                        pass
+                    st.session_state.view = "board"
+                    st.rerun()
+                else:
+                    st.markdown(
+                        "<p style='color:#8a3030;text-align:center;font-size:0.85rem'>"
+                        "The dial does not turn.</p>",
+                        unsafe_allow_html=True,
+                    )
+        with c2:
+            if st.button("Step away", use_container_width=True, key="callaghan_away"):
+                try:
+                    stop_all_meridium_audio()
+                except Exception:
+                    pass
+                st.session_state.view = "library"
+                st.session_state.library_reading = "frankenstein"
+                st.rerun()
+
+        with st.expander("A scrap in the hinge", expanded=False):
+            st.markdown(
+                """
+                Faint pencil, child’s hand:
+
+                *“Not the page. The **year** the first edition woke.
+                Four numbers. Winter print. London.”*
+
+                (Frankenstein was first published in **1818**.)
+                """
+            )
+
+    st.stop()
+
+
 # ===== LIBRARY =====
 if st.session_state.view == "library":
     st.markdown(
@@ -3909,6 +5532,87 @@ if st.session_state.view == "library":
             unsafe_allow_html=True,
         )
 
+        # --- ARG: Riley Callaghan residual safe (Frankenstein page 88 + Voss Residual) ---
+        if (
+            book_id == "frankenstein"
+            and page == 87  # 1-indexed page 88
+            and st.session_state.get("theme") == "Voss Residual"
+        ):
+            st.markdown(
+                """
+                <style>
+                  .rc-safe-wrap {
+                    display: flex; flex-direction: column; align-items: flex-end;
+                    margin: 10px 4px 4px;
+                  }
+                  .rc-safe-icon {
+                    width: 42px; height: 48px;
+                    border-radius: 6px 6px 4px 4px;
+                    background:
+                      linear-gradient(180deg, #3a2418 0%, #1a100a 40%, #0c0806 100%);
+                    border: 1.5px solid #6a4530;
+                    box-shadow:
+                      0 0 12px rgba(140,50,25,0.4),
+                      inset 0 1px 0 rgba(255,210,160,0.12),
+                      inset 0 -6px 10px rgba(0,0,0,0.35);
+                    position: relative;
+                    display: flex; align-items: center; justify-content: center;
+                    opacity: 0.88;
+                    transition: opacity 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+                  }
+                  .rc-safe-icon:hover {
+                    opacity: 1;
+                    transform: translateY(-1px);
+                    box-shadow: 0 0 18px rgba(180,60,30,0.55);
+                  }
+                  .rc-safe-icon .bolt {
+                    width: 10px; height: 10px;
+                    border-radius: 50%;
+                    border: 1.5px solid #c09060;
+                    background: radial-gradient(circle at 35% 35%, #2a1a10, #0a0604);
+                    box-shadow: 0 0 6px rgba(200,120,60,0.45);
+                  }
+                  .rc-safe-icon .handle {
+                    position: absolute; right: -5px; top: 50%;
+                    width: 6px; height: 14px; margin-top: -7px;
+                    border-radius: 0 3px 3px 0;
+                    background: #5a3a28;
+                    border: 1px solid #8a6040;
+                  }
+                  .rc-safe-icon .hinge {
+                    position: absolute; left: 3px; top: 8px;
+                    width: 3px; height: 6px; border-radius: 1px;
+                    background: #6a4a30;
+                  }
+                  .rc-safe-icon .hinge2 {
+                    position: absolute; left: 3px; bottom: 8px;
+                    width: 3px; height: 6px; border-radius: 1px;
+                    background: #6a4a30;
+                  }
+                  .rc-safe-label {
+                    font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase;
+                    color: #8a6050; opacity: 0.65; margin: 4px 2px 2px;
+                    font-family: ui-monospace, monospace;
+                  }
+                </style>
+                <div class="rc-safe-wrap">
+                  <div class="rc-safe-icon" title="Residual lock">
+                    <span class="hinge"></span>
+                    <span class="hinge2"></span>
+                    <span class="bolt"></span>
+                    <span class="handle"></span>
+                  </div>
+                  <div class="rc-safe-label">🔐 R.C. · residual</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            sc1, sc2 = st.columns([5, 1])
+            with sc2:
+                if st.button("🔐", key="callaghan_safe_click", help="Open residual safe", use_container_width=True):
+                    st.session_state.view = "callaghan_safe"
+                    st.rerun()
+
         # Bottom nav
         b1, b2, b3 = st.columns([1, 2, 1])
         with b1:
@@ -3961,240 +5665,116 @@ if st.session_state.view == "library":
         )
     st.stop()
 
-# HOME — Design 1
+# HOME — bookmark rail + calm main panel
 if st.session_state.view == "home":
+    rail, body = st.columns([1.15, 3.35], gap="medium")
 
-    # Easter egg captions on home
-    for _fn in (owner_rare_line, quiet_hour_caption, lab_leftover_caption, stabilize_countdown):
-        try:
-            if _fn is owner_rare_line:
-                _c = owner_rare_line(st.session_state.get("username") or "")
-            else:
-                _c = _fn()
-            if _c:
-                st.caption(_c)
-        except Exception:
-            pass
-    _combo = font_theme_combo_caption(
-        st.session_state.get("font") or "Inter",
-        st.session_state.get("theme") or "Caelestia",
-    )
-    if _combo:
-        st.caption(_combo)
-    if st.session_state.get("_egg_flash"):
-        st.info(st.session_state.pop("_egg_flash"))
-    st.markdown(f"""
-    <div class="panel">
-      <div class="panel-label">Shell</div>
-      <div class="hero">{greet_line(st.session_state.username)}</div>
-      <div class="sub">{owner_subline(st.session_state.username)}</div>
-      <div class="ridge"></div>
-    </div>
-    """, unsafe_allow_html=True)
-
-
-    # Post-lab anomaly warning + home glitch (after 2nd lab visit)
-    if lab_is_unlocked() and glitches_unlocked() and not anomalies_complete():
+    # ---------- BOOKMARK RAIL ----------
+    with rail:
         st.markdown(
-            """
-            <div style="
-              margin: 0 0 12px; padding: 12px 14px; border-radius: 12px;
-              background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.45);
-              color: #fecaca; font-family: ui-monospace, monospace; font-size: 0.85rem;
-              animation: anomPulse 2.2s ease-in-out infinite;
-            ">
-              ⚠ WARNING: ANOMALIES PRESENT<br/>
-              <span style="opacity:0.9;font-size:0.78rem;line-height:1.45;">
-              — Dr. E. Voss, Observation Division<br/>
-              You opened the log. That was the point. Now the medium is leaving fingerprints
-              in three places it should not reach. Find them before the committees do.
-              </span>
-            </div>
-            <style>
-              @keyframes anomPulse {
-                0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.0); }
-                50% { box-shadow: 0 0 18px 0 rgba(239,68,68,0.25); }
-              }
-            </style>
-            """,
+            '<div class="bookmark-rail"><div class="panel-label">Bookmarks</div>',
             unsafe_allow_html=True,
         )
-        found = set(st.session_state.get("glitches_found") or [])
-        st.caption(f"Voss markers recovered: {len(found)} / 3")
-        # Home glitch — clickable image (not a white box)
-        st.markdown(
-            """
-            <style>
-              div[data-testid="stButton"]:has(button[kind="secondary"]) button {
-                background: #0a1210 !important;
-                color: #5eead4 !important;
-                border: 1px solid rgba(34,211,238,0.35) !important;
-                border-radius: 10px !important;
-              }
-            </style>
-            <div style="font-family:ui-monospace,monospace;font-size:0.72rem;color:#5eead4;opacity:0.7;margin:6px 0 4px;">
-              Voss field residual — tap the interference
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        _gpath = None
-        _base = Path(__file__).resolve().parent / "assets"
-        for _name in ("glitch_home.png", "IMG_1354.jpeg", "IMG_1354.jpg"):
-            _cand = _base / _name
-            if _cand.exists() and _cand.stat().st_size > 500:
-                _gpath = _cand
-                break
-        if _gpath is not None:
-            st.image(str(_gpath), width=280)
-        else:
-            st.markdown(
-                '<div style="height:72px;border-radius:10px;background:repeating-linear-gradient(0deg,#04120e,#04120e 2px,#0a1c18 2px,#0a1c18 4px);border:1px solid rgba(34,211,238,0.35);"></div>',
-                unsafe_allow_html=True,
-            )
-        st.markdown(
-            """
-            <style>
-              div[data-testid="stButton"]:has(button[kind="secondary"]) button,
-              div[data-testid="stButton"] button[kind="secondary"] {
-                min-height: 32px !important;
-                height: 32px !important;
-                padding: 0 12px !important;
-                font-size: 0.78rem !important;
-                border-radius: 8px !important;
-              }
-            </style>
-            """,
-            unsafe_allow_html=True,
-        )
-        if st.button("Tap anomaly", key="glitch_home", use_container_width=False):
-            play_glitch_sfx()
-            if find_glitch("home", "Voss log: home marker secured. Two remain."):
-                st.session_state.anomaly_warned = True
-                save_user_data()
-            st.rerun()
-        if "home" in found:
-            st.caption("Home marker · secured")
-        if st.session_state.get("_glitch_flash"):
-            st.success(st.session_state.pop("_glitch_flash"))
-
-        # All three Voss markers → open her file
-        if set(st.session_state.get("glitches_found") or []) >= {"home", "lab", "pixel"}:
-            st.session_state.voss_file_unlocked = True
-            if st.button("Open Dr. Voss's file", use_container_width=True, key="open_voss_file", type="primary"):
-                st.session_state.voss_cutscene_stage = 0
-                st.session_state.view = "voss_file"
-                st.rerun()
-
-
-    # Re-open Voss file if already earned
-    if st.session_state.get("voss_file_unlocked") and not glitches_unlocked():
-        if st.button("Open Dr. Voss's file", use_container_width=True, key="open_voss_always", type="primary"):
-            st.session_state.voss_cutscene_stage = 0
-            st.session_state.view = "voss_file"
-            st.rerun()
-
-
-    # Anomalies finished — no more hunting; reopen Voss file only
-    if lab_is_unlocked() and anomalies_complete():
-        ensure_voss_theme()
-        st.markdown(
-            """
-            <div style="
-              margin: 0 0 12px; padding: 12px 14px; border-radius: 12px;
-              background: rgba(80,20,20,0.25); border: 1px solid rgba(180,60,60,0.4);
-              color: #e8b0b0; font-family: ui-monospace, monospace; font-size: 0.82rem;
-            ">
-              Voss markers sealed · 3 / 3<br/>
-              <span style="opacity:0.85;font-size:0.75rem;">The anomalies will not return. The file remains.</span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        if st.button("Open Dr. Voss's file", use_container_width=True, key="open_voss_home_done", type="primary"):
-            st.session_state.voss_cutscene_stage = 0
-            st.session_state.view = "voss_file"
-            st.rerun()
-
-    # —— Interactive feature toggles (actually work) ——
-    prov = st.session_state.provider
-    wiki_on = st.session_state.use_wiki_toggle
-    web_on = st.session_state.use_web_toggle
-    music_on = st.session_state.show_spotify
-
-    # Row 1: Provider cycle + Wiki + Web + Music
-    f1, f2, f3, f4 = st.columns(4)
-    with f1:
-        prov_label = {
-            "groq": "✧ Groq · ON",
-            "grok": "✧ Grok · ON",
-            "openrouter": "✧ OpenRouter · ON",
-        }.get(prov, "✧ Provider")
-        if st.button(prov_label, use_container_width=True, key="feat_prov",
-                     type="primary"):
-            order = ["groq", "grok", "openrouter"]
-            i = order.index(prov) if prov in order else 0
-            st.session_state.provider = order[(i + 1) % len(order)]
-            if st.session_state.provider == "groq":
-                st.session_state.model_name = "Smart · Llama 3.3 70B"
-            elif st.session_state.provider == "grok":
-                st.session_state.model_name = "Grok 4.5"
-            else:
-                st.session_state.model_name = "meta-llama/llama-3.3-70b-instruct:free"
-            save_user_data()
-            st.rerun()
-    with f2:
-        wlabel = "◈ Wiki · ON" if wiki_on else "◈ Wiki · OFF"
-        if st.button(wlabel, use_container_width=True, key="feat_wiki",
-                     type="primary" if wiki_on else "secondary"):
-            st.session_state.use_wiki_toggle = not wiki_on
-            save_user_data()
-            st.rerun()
-    with f3:
-        weblabel = "🌐 Web · ON" if web_on else "🌐 Web · OFF"
-        if st.button(weblabel, use_container_width=True, key="feat_web",
-                     type="primary" if web_on else "secondary"):
-            st.session_state.use_web_toggle = not web_on
-            save_user_data()
-            st.rerun()
-    with f4:
-        mlabel = "♫ Music · ON" if music_on else "♫ Music · OFF"
-        if st.button(mlabel, use_container_width=True, key="feat_music",
-                     type="primary" if music_on else "secondary"):
-            st.session_state.show_spotify = not music_on
-            save_user_data()
-            st.rerun()
-
-    st.caption(
-        f"Provider **{st.session_state.provider}** · "
-        f"Model **{st.session_state.model_name}** · "
-        f"Wiki {'on' if st.session_state.use_wiki_toggle else 'off'} · "
-        f"Web {'on' if st.session_state.use_web_toggle else 'off'}"
-    )
-
-    b1, b2, b3, b4 = st.columns(4)
-    with b1:
-        if st.button("Start chat", use_container_width=True, key="h_chat", type="primary"):
+        if st.button("💬  Chat", use_container_width=True, key="bm_chat", type="primary"):
             st.session_state.view = "chat"
             st.rerun()
-    with b2:
-        if st.button("＋ New", use_container_width=True, key="h_new"):
+        if st.button("＋  New chat", use_container_width=True, key="bm_new"):
             create_new_chat()
             st.session_state.view = "chat"
             st.rerun()
-    with b3:
-        if st.button("◎ Listen", use_container_width=True, key="h_listen"):
+        if st.button("♫  Music", use_container_width=True, key="bm_music"):
+            st.session_state.view = "music"
+            st.rerun()
+        if st.button("◎  Listen", use_container_width=True, key="bm_listen"):
             st.session_state.view = "listen"
             st.rerun()
-    with b4:
-        if st.button("☰ Menu", use_container_width=True, key="h_menu"):
+        if st.button("📚  Library", use_container_width=True, key="bm_library"):
+            st.session_state.library_reading = None
+            st.session_state.library_page = 0
+            st.session_state.view = "library"
+            st.rerun()
+        if st.button("🎬  Cinema", use_container_width=True, key="bm_cinema"):
+            st.session_state.cinema_watching = None
+            st.session_state.view = "cinema"
+            st.rerun()
+        if st.session_state.get("board_unlocked") or st.session_state.get("callaghan_safe_unlocked"):
+            if st.button("📌  Board", use_container_width=True, key="bm_board"):
+                st.session_state.board_evidence_open = None
+                st.session_state.view = "board"
+                st.rerun()
+        if lab_is_unlocked():
+            if st.button("🔬  Lab", use_container_width=True, key="bm_lab"):
+                st.session_state.view = "lab"
+                st.rerun()
+        if st.session_state.get("voss_file_unlocked"):
+            if st.button("📁  Voss file", use_container_width=True, key="bm_voss"):
+                st.session_state.voss_cutscene_stage = 0
+                st.session_state.view = "voss_file"
+                st.rerun()
+        if st.button("☰  Menu", use_container_width=True, key="bm_menu"):
             st.session_state.popup = True
             st.rerun()
 
-    qotd, qotd_author = quote_of_the_day()
-    c1, c2 = st.columns(2)
-    with c1:
-        # Single box = one button (label + quote + author + date/time)
+        st.markdown('<div class="ridge" style="margin:12px 0 8px;"></div>', unsafe_allow_html=True)
+        st.caption("Recent chats")
+        items = sorted(
+            st.session_state.chats.items(),
+            key=lambda x: x[1].get("created", ""),
+            reverse=True,
+        )[:6]
+        if not items:
+            st.caption("None yet")
+        for cid, data in items:
+            title = (data.get("title") or "Untitled")[:28]
+            if st.button(title, key=f"bm_c_{cid}", use_container_width=True):
+                st.session_state.current_chat_id = cid
+                st.session_state.view = "chat"
+                save_user_data()
+                st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # ---------- MAIN BODY ----------
+    with body:
+        # Easter egg captions
+        for _fn in (owner_rare_line, quiet_hour_caption, lab_leftover_caption, stabilize_countdown):
+            try:
+                if _fn is owner_rare_line:
+                    _c = owner_rare_line(st.session_state.get("username") or "")
+                else:
+                    _c = _fn()
+                if _c:
+                    st.caption(_c)
+            except Exception:
+                pass
+        _combo = font_theme_combo_caption(
+            st.session_state.get("font") or "Inter",
+            st.session_state.get("theme") or "Caelestia",
+        )
+        if _combo:
+            st.caption(_combo)
+        if st.session_state.get("_egg_flash"):
+            st.info(st.session_state.pop("_egg_flash"))
+
+        _wiki_pill = "Wiki on" if st.session_state.use_wiki_toggle else "Wiki off"
+        _web_pill = "Web on" if st.session_state.use_web_toggle else "Web off"
+        _theme_pill = st.session_state.get("theme") or "Caelestia"
+        st.markdown(f"""
+        <div class="panel">
+          <div class="panel-label">Shell</div>
+          <div class="hero">{greet_line(st.session_state.username)}</div>
+          <div class="sub">{owner_subline(st.session_state.username)}</div>
+          <div class="ridge"></div>
+          <div class="home-status">
+            <span class="home-pill">{_theme_pill}</span>
+            <span class="home-pill">{st.session_state.provider}</span>
+            <span class="home-pill">{_wiki_pill}</span>
+            <span class="home-pill">{_web_pill}</span>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Quote of the hour
+        qotd, qotd_author = quote_of_the_day()
         st.markdown(
             """
         <style>
@@ -4244,69 +5824,101 @@ if st.session_state.view == "home":
             st.session_state.view = "note"
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
-        if st.session_state.show_spotify:
-            render_spotify_panel("home")
-    with c2:
-        # ---- Library (public-domain / free shelf) ----
-        st.markdown(
-            '<div class="panel"><div class="panel-label">Library</div>',
-            unsafe_allow_html=True,
-        )
-        st.caption("Free to read · public domain & open texts")
 
-        for book in LIBRARY_CATALOG:
-            bcol1, bcol2 = st.columns([4, 1])
-            with bcol1:
+        # ARG anomaly content (only when active)
+        if lab_is_unlocked() and glitches_unlocked() and not anomalies_complete():
+            st.markdown(
+                """
+                <div style="
+                  margin: 12px 0; padding: 12px 14px; border-radius: 12px;
+                  background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.45);
+                  color: #fecaca; font-family: ui-monospace, monospace; font-size: 0.85rem;
+                  animation: anomPulse 2.2s ease-in-out infinite;
+                ">
+                  ⚠ WARNING: ANOMALIES PRESENT<br/>
+                  <span style="opacity:0.9;font-size:0.78rem;line-height:1.45;">
+                  — Dr. E. Voss, Observation Division<br/>
+                  You opened the log. That was the point. Now the medium is leaving fingerprints
+                  in three places it should not reach. Find them before the committees do.
+                  </span>
+                </div>
+                <style>
+                  @keyframes anomPulse {
+                    0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.0); }
+                    50% { box-shadow: 0 0 18px 0 rgba(239,68,68,0.25); }
+                  }
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
+            found = set(st.session_state.get("glitches_found") or [])
+            st.caption(f"Voss markers recovered: {len(found)} / 3")
+            st.markdown(
+                """
+                <div style="font-family:ui-monospace,monospace;font-size:0.72rem;color:#5eead4;opacity:0.7;margin:6px 0 4px;">
+                  Voss field residual — tap the interference
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            _gpath = None
+            _base = Path(__file__).resolve().parent / "assets"
+            for _name in ("glitch_home.png", "IMG_1354.jpeg", "IMG_1354.jpg"):
+                _cand = _base / _name
+                if _cand.exists() and _cand.stat().st_size > 500:
+                    _gpath = _cand
+                    break
+            if _gpath is not None:
+                st.image(str(_gpath), width=280)
+            else:
                 st.markdown(
-                    f"**{book.get('title', 'Untitled')}**  \n"
-                    f"<span style='opacity:0.7;font-size:0.8rem'>"
-                    f"{book.get('author', '')}"
-                    f"{(' · ' + book['note']) if book.get('note') else ''}"
-                    f"</span>",
+                    '<div style="height:72px;border-radius:10px;background:repeating-linear-gradient(0deg,#04120e,#04120e 2px,#0a1c18 2px,#0a1c18 4px);border:1px solid rgba(34,211,238,0.35);"></div>',
                     unsafe_allow_html=True,
                 )
-            with bcol2:
-                if st.button("Read", key=f"lib_home_{book.get('id')}", use_container_width=True):
-                    st.session_state.library_reading = book.get("id")
-                    st.session_state.library_page = 0
-                    st.session_state.view = "library"
-                    st.rerun()
-
-        if st.button("Open full library", key="lib_home_open", use_container_width=True):
-            st.session_state.library_reading = None
-            st.session_state.library_page = 0
-            st.session_state.view = "library"
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-
-        st.markdown('<div class="panel"><div class="panel-label">Chat history</div>', unsafe_allow_html=True)
-        items = sorted(st.session_state.chats.items(), key=lambda x: x[1].get("created", ""), reverse=True)[:10]
-        if not items:
-            st.caption("No chats yet — start one.")
-        for cid, data in items:
-            msgs = data.get("messages") or []
-            title = data.get("title") or "Untitled"
-            preview = ""
-            if msgs:
-                last = msgs[-1].get("content", "")
-                preview = (last[:60] + "…") if len(last) > 60 else last
-                preview = preview.replace("\n", " ")
-            n = len(msgs)
-            label = f"{title}  ·  {n} msg"
-            if preview:
-                label = f"{title}\n{preview}"
-            cols = st.columns([5, 1])
-            with cols[0]:
-                if st.button(label, key=f"h_{cid}", use_container_width=True):
-                    st.session_state.current_chat_id = cid
-                    st.session_state.view = "chat"
+            if st.button("Tap anomaly", key="glitch_home", use_container_width=False):
+                play_glitch_sfx()
+                if find_glitch("home", "Voss log: home marker secured. Two remain."):
+                    st.session_state.anomaly_warned = True
                     save_user_data()
+                st.rerun()
+            if "home" in found:
+                st.caption("Home marker · secured")
+            if st.session_state.get("_glitch_flash"):
+                st.success(st.session_state.pop("_glitch_flash"))
+            if set(st.session_state.get("glitches_found") or []) >= {"home", "lab", "pixel"}:
+                st.session_state.voss_file_unlocked = True
+                if st.button("Open Dr. Voss's file", use_container_width=True, key="open_voss_file", type="primary"):
+                    st.session_state.voss_cutscene_stage = 0
+                    st.session_state.view = "voss_file"
                     st.rerun()
-            with cols[1]:
-                if st.button("Del", key=f"hd_{cid}", use_container_width=True, help="Delete chat"):
-                    delete_chat(cid)
-                    st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
+
+        if st.session_state.get("voss_file_unlocked") and not glitches_unlocked():
+            if st.button("Open Dr. Voss's file", use_container_width=True, key="open_voss_always", type="primary"):
+                st.session_state.voss_cutscene_stage = 0
+                st.session_state.view = "voss_file"
+                st.rerun()
+
+        if lab_is_unlocked() and anomalies_complete():
+            ensure_voss_theme()
+            st.markdown(
+                """
+                <div style="
+                  margin: 12px 0; padding: 12px 14px; border-radius: 12px;
+                  background: rgba(80,20,20,0.25); border: 1px solid rgba(180,60,60,0.4);
+                  color: #e8b0b0; font-family: ui-monospace, monospace; font-size: 0.82rem;
+                ">
+                  Voss markers sealed · 3 / 3<br/>
+                  <span style="opacity:0.85;font-size:0.75rem;">The anomalies will not return. The file remains.</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        # Optional compact now-playing (only if Spotify toggle is on)
+        if st.session_state.show_spotify:
+            with st.expander("♫ Now playing", expanded=False):
+                render_spotify_panel("home")
+
     st.stop()
 
 # CHAT
@@ -4463,7 +6075,7 @@ if prompt := st.chat_input("Ask Meridium anything…"):
 
     # ARG — TV Girl theme (pink + blue)
     if prompt.strip().lower() in {"not allowed", "notallowed"}:
-        newly = unlock_theme("TV Girl", "forever will be allowed", apply=True)
+        newly = unlock_theme("TV Girl", "forever will be allowed", apply=False)
         soft = "Forever will be allowed"
         with st.chat_message("assistant"):
             st.markdown(soft)
