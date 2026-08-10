@@ -203,16 +203,18 @@ SECRET_THEMES = {
         "accent": "#a3a3a3", "accent2": "#525252", "accent_soft": "rgba(163,163,163,0.14)",
         "unlock": "fragments",  # all 6 lab hotspots
     },
+    # Palisman soft — mint leaf / little green snake (not Caelestia purple)
     "Stringbean Soft": {
-        "bg": "#0c0a12", "panel": "rgba(32, 28, 48, 0.82)", "panel_solid": "#1c1830",
-        "border": "rgba(196,181,253,0.28)", "text": "#f5f3ff", "muted": "#a89bc8",
-        "accent": "#c4b5fd", "accent2": "#86efac", "accent_soft": "rgba(196,181,253,0.20)",
+        "bg": "#06140c", "panel": "rgba(12, 36, 24, 0.88)", "panel_solid": "#0c2418",
+        "border": "rgba(134,239,172,0.32)", "text": "#ecfdf5", "muted": "#86a896",
+        "accent": "#86efac", "accent2": "#4ade80", "accent_soft": "rgba(134,239,172,0.18)",
         "unlock": "stringbean",
     },
+    # Luz + Amity — dual glow: warm gold light + lilac witch fire
     "Lumity Glow": {
-        "bg": "#0e0810", "panel": "rgba(40, 20, 42, 0.84)", "panel_solid": "#241228",
-        "border": "rgba(244,114,182,0.30)", "text": "#fdf4ff", "muted": "#c4a0b8",
-        "accent": "#f9a8d4", "accent2": "#c4b5fd", "accent_soft": "rgba(249,168,212,0.20)",
+        "bg": "#12061a", "panel": "rgba(42, 16, 48, 0.90)", "panel_solid": "#2a1030",
+        "border": "rgba(251,191,36,0.28)", "text": "#fff7ed", "muted": "#c4a0c8",
+        "accent": "#f9a8d4", "accent2": "#fbbf24", "accent_soft": "rgba(249,168,212,0.20)",
         "unlock": "lumity",
     },
     "Soft Static": {
@@ -257,11 +259,11 @@ SECRET_THEMES = {
         "accent": "#f472b6", "accent2": "#60a5fa", "accent_soft": "rgba(244,114,182,0.18)",
         "unlock": "notallowed",
     },
-    # Unlocked when Project Nadir / residual door opens
+    # Unlocked when Project Nadir / residual door opens — cold archive teal
     "Nadir Residual": {
-        "bg": "#05040a", "panel": "rgba(16, 12, 28, 0.90)", "panel_solid": "#100c1c",
-        "border": "rgba(167,139,250,0.32)", "text": "#ede9fe", "muted": "#8b7fb8",
-        "accent": "#a78bfa", "accent2": "#6d28d9", "accent_soft": "rgba(167,139,250,0.18)",
+        "bg": "#030806", "panel": "rgba(8, 22, 20, 0.92)", "panel_solid": "#0a1614",
+        "border": "rgba(45, 212, 191, 0.28)", "text": "#e6fffa", "muted": "#6a9a90",
+        "accent": "#2dd4bf", "accent2": "#0f766e", "accent_soft": "rgba(45, 212, 191, 0.16)",
         "unlock": "nadir",
     },
 
@@ -573,9 +575,46 @@ def stop_meridium_track(tag: str = "track") -> None:
         <script>
         (function(){{
           try {{
-            var root = window.parent || window;
+            var roots = [window];
+            try {{ if (window.parent && window.parent !== window) roots.push(window.parent); }} catch(e){{}}
+            try {{ if (window.top && window.top !== window) roots.push(window.top); }} catch(e){{}}
             var tag = {tag_js};
             var key = '__mer_' + tag + '_song';
+            function kill(a){{
+              if (!a) return;
+              try {{ a.pause(); }} catch(e){{}}
+              try {{ a.currentTime = 0; }} catch(e){{}}
+              try {{ a.src = ''; }} catch(e){{}}
+              try {{ a.removeAttribute('src'); }} catch(e){{}}
+              try {{ a.load(); }} catch(e){{}}
+              try {{ a.remove(); }} catch(e){{}}
+            }}
+            for (var r = 0; r < roots.length; r++) {{
+              var root = roots[r];
+              try {{
+                kill(root[key]);
+                root[key] = null;
+                var nodes = root.document.querySelectorAll(
+                  'audio[data-meridium-' + tag + '], audio[data-meridium-nadir], audio[data-meridium-door]'
+                );
+                for (var i = 0; i < nodes.length; i++) kill(nodes[i]);
+                // Nuke any audio whose src looks like Run Rabbit / Nadir archive track
+                var all = root.document.querySelectorAll('audio');
+                for (var j = 0; j < all.length; j++) {{
+                  var s = (all[j].src || '') + '';
+                  if (
+                    s.indexOf('Run') !== -1 ||
+                    s.indexOf('Rabbit') !== -1 ||
+                    s.indexOf('RABBIT') !== -1 ||
+                    s.indexOf('gbia0006719') !== -1 ||
+                    s.indexOf('Flanagan') !== -1
+                  ) kill(all[j]);
+                }}
+              }} catch(e){{}}
+            }}
+            var a = null; // silence leftover binding
+            // legacy single-root path kept below for safety
+            var root = window.parent || window;
             var a = root[key];
             if (a) {{ try {{ a.pause(); a.src=''; a.remove(); }} catch(e){{}} }}
             root[key] = null;
@@ -2504,6 +2543,19 @@ for _item in _pending:
         unlock_theme(_item[0], _item[1] if len(_item) > 1 else "", apply=False)
 
 inject_css(st.session_state.font, st.session_state.get("theme", "Caelestia"), st.session_state.popup)
+
+# Hard-stop Nadir ambient (Run Rabbit Run) when leaving the channel
+if st.session_state.get("_force_stop_nadir_audio") and st.session_state.get("view") not in (
+    "nadir", "nadir_transition"
+):
+    try:
+        stop_meridium_track("nadir")
+        stop_meridium_track("door")
+        stop_all_meridium_audio()
+    except Exception:
+        pass
+    st.session_state._force_stop_nadir_audio = False
+    st.session_state._nadir_music_on = False
 if st.session_state.get("_theme_unlock_msg"):
     st.success(st.session_state._theme_unlock_msg)
     st.session_state._theme_unlock_msg = ""
@@ -6089,77 +6141,28 @@ if st.session_state.view == "nadir":
     sw1, sw2 = st.columns(2)
     with sw1:
         if st.button("Leave Nadir", key="nadir_leave", use_container_width=True):
+            st.session_state._nadir_music_on = False
+            st.session_state._force_stop_nadir_audio = True
             try:
                 stop_meridium_track("nadir")
                 stop_meridium_track("door")
                 stop_all_meridium_audio()
             except Exception:
                 pass
-            # Force-kill Run Rabbit Run residual audio nodes
-            st.components.v1.html(
-                """
-                <script>
-                (function(){
-                  try {
-                    var roots = [window];
-                    try { if (window.parent) roots.push(window.parent); } catch(e){}
-                    for (var r=0;r<roots.length;r++){
-                      var root = roots[r];
-                      try {
-                        var a = root.__mer_nadir_song;
-                        if (a) { try { a.pause(); a.src=''; a.remove(); } catch(e){} }
-                        root.__mer_nadir_song = null;
-                        var nodes = root.document.querySelectorAll('audio[data-meridium-nadir]');
-                        for (var i=0;i<nodes.length;i++){
-                          try { nodes[i].pause(); nodes[i].src=''; nodes[i].remove(); } catch(e){}
-                        }
-                      } catch(e){}
-                    }
-                  } catch(e){}
-                })();
-                </script>
-                """,
-                height=0,
-            )
-            st.session_state._nadir_music_on = False
             st.session_state.view = "library"
             st.session_state.nadir_active_file = None
             st.session_state.nadir_reader = None
             st.rerun()
     with sw2:
         if st.button("Switch to Meridium", key="nadir_to_meridium", use_container_width=True):
+            st.session_state._nadir_music_on = False
+            st.session_state._force_stop_nadir_audio = True
             try:
                 stop_meridium_track("nadir")
                 stop_meridium_track("door")
                 stop_all_meridium_audio()
             except Exception:
                 pass
-            st.components.v1.html(
-                """
-                <script>
-                (function(){
-                  try {
-                    var roots = [window];
-                    try { if (window.parent) roots.push(window.parent); } catch(e){}
-                    for (var r=0;r<roots.length;r++){
-                      var root = roots[r];
-                      try {
-                        var a = root.__mer_nadir_song;
-                        if (a) { try { a.pause(); a.src=''; a.remove(); } catch(e){} }
-                        root.__mer_nadir_song = null;
-                        var nodes = root.document.querySelectorAll('audio[data-meridium-nadir]');
-                        for (var i=0;i<nodes.length;i++){
-                          try { nodes[i].pause(); nodes[i].src=''; nodes[i].remove(); } catch(e){}
-                        }
-                      } catch(e){}
-                    }
-                  } catch(e){}
-                })();
-                </script>
-                """,
-                height=0,
-            )
-            st.session_state._nadir_music_on = False
             st.session_state.nadir_reader = None
             st.session_state.view = "chat"
             st.rerun()
@@ -7381,3 +7384,4 @@ if st.session_state.view == "chat" and st.session_state.get("_last_speak"):
         st.components.v1.html(speak_html(spoken, autoplay=False), height=70)
 
 st.markdown("</div>", unsafe_allow_html=True)
+
