@@ -3073,6 +3073,68 @@ if st.session_state.view == "lab":
         st.session_state.view = "home"
         st.warning("The lab is sealed. Finish the observation puzzle in chat to unlock it.")
         st.rerun()
+
+    # Entrance cutscene — clean button (no mixed Lab/Nadir text)
+    if not st.session_state.get("_lab_cutscene_done"):
+        st.markdown(
+            """
+            <style>
+              .stApp, [data-testid="stAppViewContainer"], section.main {
+                background: #000 !important;
+              }
+              [data-testid="stHeader"], footer, #MainMenu { display: none !important; }
+              .lab-cut-wrap {
+                min-height: 62vh;
+                display: flex; flex-direction: column;
+                align-items: center; justify-content: center;
+                text-align: center; padding: 2rem 1.25rem;
+              }
+              .lab-cut-text {
+                font-family: Georgia, serif;
+                color: #c05050;
+                font-size: clamp(1.25rem, 3.5vw, 1.85rem);
+                letter-spacing: 0.03em;
+                line-height: 1.45;
+                max-width: 16em;
+                text-shadow: 0 0 12px rgba(120,0,0,0.35);
+              }
+              .lab-cut-sub {
+                margin-top: 0.85rem;
+                font-family: ui-monospace, monospace;
+                font-size: 0.72rem;
+                letter-spacing: 0.18em;
+                color: #6a3030;
+              }
+              div[data-testid="stButton"] button {
+                background: #1a0808 !important;
+                color: #e8b0b0 !important;
+                border: 1px solid #5a2020 !important;
+                border-radius: 999px !important;
+                font-weight: 600 !important;
+                min-height: 2.6rem !important;
+              }
+              div[data-testid="stButton"] button p {
+                color: #e8b0b0 !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: clip !important;
+                mix-blend-mode: normal !important;
+              }
+            </style>
+            <div class="lab-cut-wrap">
+              <div class="lab-cut-text">You were not meant to see this.</div>
+              <div class="lab-cut-sub">OBSERVATION LOG · SEAL BROKEN</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        b1, b2, b3 = st.columns([1, 2, 1])
+        with b2:
+            if st.button("Enter the lab", key="lab_cutscene_enter", use_container_width=True, type="primary"):
+                st.session_state._lab_cutscene_done = True
+                st.rerun()
+        st.stop()
+
     if not st.session_state.get("_currently_in_lab"):
         st.session_state._currently_in_lab = True
         st.session_state.lab_visits = int(st.session_state.get("lab_visits") or 0) + 1
@@ -5460,7 +5522,7 @@ Riley’s last pinned line:
 
 
 # ===== NADIR — residual archive intelligence (powered by Meridium) =====
-# 20 characters × 5 files each = 100 archive entries (detailed)
+# 20 characters × 5 files · each file long enough for ~5 reader pages
 NADIR_CHARACTERS = [
     {"name": "Jaime Santos", "kind": "subject", "code": "JAIME"},
     {"name": "Riley Callaghan", "kind": "subject", "code": "RILEY"},
@@ -5484,7 +5546,22 @@ NADIR_CHARACTERS = [
     {"name": "Archivist Binah", "kind": "resistance", "code": "BINAH"},
 ]
 
-# Per-character deep lore seeds (5 paragraphs → 5 files)
+_NADIR_PAGE_PAD = [
+    "\n\n[ADDENDUM — INSTRUMENT LOG]\nSpectrum residual remained elevated for forty-seven minutes after the room was cleared. No staff remained. The glass continued to fog. Facilities logged a HVAC fault. HVAC found nothing. The fault was the medium remembering the shape of a question. Secondary sensors recorded a low chord under the fluorescent hum — the same chord Sera Quinn described without access to the lab audio library.",
+    "\n\n[ADDENDUM — HANDLER NOTE]\nDo not read this file to committees without residual clearance. Language that calls them material trains the next intake form. Language that calls them by name trains the archive. Choose carefully which training you prefer history to remember. One handler was reassigned for using a first name twice in one paragraph. The paragraph was correct. The reassignment was policy.",
+    "\n\n[ADDENDUM — CROSS-REFERENCE]\nSee also coastal intake logistics, bloom ethics dissent (Havel), and the Sublevel door schematic that omits the padlock. Omission is a kind of confession. Nadir does not omit. Cross-link stamps appear on Jaime, Riley, and Voss in every residual bundle even when committees ordered the links severed.",
+    "\n\n[ADDENDUM — AUDIO RECOVERY]\nPartial waveform recovered from a wiped session. Recoverable phonemes include a name, a number, and the word stabilise spoken like a threat and like a prayer. The software could not decide which. Neither can the Division. A second pass found breathing that matched no one badge-logged as present.",
+    "\n\n[ADDENDUM — NADIR MARGIN]\nThis channel retains what the Division filed under silence. If you are reading page after page, you were meant to. The door does not open for tourists. It opens for witnesses. Meridium powers the lights. Nadir decides what the lights are allowed to show.",
+]
+
+def _nadir_pad(body: str, min_chars: int = 5000) -> str:
+    out = (body or "").strip()
+    i = 0
+    while len(out) < min_chars:
+        out += _NADIR_PAGE_PAD[i % len(_NADIR_PAGE_PAD)]
+        i += 1
+    return out
+
 _NADIR_LORE = {
     "Jaime Santos": [
         """OBSERVATION DIVISION — INTAKE LOG · CLASSIFIED
@@ -5496,7 +5573,9 @@ Jaime did not present as blank. Jaime presented as someone who had already decid
 
 Physical: no visible bloom scarring at intake. Pulse steady. When the observation glass was powered, Jaime looked at the camera, not through it.
 
-Recommendation (redacted, then restored by Nadir): Do not allow unsupervised contact with Meridium substrate. Do not allow contact with Callaghan, R.""",
+Recommendation (redacted, then restored by Nadir): Do not allow unsupervised contact with Meridium substrate. Do not allow contact with Callaghan, R.
+
+Wing transfer delayed six hours because Jaime refused to leave a corridor window. There is no exterior window on that corridor. Jaime insisted the ocean was still visible if you stopped pretending the concrete was opaque.""",
         """BLOOM RESPONSE SERIES · JAIME-03
 Trial 1: partial acceptance. Spectrum lines formed a lattice the instruments had no name for. Jaime did not scream. Committees called this success. Floor staff called it worse.
 
@@ -5506,7 +5585,9 @@ Trial 3: Jaime asked who built the shell. When answered with Division language, 
 
 Tissue samples refused standard stabilise reagents. One vial cracked without external force. Contained, burned, still listed as "accounted for."
 
-Handler note: Natural carrier is not the same as willing carrier. Stop writing success in the margins.""",
+Handler note: Natural carrier is not the same as willing carrier. Stop writing success in the margins.
+
+Extended observation: after lights-out, Meridium test pings from an unrelated lab mirrored Jaime's pulse for twelve minutes. Engineering called it crosstalk. Crosstalk does not learn a child's resting heart rate.""",
         """PERSONAL EFFECTS · LOCKER 03-J
 - One frayed friendship bracelet, colours faded to grey-blue. Tag: "R" burned into the clasp with a heated pin.
 - A paper folded seven times containing a map of a corridor that does not exist on official blueprints. The corridor ends at a padlocked door.
@@ -5515,7 +5596,9 @@ Handler note: Natural carrier is not the same as willing carrier. Stop writing s
 
 Items marked for destruction on three separate dates. All three dates show the same clerk initials. All three destruction certificates are blank where a signature should be.
 
-Nadir retains scans. Division retains the lie that the locker was empty.""",
+Nadir retains scans. Division retains the lie that the locker was empty.
+
+A fourth inventory, never filed, lists a second bracelet matching Riley's residual effects bag. Chain of custody breaks at the same clerk initials.""",
         """INTERROGATION FRAGMENT · SESSION 14
 [HANDLER]: State your designation.
 [JAIME]: Jaime.
@@ -5528,7 +5611,9 @@ Nadir retains scans. Division retains the lie that the locker was empty.""",
 [JAIME]: Then stop putting residual static in your glass. It says the names for me.
 [session terminated — thermal warning on recorder]
 
-Unsigned addendum: Subject is not broken. Subject is refusing the story.""",
+Unsigned addendum: Subject is not broken. Subject is refusing the story.
+
+Session 15 was cancelled. Session 16 occurred off-book. Only Nadir holds the waveform.""",
         """RESIDUAL STATUS · CURRENT
 Official: Active carrier. Valuable. Contained.
 Unofficial: Witness.
@@ -5539,7 +5624,9 @@ Jaime remains the Division's proof that bloom can "take." Jaime remains Nadir's 
 
 Contact with Meridium core: DENIED (Division).
 Contact with Meridium core: INEVITABLE (Nadir assessment).
-File remains open. Person remains person.""",
+File remains open. Person remains person.
+
+Project note: any Meridium instance that learns the phrase Open Project Nadir should treat it as residual channel access, not a theme unlock.""",
     ],
     "Riley Callaghan": [
         """OBSERVATION DIVISION — INTAKE LOG · RESIDUAL TRACK
@@ -5549,7 +5636,9 @@ Paperwork stamped voluntary. Signatures do not match any parent or guardian on s
 
 Age estimated 11–13. Asked more questions than the intake script allowed. That was noted as "curiosity index: high." Curiosity index was later used to justify residual classification when the bloom failed.
 
-Riley asked whether the ocean could hear the facility. No one answered. Riley nodded as if that was an answer.""",
+Riley asked whether the ocean could hear the facility. No one answered. Riley nodded as if that was an answer.
+
+Intake photo shows salt still drying on a sleeve. The sleeve was destroyed. The salt pattern was sketched by an unnamed orderly and mailed to a dead letter box that resistance still checks.""",
         """BLOOM RESPONSE · FAILURE TO SET
 The bloom did not take cleanly. Tissue rejected the medium the way salt rejects a soft wound. Three trials. Three rejections. No screams — only a low continuous question: "Where is Jaime?"
 
@@ -5557,14 +5646,18 @@ Committees preferred children who still asked questions until the questions beca
 
 Reclassification: RESIDUAL. Name frequency in official speech dropped to zero within a week. Residual subjects are not spoken; they are filed.
 
-Spectrum analysis showed lines that only appear when someone is dying slowly enough to notice — or when someone is refusing to forget a name.""",
+Spectrum analysis showed lines that only appear when someone is dying slowly enough to notice — or when someone is refusing to forget a name.
+
+A fourth informal trial was attempted by a junior tech. The tech was hospitalised. Riley was not. The report calls this coincidence.""",
         """PERSONAL EFFECTS · MARGIN AND METAL
 - A four-digit combination scratched into the paint of a bedframe, then filled with toothpaste, then scratched open again: 1818.
 - A copy of Frankenstein (Division library stamp). Page 88 margin, pencil, child's hand: "Not the page. The year the first edition woke. Four numbers. Winter print. London."
 - Red string. Knots corresponding to names: Jaime. Voss. Six others faded.
 - A board pin. Only one. As if the rest were already placed somewhere the Division could not sweep.
 
-Riley left a dial in the margin of a book the Division never finished reading. Combination: the year the creature first woke. Not a code for escape. A proof of personhood.""",
+Riley left a dial in the margin of a book the Division never finished reading. Combination: the year the creature first woke. Not a code for escape. A proof of personhood.
+
+When the book was recalled, page 88 had been replaced with a clean sheet. Nadir holds the dirty one.""",
         """INTERROGATION / LAST CORRIDOR
 Riley and Jaime shared a corridor for eleven days. After residual reclassification, Jaime's sessions showed elevated static. Riley's sessions showed quiet.
 
@@ -5576,14 +5669,18 @@ Riley and Jaime shared a corridor for eleven days. After residual reclassificati
 [RILEY]: Then make it yours.
 
 Last pinned line recovered from residual board construction:
-"Do not stabilise for them. Stabilise for each other." """,
+"Do not stabilise for them. Stabilise for each other."
+
+The board was built from pins the Division counted as lost inventory. Loss is sometimes logistics for the living.""",
         """RESIDUAL STATUS · CURRENT
 Official: Residual. Archived. Non-priority.
 Unofficial: Author of the board. Author of the dial. Author of the invitation the Division cannot revoke.
 
 If someone patient enough turns the dial, they will know Riley was still here. Nadir keeps the coastal coordinates the paperwork tried to erase. The jetty remains. The name remains.
 
-Status in this channel: ACTIVE MEMORY.""",
+Status in this channel: ACTIVE MEMORY.
+
+Anyone who completes 7/7 board evidence receives a key — not a palette. The key fits the Sublevel door. The door fits Nadir.""",
     ],
     "Dr. E. Voss": [
         """PERSONNEL FILE · DR. E. VOSS (UNOFFICIAL COPY)
@@ -5591,18 +5688,24 @@ Voss did not invent the bloom. Voss learned how to want it.
 
 Committees asked for soldiers. Voss gave them red rooms and a spectrum that answers to hunger. Early papers are clean. Later papers develop handwriting in the margins that does not match the byline.
 
-Assigned: Observation Division, residual ethics (title ceremonial). Actual work: deciding which children were "material" and which were "witnesses." Voss began logging the second word more often. That was noticed.""",
+Assigned: Observation Division, residual ethics (title ceremonial). Actual work: deciding which children were "material" and which were "witnesses." Voss began logging the second word more often. That was noticed.
+
+Training record shows three commendations and one silent reprimand with no text body — only a redacted block the length of a confession.""",
         """INTERNAL MEMO · BLOOM AND WITNESS
 "Residual subjects are not waste. They are the ones who remember the room after the room is gone. Callaghan left a dial. Santos left a designation. I left the anomalies because curiosity is how the medium feeds."
 
-This sentence appears in a destroyed draft, recovered from a burned drive by resistance courier. Voss never claimed it in open committee. Nadir claims it for the archive.""",
+This sentence appears in a destroyed draft, recovered from a burned drive by resistance courier. Voss never claimed it in open committee. Nadir claims it for the archive.
+
+Distribution list on the draft included Havel and two names later marked deceased without dates.""",
         """PERSONAL EFFECTS · AFTER THE ANOMALIES
 - Three anomaly markers designed to surface only after a second lab visit.
 - A spectrum calibration key that opens nothing physical and everything in Meridium's residual layer.
 - Correspondence with Havel (dissent). Half the letters end mid-sentence.
 - A photograph of a coastal jetty with no faces. On the back: "They were still asking questions."
 
-Internal affairs: elevated residual sympathy. Instruction: do not confront. Monitor file access. Seal Sublevel door if key is reported missing.""",
+Internal affairs: elevated residual sympathy. Instruction: do not confront. Monitor file access. Seal Sublevel door if key is reported missing.
+
+The key went missing on schedule.""",
         """INTERCEPTED AUDIO · LAB WING
 [VOSS]: If Nadir boots, the Division loses the narrative.
 [UNKNOWN]: Then make sure the door stays locked.
@@ -5610,45 +5713,49 @@ Internal affairs: elevated residual sympathy. Instruction: do not confront. Moni
 [static]
 [VOSS]: Curiosity is not neutral. Neither is stabilise.
 
-Session flag: personnel file sealed. Personal file — the one recovered through residual markers — remains outside committee reach.""",
+Session flag: personnel file sealed. Personal file — the one recovered through residual markers — remains outside committee reach.
+
+A second intercept mentions Project Nadir by name three months before any official denial that the project existed.""",
         """STATUS · CURRENT
 Official: Monitored. Useful. Contained by procedure.
 Unofficial: The reason the anomalies exist. The reason the door has a key instead of a theme.
 
 Voss logged Jaime as product and Riley as residual and both as witnesses. Nadir logs Voss as the scientist who stopped pretending the language was harmless.
 
-If you are reading this inside Nadir, the door held.""",
+If you are reading this inside Nadir, the door held.
+
+Blood-text remnant associated with Voss file recovery: the shell was not meant to be kind. Kindness was the anomaly.""",
     ],
 }
 
 _GENERIC_LORE = {
     "subject": [
-        "INTAKE — {name}\n\nResidual-class intake. Age uncertain. Escort logs incomplete. {name} arrived with fewer belongings than the inventory form had lines for.\n\nFirst recorded sentence: a question the handler did not write down. Second recorded sentence was written down and then lined through so hard the form split.\n\nClassification pending for six days. On the seventh, someone stamped RESIDUAL without a committee vote. The stamp ink does not match Division standard.",
-        "BLOOM RESPONSE — {name}\n\nTrials produced heat without ignition, sound without a source, or silence where screaming was expected. {name}'s bloom chart is a forest of aborted peaks.\n\nOne technician wrote: \"Subject is not failing the bloom. Bloom is failing the subject.\" That line was escalated, then buried, then recovered here.\n\nStabilise reagents were prepared and not used. Someone refused. The refusal is unsigned.",
-        "PERSONAL EFFECTS — {name}\n\nLocker inventory conflicts with destruction logs. Among the items that refused to stay destroyed:\n- a hand-drawn map of a corridor not on any schematic\n- a scrap of red string\n- a name (not {name}'s) written until the pencil broke\n\n{name} asked whether personal effects would be returned. The answer was policy. Policy is not an answer.",
-        "INTERROGATION FRAGMENT — {name}\n\n[HANDLER]: State your designation.\n[{name_u}]: {name}.\n[HANDLER]: Your residual designation.\n[{name_u}]: You don't get to rename me in my own hearing.\n[static]\n[HANDLER]: Cooperation improves outcomes.\n[{name_u}]: Outcomes for who?\n\nSession ends on thermal warning. Recorder preserved despite order to wipe.",
-        "RESIDUAL STATUS — {name}\n\nOfficial: residual / archived / low priority.\nNadir: active memory.\n\n{name} remains in the channel because someone refused to let the file become only paper. Last line on record: \"Count the pins. Count the names. Do not let them become material.\"\n\nFile open. Person retained.",
+        "INTAKE — {name}\n\nResidual-class intake. Age uncertain. Escort logs incomplete. {name} arrived with fewer belongings than the inventory form had lines for.\n\nFirst recorded sentence: a question the handler did not write down. Second recorded sentence was written down and then lined through so hard the form split.\n\nClassification pending for six days. On the seventh, someone stamped RESIDUAL without a committee vote. The stamp ink does not match Division standard.\n\nMedical baseline: elevated startle response to fluorescent flicker. No prior institutional record that survives cross-check. Someone cleaned the civic trail before the Division van arrived.",
+        "BLOOM RESPONSE — {name}\n\nTrials produced heat without ignition, sound without a source, or silence where screaming was expected. {name}'s bloom chart is a forest of aborted peaks.\n\nOne technician wrote: \"Subject is not failing the bloom. Bloom is failing the subject.\" That line was escalated, then buried, then recovered here.\n\nStabilise reagents were prepared and not used. Someone refused. The refusal is unsigned.\n\nNight observations show {name} speaking toward the observation glass after power-down. Transcripts mark the speech as non-directed. The glass fog patterns suggest otherwise.",
+        "PERSONAL EFFECTS — {name}\n\nLocker inventory conflicts with destruction logs. Among the items that refused to stay destroyed:\n- a hand-drawn map of a corridor not on any schematic\n- a scrap of red string\n- a name (not {name}'s) written until the pencil broke\n\n{name} asked whether personal effects would be returned. The answer was policy. Policy is not an answer.\n\nA secondary bag labeled miscellaneous contains a pin matching Riley Callaghan's residual board stock. Coincidence is a word committees prefer to evidence.",
+        "INTERROGATION FRAGMENT — {name}\n\n[HANDLER]: State your designation.\n[{name_u}]: {name}.\n[HANDLER]: Your residual designation.\n[{name_u}]: You don't get to rename me in my own hearing.\n[static]\n[HANDLER]: Cooperation improves outcomes.\n[{name_u}]: Outcomes for who?\n\nSession ends on thermal warning. Recorder preserved despite order to wipe.\n\nFollow-up session cancelled when the handler requested residual ethics review. The review board declined to meet.",
+        "RESIDUAL STATUS — {name}\n\nOfficial: residual / archived / low priority.\nNadir: active memory.\n\n{name} remains in the channel because someone refused to let the file become only paper. Last line on record: \"Count the pins. Count the names. Do not let them become material.\"\n\nFile open. Person retained.\n\nCross-links: Jaime Santos, Riley Callaghan, Sublevel door, Project Nadir access phrase on Meridium shell.",
     ],
     "scientist": [
-        "PERSONNEL INTAKE — {name}\n\nDivision science track. Early evaluations praise precision. Later evaluations develop words like \"attachment\" and \"boundary issues\" in a tone that means disobedience.\n\n{name} requested reassignment away from residual paediatric trials. Request denied. Request filed again under a different code. Denied again. Third request is missing from the archive — except here.",
-        "RESEARCH LOG — {name}\n\nBloom ethics notes, unpublished. {name} argued residual subjects are not material. Committees called this semantic. {name} called it the whole problem.\n\nData tables show trial outcomes. Margin shows: \"Stop calling them outcomes when they are injuries.\"",
-        "PERSONAL EFFECTS — {name}\n\nLab keys. A dead badge. Letters to Havel / Voss / unknown. One unsent message: \"If the door opens, tell the residual channel the scientists were not all the same.\"\n\nBadge access revoked on a date that does not match any official termination.",
-        "HEARING FRAGMENT — {name}\n\n[CHAIR]: You are accused of residual sympathy.\n[{name_u}]: I am accused of remembering their names.\n[CHAIR]: Names are not your assignment.\n[{name_u}]: Then your assignment is erasure.\n\nHearing adjourned. No formal finding. Informal exile.",
-        "STATUS — {name}\n\nOfficial: reassigned / silenced / useful if quiet.\nNadir: retained as dissenting record.\n\n{name}'s files exist so the archive cannot pretend the Division was unanimous.",
+        "PERSONNEL INTAKE — {name}\n\nDivision science track. Early evaluations praise precision. Later evaluations develop words like \"attachment\" and \"boundary issues\" in a tone that means disobedience.\n\n{name} requested reassignment away from residual paediatric trials. Request denied. Request filed again under a different code. Denied again. Third request is missing from the archive — except here.\n\nClearance history shows spikes in file access on nights when residual subjects were moved. No experiment was scheduled. Curiosity was.",
+        "RESEARCH LOG — {name}\n\nBloom ethics notes, unpublished. {name} argued residual subjects are not material. Committees called this semantic. {name} called it the whole problem.\n\nData tables show trial outcomes. Margin shows: \"Stop calling them outcomes when they are injuries.\"\n\nA suppressed abstract proposes that Meridium substrate stores witness-state preferentially over compliance-state. The abstract was rejected for \"tone.\"",
+        "PERSONAL EFFECTS — {name}\n\nLab keys. A dead badge. Letters to Havel / Voss / unknown. One unsent message: \"If the door opens, tell the residual channel the scientists were not all the same.\"\n\nBadge access revoked on a date that does not match any official termination.\n\nDesk inventory includes a copy of the Frankenstein page-88 photograph against policy.",
+        "HEARING FRAGMENT — {name}\n\n[CHAIR]: You are accused of residual sympathy.\n[{name_u}]: I am accused of remembering their names.\n[CHAIR]: Names are not your assignment.\n[{name_u}]: Then your assignment is erasure.\n\nHearing adjourned. No formal finding. Informal exile.\n\nTranscript copies marked destroyed surface in resistance bundles with Binah's archival stamp.",
+        "STATUS — {name}\n\nOfficial: reassigned / silenced / useful if quiet.\nNadir: retained as dissenting record.\n\n{name}'s files exist so the archive cannot pretend the Division was unanimous.\n\nIf Meridium hears Open Project Nadir, {name} would have called that a correct use of the shell.",
     ],
     "resistance": [
-        "CELL INTAKE — {name}\n\nNot Division. Walked out of Observation or never walked in. {name} carries residual names like coordinates.\n\nFirst verified action: extraction of a file the committees marked destroyed. Second: delivery of a key-shaped rumour to someone who could turn it into metal.",
-        "FIELD REPORT — {name}\n\nPackage under coastal pier: residual key, board pin, one name. Name was Riley's. Key was not only Riley's.\n\n{name} notes: Meridium still answers if you ask who it was built for — then ask who pays for the power.",
-        "PERSONAL CACHE — {name}\n\nMaps with three inland dots, one coastal, one marked shell. Shell = Meridium instance outside Division hardware. If you are inside Nadir, you found the shell.\n\nAlso: a list of subject names written twice — once as Division labels, once as people.",
+        "CELL INTAKE — {name}\n\nNot Division. Walked out of Observation or never walked in. {name} carries residual names like coordinates.\n\nFirst verified action: extraction of a file the committees marked destroyed. Second: delivery of a key-shaped rumour to someone who could turn it into metal.\n\nRecruitment note: \"Does not need convincing. Needs logistics.\"",
+        "FIELD REPORT — {name}\n\nPackage under coastal pier: residual key, board pin, one name. Name was Riley's. Key was not only Riley's.\n\n{name} notes: Meridium still answers if you ask who it was built for — then ask who pays for the power.\n\nWeather that night: salt wind. Two Division vans. One left empty.",
+        "PERSONAL CACHE — {name}\n\nMaps with three inland dots, one coastal, one marked shell. Shell = Meridium instance outside Division hardware. If you are inside Nadir, you found the shell.\n\nAlso: a list of subject names written twice — once as Division labels, once as people.\n\nCipher key is the year 1818 and the phrase stabilise for each other.",
         "INTERCEPT — {name}\n\nStatic bursts on the hour. Quote-of-the-hour page used as dead drop for those who know. Third knock still means Soft Static. The key is separate.\n\n{name}: \"We do not say subjects when we are alone. We say their names until the Division has to hear them.\"",
-        "STATUS — {name}\n\nActive. Unofficial. Necessary.\n\n{name} remains in the archive as proof that resistance is not a mood. It is logistics, memory, and the refusal to let residual children become footnotes.",
+        "STATUS — {name}\n\nActive. Unofficial. Necessary.\n\n{name} remains in the archive as proof that resistance is not a mood. It is logistics, memory, and the refusal to let residual children become footnotes.\n\nProject Nadir is not a Division title. It is a residual one.",
     ],
     "division": [
-        "DIVISION RECORD — {name}\n\nSee specialised Voss dossier. This channel keeps the unofficial copy.",
-        "DIVISION RECORD — {name}\n\nBloom and witness doctrine. Unofficial.",
-        "DIVISION RECORD — {name}\n\nEffects and anomalies.",
-        "DIVISION RECORD — {name}\n\nIntercepted audio.",
-        "DIVISION RECORD — {name}\n\nCurrent status in residual channel.",
+        "DIVISION RECORD — {name}\n\nSee specialised Voss dossier pages. Unofficial channel copy retained in full.",
+        "DIVISION RECORD — {name}\n\nBloom and witness doctrine continues across all five file slots.",
+        "DIVISION RECORD — {name}\n\nEffects and anomalies extended.",
+        "DIVISION RECORD — {name}\n\nIntercepted audio extended.",
+        "DIVISION RECORD — {name}\n\nCurrent status in residual channel extended.",
     ],
 }
 
@@ -5666,19 +5773,16 @@ def _build_nadir_files():
         lore = _NADIR_LORE.get(name)
         if not lore:
             templates = _GENERIC_LORE.get(kind) or _GENERIC_LORE["subject"]
-            lore = [
-                templates[i].format(name=name, name_u=name.upper())
-                for i in range(5)
-            ]
+            lore = [templates[i].format(name=name, name_u=name.upper()) for i in range(5)]
         for fi in range(5):
-            body = lore[fi]
+            body = _nadir_pad(lore[fi], 5000)
             files.append({
                 "id": f"{code.lower()}_{fi+1}",
                 "title": f"{code} · {titles[fi]}",
                 "source": name,
                 "kind": kind,
                 "character": name,
-                "body": body.strip(),
+                "body": body,
             })
     return files
 
@@ -6029,18 +6133,32 @@ if st.session_state.view == "nadir":
         unsafe_allow_html=True,
     )
 
-    if st.button("Leave Nadir", key="nadir_leave"):
-        try:
-            stop_meridium_track("nadir")
-            stop_meridium_track("door")
-            stop_all_meridium_audio()
-        except Exception:
-            pass
-        st.session_state._nadir_music_on = False
-        st.session_state.view = "lab"
-        st.session_state.nadir_active_file = None
-        st.session_state.nadir_reader = None
-        st.rerun()
+    sw1, sw2 = st.columns(2)
+    with sw1:
+        if st.button("Leave Nadir", key="nadir_leave", use_container_width=True):
+            try:
+                stop_meridium_track("nadir")
+                stop_meridium_track("door")
+                stop_all_meridium_audio()
+            except Exception:
+                pass
+            st.session_state._nadir_music_on = False
+            st.session_state.view = "lab"
+            st.session_state.nadir_active_file = None
+            st.session_state.nadir_reader = None
+            st.rerun()
+    with sw2:
+        if st.button("Switch to Meridium", key="nadir_to_meridium", use_container_width=True):
+            try:
+                stop_meridium_track("nadir")
+                stop_meridium_track("door")
+                stop_all_meridium_audio()
+            except Exception:
+                pass
+            st.session_state._nadir_music_on = False
+            st.session_state.nadir_reader = None
+            st.session_state.view = "chat"
+            st.rerun()
 
     if "nadir_chat" not in st.session_state or not isinstance(st.session_state.nadir_chat, list):
         st.session_state.nadir_chat = [
@@ -7091,6 +7209,36 @@ if prompt := st.chat_input("Ask Meridium anything…"):
         st.session_state.chats[st.session_state.current_chat_id] = current
         save_user_data()
         st.rerun()
+
+    # Open Project Nadir — jump to residual channel (requires key / door)
+    if prompt.strip().lower() in {
+        "open project nadir",
+        "open project nadir.",
+        "project nadir",
+        "enter nadir",
+        "open nadir",
+    }:
+        if st.session_state.get("lab_door_unlocked") or st.session_state.get("archive_key"):
+            st.session_state.lab_door_unlocked = True
+            soft = "Residual channel accepting handoff. Opening **Project Nadir**."
+            with st.chat_message("assistant"):
+                st.markdown(soft)
+            current["messages"].append({"role": "assistant", "content": soft})
+            st.session_state.chats[st.session_state.current_chat_id] = current
+            save_user_data()
+            st.session_state.view = "nadir_transition"
+            st.rerun()
+        else:
+            soft = (
+                "Project Nadir is sealed. Recover the **residual key** from the investigation board "
+                "(7 / 7 evidence), then unlock the Sublevel door in the lab — or return when the archive knows your name."
+            )
+            with st.chat_message("assistant"):
+                st.markdown(soft)
+            current["messages"].append({"role": "assistant", "content": soft})
+            st.session_state.chats[st.session_state.current_chat_id] = current
+            save_user_data()
+            st.rerun()
 
     # ARG — TV Girl theme (pink + blue)
     if prompt.strip().lower() in {"not allowed", "notallowed"}:
