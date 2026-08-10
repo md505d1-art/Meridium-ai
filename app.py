@@ -1202,6 +1202,70 @@ def apply_owner_grants_for_user(username: str) -> None:
             st.session_state.theme = grants["force_theme"]
             st.session_state._owner_force_theme_applied = True
 
+
+CHATROOM_FILE = DATA_DIR / "owner_chatroom.json"
+
+
+def chatroom_load() -> dict:
+    try:
+        if CHATROOM_FILE.exists():
+            d = json.loads(CHATROOM_FILE.read_text(encoding="utf-8"))
+            if isinstance(d, dict):
+                return d
+    except Exception:
+        pass
+    return {"members": [], "messages": [], "updated": None}
+
+
+def chatroom_save(data: dict) -> None:
+    try:
+        data["updated"] = datetime.now().isoformat()
+        CHATROOM_FILE.write_text(json.dumps(data, indent=0), encoding="utf-8")
+    except Exception:
+        pass
+
+
+def chatroom_ensure_owner(owner_name: str) -> dict:
+    room = chatroom_load()
+    members = [m.lower() for m in (room.get("members") or []) if m]
+    on = (owner_name or "").strip().lower()
+    if on and on not in members:
+        members.insert(0, on)
+        room["members"] = members
+        chatroom_save(room)
+    return room
+
+
+def chatroom_invite(username: str) -> None:
+    room = chatroom_load()
+    members = [m.lower() for m in (room.get("members") or []) if m]
+    u = (username or "").strip().lower()
+    if u and u not in members:
+        members.append(u)
+        room["members"] = members[:40]
+        chatroom_save(room)
+
+
+def chatroom_post(username: str, text: str) -> None:
+    room = chatroom_load()
+    msgs = list(room.get("messages") or [])
+    msgs.append({
+        "user": (username or "anon").strip()[:32],
+        "text": str(text)[:800],
+        "ts": datetime.now().isoformat(),
+    })
+    room["messages"] = msgs[-120:]  # keep last 120
+    chatroom_save(room)
+
+
+def chatroom_user_allowed(username: str) -> bool:
+    u = (username or "").strip().lower()
+    if is_owner(u):
+        return True
+    room = chatroom_load()
+    members = [m.lower() for m in (room.get("members") or []) if m]
+    return u in members
+
 def save_user_data():
     name = (st.session_state.get("username") or "").strip()
     if not name:
@@ -6993,6 +7057,177 @@ if st.session_state.view == "library":
             st.caption("")  # dial stays hidden until residual key is earned
     st.stop()
 
+# ===== OWNER DESK (drae only) + shared chatroom =====
+if st.session_state.view == "owner":
+    if not is_owner(st.session_state.get("username") or ""):
+        st.session_state.view = "home"
+        st.rerun()
+
+    st.markdown(
+        """
+        <div class="panel">
+          <div class="panel-label">Owner desk</div>
+          <div class="hero" style="font-size:1.35rem;">Meridium control</div>
+          <div class="sub">Live sessions · chatroom · grants · only you</div>
+          <div class="ridge"></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    if st.button("← Home", key="owner_back_home"):
+        st.session_state.view = "home"
+        st.rerun()
+
+    tab_live, tab_room, tab_grants = st.tabs(["Online", "Chatroom", "Grants"])
+
+    with tab_live:
+        online = presence_online()
+        st.markdown(f"**{len(online)}** session(s) active")
+        st.caption("Heartbeat on each page load · online if seen within ~75s")
+        if not online:
+            st.info("No other sessions right now.")
+        else:
+            for row in online:
+                u = row.get("username") or "?"
+                v = row.get("view") or "?"
+                age = row.get("age_sec", "?")
+                th = row.get("theme") or "—"
+                title = row.get("title") or ""
+                badge = " · owner" if row.get("is_owner") else ""
+                c1, c2 = st.columns([3, 1])
+                with c1:
+                    st.markdown(
+                        f"**{u}**{badge}  \n"
+                        f"<span style='opacity:0.75;font-size:0.85rem'>"
+                        f"`{v}` · {age}s ago · {th}"
+                        + (f" · {title}" if title else "")
+                        + "</span>",
+                        unsafe_allow_html=True,
+                    )
+                with c2:
+                    if not row.get("is_owner"):
+                        if st.button("Invite", key=f"own_inv_{row.get('session_id')}", use_container_width=True):
+                            chatroom_invite(u)
+                            st.success(f"Invited **{u}** to the room.")
+                            st.rerun()
+
+    with tab_room:
+        me = st.session_state.get("username") or "drae"
+        room = chatroom_ensure_owner(me)
+        members = room.get("members") or []
+        st.caption("Members: " + (", ".join(members) if members else "—"))
+        inv = st.text_input("Invite username", key="owner_room_invite", placeholder="exact name")
+        if st.button("Add to room", key="owner_room_add"):
+            if (inv or "").strip():
+                chatroom_invite(inv)
+                st.success(f"Added **{inv.strip()}**")
+                st.rerun()
+        if st.button("Open chatroom →", key="owner_open_room", type="primary", use_container_width=True):
+            st.session_state.view = "owner_room"
+            st.rerun()
+        # Preview last messages
+        msgs = list(room.get("messages") or [])[-8:]
+        if msgs:
+            st.markdown("**Recent**")
+            for m in msgs:
+                st.markdown(f"**{m.get('user','?')}**: {m.get('text','')}")
+        else:
+            st.caption("No messages yet.")
+
+    with tab_grants:
+        st.markdown("Gift a theme or title to any username.")
+        target = st.text_input("Username", key="owner_grant_user", placeholder="exact name")
+        all_themes = list(THEMES.keys()) + list(SECRET_THEMES.keys())
+        grant_theme = st.selectbox("Unlock theme", ["(none)"] + all_themes, key="owner_grant_theme")
+        force_theme = st.checkbox("Force their active theme to this", key="owner_force_theme")
+        grant_title = st.text_input("Custom title / badge", key="owner_grant_title", placeholder="e.g. Residual Witness")
+        if st.button("Apply grant", key="owner_grant_btn", type="primary"):
+            tname = (target or "").strip().lower()
+            if not tname:
+                st.error("Enter a username.")
+            else:
+                grants = owner_grants_load()
+                entry = dict(grants.get(tname) or {})
+                themes = list(entry.get("themes") or [])
+                if grant_theme and grant_theme != "(none)":
+                    if grant_theme not in themes:
+                        themes.append(grant_theme)
+                    entry["themes"] = themes
+                    if force_theme:
+                        entry["force_theme"] = grant_theme
+                if (grant_title or "").strip():
+                    entry["title"] = grant_title.strip()[:48]
+                grants[tname] = entry
+                owner_grants_save(grants)
+                if tname == (st.session_state.get("username") or "").strip().lower():
+                    apply_owner_grants_for_user(tname)
+                    save_user_data()
+                st.success(f"Grant saved for **{tname}**.")
+                st.rerun()
+    st.stop()
+
+
+if st.session_state.view == "owner_room":
+    me = (st.session_state.get("username") or "").strip()
+    if not chatroom_user_allowed(me):
+        st.warning("You are not in the owner chatroom.")
+        if st.button("← Home", key="room_denied_home"):
+            st.session_state.view = "home"
+            st.rerun()
+        st.stop()
+
+    st.markdown(
+        """
+        <div class="panel">
+          <div class="panel-label">Owner chatroom</div>
+          <div class="hero" style="font-size:1.25rem;">Observation desk</div>
+          <div class="sub">Shared channel · local JSON · refresh to pull new messages</div>
+          <div class="ridge"></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    b1, b2, b3 = st.columns(3)
+    with b1:
+        if st.button("← Home", key="room_home", use_container_width=True):
+            st.session_state.view = "home"
+            st.rerun()
+    with b2:
+        if is_owner(me):
+            if st.button("Owner desk", key="room_to_owner", use_container_width=True):
+                st.session_state.view = "owner"
+                st.rerun()
+    with b3:
+        if st.button("Refresh", key="room_refresh", use_container_width=True):
+            st.rerun()
+
+    room = chatroom_load()
+    members = room.get("members") or []
+    st.caption("In room: " + (", ".join(members) if members else "—"))
+
+    msgs = list(room.get("messages") or [])[-40:]
+    if not msgs:
+        st.info("No messages yet. Say hello.")
+    else:
+        for m in msgs:
+            who = m.get("user") or "?"
+            text = m.get("text") or ""
+            ts = (m.get("ts") or "")[:19].replace("T", " ")
+            with st.chat_message("assistant" if is_owner(who) else "user"):
+                st.markdown(f"**{who}** · `{ts}`  \n{text}")
+
+    with st.form(key="owner_room_send", clear_on_submit=True):
+        msg = st.text_input("Message", key="owner_room_msg", placeholder="Type a message…")
+        sent = st.form_submit_button("Send", use_container_width=True, type="primary")
+        if sent:
+            if (msg or "").strip():
+                chatroom_post(me, msg.strip())
+                st.rerun()
+            else:
+                st.error("Empty message.")
+    st.stop()
+
+
 # HOME — bookmark rail + calm main panel
 if st.session_state.view == "home":
     rail, body = st.columns([1.15, 3.35], gap="medium")
@@ -7042,6 +7277,14 @@ if st.session_state.view == "home":
         if st.button("☰  Menu", use_container_width=True, key="bm_menu"):
             st.session_state.popup = True
             st.rerun()
+        if is_owner(st.session_state.get("username") or ""):
+            if st.button("👑  Owner", use_container_width=True, key="bm_owner"):
+                st.session_state.view = "owner"
+                st.rerun()
+        elif chatroom_user_allowed(st.session_state.get("username") or ""):
+            if st.button("💬  Room", use_container_width=True, key="bm_room_user"):
+                st.session_state.view = "owner_room"
+                st.rerun()
 
         st.markdown('<div class="ridge" style="margin:12px 0 8px;"></div>', unsafe_allow_html=True)
         st.caption("Recent chats")
@@ -7104,70 +7347,6 @@ if st.session_state.view == "home":
           </div>
         </div>
         """, unsafe_allow_html=True)
-
-        # ===== OWNER PANEL (drae only) =====
-        if is_owner(st.session_state.get("username") or ""):
-            with st.expander("Owner panel", expanded=False):
-                st.caption("Live sessions · grants · presence (local JSON). Only you can see this.")
-                online = presence_online()
-                st.markdown(f"**Online now:** {len(online)}")
-                if not online:
-                    st.caption("No active sessions (heartbeat every page load · 75s window).")
-                else:
-                    for row in online:
-                        u = row.get("username") or "?"
-                        v = row.get("view") or "?"
-                        age = row.get("age_sec", "?")
-                        th = row.get("theme") or ""
-                        title = row.get("title") or ""
-                        badge = " · owner" if row.get("is_owner") else ""
-                        st.markdown(
-                            f"- **{u}**{badge} · `{v}` · {age}s ago"
-                            + (f" · {th}" if th else "")
-                            + (f" · *{title}*" if title else "")
-                        )
-
-                st.markdown("---")
-                st.markdown("**Grant to user**")
-                target = st.text_input("Username", key="owner_grant_user", placeholder="exact name")
-                all_themes = list(THEMES.keys()) + list(SECRET_THEMES.keys())
-                grant_theme = st.selectbox(
-                    "Unlock theme",
-                    ["(none)"] + all_themes,
-                    key="owner_grant_theme",
-                )
-                force_theme = st.checkbox("Also switch their active theme to this", key="owner_force_theme")
-                grant_title = st.text_input(
-                    "Custom title / badge",
-                    key="owner_grant_title",
-                    placeholder="e.g. Residual Witness",
-                )
-                if st.button("Apply grant", key="owner_grant_btn", type="primary"):
-                    tname = (target or "").strip().lower()
-                    if not tname:
-                        st.error("Enter a username.")
-                    else:
-                        grants = owner_grants_load()
-                        entry = dict(grants.get(tname) or {})
-                        themes = list(entry.get("themes") or [])
-                        if grant_theme and grant_theme != "(none)":
-                            if grant_theme not in themes:
-                                themes.append(grant_theme)
-                            entry["themes"] = themes
-                            if force_theme:
-                                entry["force_theme"] = grant_theme
-                        if (grant_title or "").strip():
-                            entry["title"] = grant_title.strip()[:48]
-                        grants[tname] = entry
-                        owner_grants_save(grants)
-                        # If granting to self, apply immediately
-                        if tname == (st.session_state.get("username") or "").strip().lower():
-                            apply_owner_grants_for_user(tname)
-                            save_user_data()
-                        st.success(f"Grant saved for **{tname}**. They receive it on next page load.")
-                        st.rerun()
-
-                st.caption("Chatroom invite (phase 2) — presence + grants ship first.")
 
         # Quote of the hour
         qotd, qotd_author = quote_of_the_day()
@@ -7612,4 +7791,3 @@ if st.session_state.view == "chat" and st.session_state.get("_last_speak"):
         st.components.v1.html(speak_html(spoken, autoplay=False), height=70)
 
 st.markdown("</div>", unsafe_allow_html=True)
-
