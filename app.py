@@ -1412,8 +1412,11 @@ def apply_site_effects_css() -> None:
     html_parts = []
 
     # ---- Announcement (site-wide) — single fixed banner only ----
-    ann = (fx.get("announce_text") or "").strip()
-    ann_on = bool(fx.get("announce_enabled", True))
+    ann = str(fx.get("announce_text") or "").strip()
+    ann_on = fx.get("announce_enabled", True)
+    if ann_on is None:
+        ann_on = True
+    ann_on = bool(ann_on)
     show_ann = False
     ann_aid = ""
     if ann and ann_on:
@@ -1421,7 +1424,7 @@ def apply_site_effects_css() -> None:
         dismissed = st.session_state.get("_dismissed_announce_id")
         if dismissed != ann_aid:
             show_ann = True
-            style = (fx.get("announce_style") or "violet").lower()
+            style = str(fx.get("announce_style") or "violet").lower().strip()
             palettes = {
                 "violet": ("#c4a7e7", "rgba(28,16,48,0.97)", "rgba(167,139,250,0.45)"),
                 "alert": ("#fca5a5", "rgba(40,10,14,0.97)", "rgba(239,68,68,0.45)"),
@@ -3192,14 +3195,26 @@ try:
 except Exception:
     pass
 
-# Session-local dismiss for site announcement (one control, no duplicate banners)
-_aid = st.session_state.get("_active_announce_id")
-if st.session_state.get("signed_in") and _aid and st.session_state.get("_dismissed_announce_id") != _aid:
-    if st.button("Dismiss announcement", key="dismiss_site_announce", help="Hide this announcement for this session"):
-        st.session_state._dismissed_announce_id = _aid
-        st.session_state.pop("_active_announce_id", None)
-        st.session_state.pop("_active_announce_text", None)
-        st.rerun()
+# Session-local dismiss for site announcement
+try:
+    _aid = st.session_state.get("_active_announce_id")
+    if (
+        st.session_state.get("signed_in")
+        and _aid
+        and st.session_state.get("_dismissed_announce_id") != _aid
+        and st.session_state.get("view") not in ("nadir_transition",)
+    ):
+        if st.button(
+            "Dismiss announcement",
+            key="dismiss_site_announce",
+            help="Hide this announcement for this session only",
+        ):
+            st.session_state["_dismissed_announce_id"] = _aid
+            st.session_state.pop("_active_announce_id", None)
+            st.session_state.pop("_active_announce_text", None)
+            st.rerun()
+except Exception:
+    pass
 
 # Hard-stop Nadir ambient (Run Rabbit Run) when leaving the channel
 if st.session_state.get("_force_stop_nadir_audio") and st.session_state.get("view") not in (
@@ -7739,21 +7754,41 @@ if st.session_state.view == "owner":
 
         st.markdown("---")
         st.markdown("**Site announcement**")
-        st.caption("Fixed banner at the top of every signed-in page. Turn off to hide for everyone.")
-        _ann_live = bool((fx.get("announce_text") or "").strip()) and bool(fx.get("announce_enabled", True))
+        st.caption("Banner at the top of every signed-in page. Turn off to hide it for everyone.")
+        _saved_ann = str(fx.get("announce_text") or "").strip()
+        _saved_on = bool(fx.get("announce_enabled", True))
+        _ann_live = bool(_saved_ann) and _saved_on
         if _ann_live:
-            st.info(f"Currently live: “{(fx.get('announce_text') or '').strip()[:120]}”")
+            st.info("Currently live: " + _saved_ann[:120])
         else:
             st.caption("No announcement is currently broadcasting.")
-        ann_enabled = st.toggle(
+
+        # Apply any pending widget-state updates BEFORE widgets are instantiated
+        # (Streamlit forbids changing a widget key after the widget is created).
+        _pending = st.session_state.pop("_fx_ann_pending", None)
+        if isinstance(_pending, dict):
+            if "enabled" in _pending:
+                st.session_state.fx_ann_enabled = bool(_pending["enabled"])
+            if "text" in _pending:
+                st.session_state.fx_ann_text = str(_pending["text"])
+            if "style" in _pending:
+                st.session_state.fx_ann_style = str(_pending["style"])
+
+        if "fx_ann_enabled" not in st.session_state:
+            st.session_state.fx_ann_enabled = _saved_on
+        if "fx_ann_text" not in st.session_state:
+            st.session_state.fx_ann_text = _saved_ann
+        if "fx_ann_style" not in st.session_state:
+            _st = fx.get("announce_style") if fx.get("announce_style") in ("violet", "alert", "residual", "soft") else "violet"
+            st.session_state.fx_ann_style = _st
+
+        ann_enabled = st.checkbox(
             "Broadcast announcement",
-            value=bool(fx.get("announce_enabled", True)),
             key="fx_ann_enabled",
             help="Master switch — off hides the banner for every user without deleting the text.",
         )
         ann_text = st.text_area(
             "Announcement text",
-            value=str(fx.get("announce_text") or ""),
             key="fx_ann_text",
             placeholder="The residual door is open. Library dial: 1818.",
             height=80,
@@ -7761,9 +7796,6 @@ if st.session_state.view == "owner":
         ann_style = st.selectbox(
             "Announcement style",
             ["violet", "alert", "residual", "soft"],
-            index=["violet", "alert", "residual", "soft"].index(
-                fx.get("announce_style") if fx.get("announce_style") in ("violet", "alert", "residual", "soft") else "violet"
-            ),
             key="fx_ann_style",
         )
 
@@ -7780,8 +7812,8 @@ if st.session_state.view == "owner":
 
         a1, a2, a3 = st.columns(3)
         with a1:
-            if st.button("⚡ Apply to whole site", key="fx_apply", type="primary", use_container_width=True):
-                new_text = (ann_text or "").strip()[:220]
+            if st.button("Apply to whole site", key="fx_apply", type="primary", use_container_width=True):
+                new_text = str(ann_text or "").strip()[:220]
                 new_fx = {
                     "rainbow_chat": bool(rainbow),
                     "aurora_shell": bool(aurora),
@@ -7796,43 +7828,52 @@ if st.session_state.view == "owner":
                     "force_theme": "" if force_all == "(off)" else force_all,
                     "announce_enabled": bool(ann_enabled),
                     "announce_text": new_text,
-                    "announce_style": ann_style,
-                    "announce_id": uuid.uuid4().hex[:10] if new_text and ann_enabled else "",
+                    "announce_style": str(ann_style or "violet"),
+                    "announce_id": uuid.uuid4().hex[:10] if (new_text and ann_enabled) else "",
                 }
-                # keep same announce_id if text + enabled state unchanged so dismiss stays
                 if (
                     new_text
                     and ann_enabled
-                    and new_text == (fx.get("announce_text") or "").strip()
+                    and new_text == str(fx.get("announce_text") or "").strip()
                     and bool(fx.get("announce_enabled", True))
                     and fx.get("announce_id")
                 ):
                     new_fx["announce_id"] = fx.get("announce_id")
                 site_effects_save(new_fx)
-                if new_text and ann_enabled:
-                    st.success("Announcement is live for everyone signed in.")
-                elif new_text and not ann_enabled:
-                    st.success("Announcement saved but turned off — not shown.")
-                else:
-                    st.success("Site rewritten. No announcement broadcasting.")
+                # Defer widget updates to next run (before widgets instantiate)
+                st.session_state["_fx_ann_pending"] = {
+                    "enabled": bool(ann_enabled),
+                    "text": new_text,
+                    "style": str(ann_style or "violet"),
+                }
                 st.rerun()
         with a2:
             if st.button("Turn off announcement", key="fx_ann_off", use_container_width=True):
-                cur = site_effects_load()
+                cur = dict(site_effects_load())
                 cur["announce_enabled"] = False
                 cur["announce_text"] = ""
                 cur["announce_id"] = ""
                 site_effects_save(cur)
                 st.session_state.pop("_active_announce_id", None)
                 st.session_state.pop("_active_announce_text", None)
-                st.success("Server announcement cleared for everyone.")
+                st.session_state.pop("_dismissed_announce_id", None)
+                st.session_state["_fx_ann_pending"] = {
+                    "enabled": False,
+                    "text": "",
+                    "style": st.session_state.get("fx_ann_style") or "violet",
+                }
                 st.rerun()
         with a3:
             if st.button("Clear everything", key="fx_clear", use_container_width=True):
                 site_effects_save(dict(_DEFAULT_SITE_EFFECTS))
                 st.session_state.pop("_active_announce_id", None)
                 st.session_state.pop("_active_announce_text", None)
-                st.success("Reality restored.")
+                st.session_state.pop("_dismissed_announce_id", None)
+                st.session_state["_fx_ann_pending"] = {
+                    "enabled": True,
+                    "text": "",
+                    "style": "violet",
+                }
                 st.rerun()
 
         st.markdown(
