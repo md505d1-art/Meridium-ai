@@ -3081,6 +3081,82 @@ if st.session_state.view == "lab":
         st.warning("The lab is sealed. Finish the observation puzzle in chat to unlock it.")
         st.rerun()
 
+    # Entrance cutscene — isolated continue control
+    if not st.session_state.get("_lab_cutscene_done"):
+        st.markdown(
+            """
+            <style>
+              .stApp, [data-testid="stAppViewContainer"], section.main {
+                background: #000000 !important;
+              }
+              [data-testid="stHeader"], footer, #MainMenu { display: none !important; }
+              .lab-cut-wrap {
+                min-height: 58vh;
+                display: flex; flex-direction: column;
+                align-items: center; justify-content: center;
+                text-align: center; padding: 2.5rem 1.25rem 1rem;
+              }
+              .lab-cut-text {
+                font-family: Georgia, "Times New Roman", serif;
+                color: #b01010;
+                font-size: clamp(1.35rem, 4vw, 2rem);
+                letter-spacing: 0.02em;
+                line-height: 1.4;
+                max-width: 15em;
+              }
+              .lab-cut-sub {
+                margin-top: 1rem;
+                font-family: ui-monospace, monospace;
+                font-size: 0.7rem;
+                letter-spacing: 0.2em;
+                color: #5a2828;
+              }
+              /* Scope button styles to this cutscene only via following sibling block */
+              .lab-cut-btn-anchor + div button {
+                background-color: #140808 !important;
+                background-image: none !important;
+                color: #f0c8c8 !important;
+                border: 1px solid #6a2828 !important;
+                border-radius: 999px !important;
+                box-shadow: none !important;
+                min-height: 3rem !important;
+                font-size: 1rem !important;
+                font-weight: 600 !important;
+              }
+              .lab-cut-btn-anchor + div button p,
+              .lab-cut-btn-anchor + div button span {
+                color: #f0c8c8 !important;
+                font-size: 1rem !important;
+                font-weight: 600 !important;
+                white-space: nowrap !important;
+                overflow: visible !important;
+                mix-blend-mode: normal !important;
+                opacity: 1 !important;
+              }
+            </style>
+            <div class="lab-cut-wrap">
+              <div class="lab-cut-text">You were not meant to see this.</div>
+              <div class="lab-cut-sub">OBSERVATION LOG · SEAL BROKEN</div>
+            </div>
+            <div class="lab-cut-btn-anchor"></div>
+            """,
+            unsafe_allow_html=True,
+        )
+        mid = st.container()
+        with mid:
+            c1, c2, c3 = st.columns([1, 2, 1])
+            with c2:
+                cont = st.button(
+                    "Continue",
+                    key="lab_cutscene_continue_v2",
+                    use_container_width=True,
+                    type="primary",
+                )
+        if cont:
+            st.session_state._lab_cutscene_done = True
+            st.rerun()
+        st.stop()
+
     if not st.session_state.get("_currently_in_lab"):
         st.session_state._currently_in_lab = True
         st.session_state.lab_visits = int(st.session_state.get("lab_visits") or 0) + 1
@@ -3101,7 +3177,8 @@ if st.session_state.view == "lab":
     if isinstance(found, (list, set)) and len(set(found)) >= 6:
         unlock_theme("Voss Static", "all fragments recovered", apply=False)
 
-    # Project Nadir door — MUST run before render_lab (lab_view often calls st.stop())
+    # Residual door — BEFORE render_lab so it always paints (lab_view may stop later)
+    # Visible after the board has been opened / key recovered
     show_door = bool(
         st.session_state.get("board_entered_once")
         or st.session_state.get("archive_key")
@@ -3114,35 +3191,124 @@ if st.session_state.view == "lab":
         lock_color = "#6a9a6a" if unlocked else ("#c4a060" if has_key else "#8a4040")
         st.markdown(
             f"""
-            <div style="
-              margin: 0.75rem auto 0.6rem; max-width: 420px; text-align: center;
-              padding: 1.15rem 1rem 1.05rem; border-radius: 14px;
-              border: 1px solid rgba(180,80,60,0.4);
-              background: linear-gradient(180deg, #140a08 0%, #080404 100%);
-            ">
-              <div style="font-family:ui-monospace,monospace;font-size:0.62rem;letter-spacing:0.2em;color:#8a5040;margin-bottom:0.45rem">
-                CONTAINMENT · SUBLEVEL · PROJECT NADIR
+            <style>
+              .lab-door-wrap {{
+                margin: 0.8rem auto 1.2rem;
+                max-width: 440px;
+                text-align: center;
+                padding: 1.35rem 1.1rem 1.3rem;
+                border-radius: 16px;
+                border: 1px solid rgba(180,80,60,0.4);
+                background:
+                  radial-gradient(ellipse at 50% 0%, rgba(80,30,20,0.35), transparent 55%),
+                  linear-gradient(180deg, #140a08 0%, #080404 100%);
+                box-shadow: 0 0 40px rgba(60,15,10,0.35), inset 0 0 30px rgba(0,0,0,0.4);
+              }}
+              .lab-door-mark {{
+                font-family: ui-monospace, monospace;
+                font-size: 0.62rem;
+                letter-spacing: 0.24em;
+                color: #8a5040;
+                margin-bottom: 0.75rem;
+              }}
+              .lab-door-visual {{
+                width: 120px; height: 160px;
+                margin: 0 auto 0.85rem;
+                position: relative;
+                border-radius: 8px 8px 4px 4px;
+                background: linear-gradient(160deg, #2a1810 0%, #120a08 55%, #0a0604 100%);
+                border: 2px solid #3a2420;
+                box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 8px 24px rgba(0,0,0,0.4);
+              }}
+              .lab-door-visual .panel {{
+                position: absolute; left: 10px; right: 10px; top: 12px; bottom: 12px;
+                border: 1px solid #4a3028;
+                border-radius: 4px;
+                background: linear-gradient(180deg, rgba(60,35,25,0.4), transparent);
+              }}
+              .lab-door-visual .handle {{
+                position: absolute; right: 18px; top: 50%;
+                width: 10px; height: 22px; margin-top: -11px;
+                border-radius: 3px;
+                background: linear-gradient(180deg, #8a6a40, #4a3020);
+                box-shadow: 0 0 6px rgba(180,120,60,0.3);
+              }}
+              .lab-door-visual .padlock {{
+                position: absolute; left: 50%; top: 42%;
+                transform: translate(-50%, -50%);
+                width: 36px; height: 42px;
+              }}
+              .lab-door-visual .padlock .shackle {{
+                position: absolute; left: 8px; top: 0;
+                width: 20px; height: 16px;
+                border: 3px solid {"#6a9a6a" if unlocked else "#a09070"};
+                border-bottom: none;
+                border-radius: 12px 12px 0 0;
+                box-sizing: border-box;
+                {"transform: translateY(-4px) rotate(-25deg); transform-origin: 100% 100%;" if unlocked else ""}
+              }}
+              .lab-door-visual .padlock .body {{
+                position: absolute; left: 4px; top: 14px;
+                width: 28px; height: 24px;
+                border-radius: 4px;
+                background: linear-gradient(180deg, {"#5a8a5a" if unlocked else "#c0a060"}, {"#3a6a3a" if unlocked else "#6a5030"});
+                box-shadow: 0 2px 8px rgba(0,0,0,0.45);
+              }}
+              .lab-door-visual .padlock .keyhole {{
+                position: absolute; left: 50%; top: 22px;
+                transform: translateX(-50%);
+                width: 5px; height: 5px; border-radius: 50%;
+                background: #1a1008;
+              }}
+              .lab-door-title {{
+                font-family: Georgia, serif;
+                color: #e8d0c0;
+                font-size: 1.12rem;
+                margin-bottom: 0.3rem;
+              }}
+              .lab-door-sub {{
+                color: #8a7060;
+                font-size: 0.84rem;
+                line-height: 1.5;
+                margin-bottom: 0.35rem;
+              }}
+              .lab-door-status {{
+                display: inline-block;
+                margin-top: 0.4rem;
+                padding: 0.2rem 0.65rem;
+                border-radius: 999px;
+                font-family: ui-monospace, monospace;
+                font-size: 0.65rem;
+                letter-spacing: 0.16em;
+                color: {lock_color};
+                border: 1px solid {lock_color}55;
+                background: {lock_color}18;
+              }}
+            </style>
+            <div class="lab-door-wrap">
+              <div class="lab-door-mark">CONTAINMENT · SUBLEVEL · OFF-SCHEMATIC</div>
+              <div class="lab-door-visual">
+                <div class="panel"></div>
+                <div class="handle"></div>
+                <div class="padlock">
+                  <div class="shackle"></div>
+                  <div class="body"></div>
+                  <div class="keyhole"></div>
+                </div>
               </div>
-              <div style="font-size:2rem;line-height:1;margin:0.1rem 0 0.3rem">{"🚪🔓" if unlocked else "🚪🔒"}</div>
-              <div style="font-family:Georgia,serif;color:#e8d0c0;font-size:1.05rem;margin-bottom:0.2rem">
-                A door that was not on the schematic
+              <div class="lab-door-title">A door that was not on the schematic</div>
+              <div class="lab-door-sub">
+                {"The residual channel is open. Nadir is listening." if unlocked else
+                 ("The residual key fits. Turn it." if has_key else
+                  "Padlocked. Residual stamp. Recover the key from the investigation board (7 / 7 evidence).")}
               </div>
-              <div style="color:#8a7060;font-size:0.82rem;line-height:1.45;margin-bottom:0.3rem">
-                {"Door open. Channel ready." if unlocked else
-                 ("Key ready. Unlock to enter Nadir." if has_key else
-                  "Padlocked. Finish the board (7/7) for the residual key.")}
-              </div>
-              <div style="
-                display:inline-block;padding:0.16rem 0.55rem;border-radius:999px;
-                font-family:ui-monospace,monospace;font-size:0.62rem;letter-spacing:0.14em;
-                color:{lock_color};border:1px solid {lock_color}55;background:{lock_color}18;
-              ">{lock_label}</div>
+              <div class="lab-door-status">{lock_label}</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
         if unlocked:
-            if st.button("Enter Nadir", key="lab_door_enter", use_container_width=True):
+            if st.button("Enter residual channel - Nadir", use_container_width=True, key="lab_door_enter", type="primary"):
                 try:
                     stop_all_meridium_audio()
                 except Exception:
@@ -3150,7 +3316,7 @@ if st.session_state.view == "lab":
                 st.session_state.view = "nadir_transition"
                 st.rerun()
         elif has_key:
-            if st.button("Unlock door", key="lab_door_unlock", use_container_width=True):
+            if st.button("Use residual key", use_container_width=True, key="lab_door_unlock", type="primary"):
                 st.session_state.lab_door_unlocked = True
                 st.session_state.archive_key = True
                 try:
@@ -3167,8 +3333,9 @@ if st.session_state.view == "lab":
                     pass
                 st.session_state.view = "nadir_transition"
                 st.rerun()
+        else:
+            st.caption("The padlock does not turn. Finish the board — you earn a key, not a palette.")
 
-    # Lab content (may call st.stop — door above still rendered)
     try:
         render_lab()
     except Exception:
@@ -3181,6 +3348,23 @@ if st.session_state.view == "lab":
             """,
             unsafe_allow_html=True,
         )
+
+    # Door controls again under lab content if lab_view rendered above the first block only
+    if show_door and not st.session_state.get("lab_door_unlocked"):
+        has_key = bool(st.session_state.get("archive_key"))
+        if has_key:
+            if st.button("Use residual key on the door", use_container_width=True, key="lab_door_unlock_b", type="primary"):
+                st.session_state.lab_door_unlocked = True
+                try:
+                    save_user_data()
+                except Exception:
+                    pass
+                try:
+                    stop_all_meridium_audio()
+                except Exception:
+                    pass
+                st.session_state.view = "nadir_transition"
+                st.rerun()
 
     st.stop()
 
