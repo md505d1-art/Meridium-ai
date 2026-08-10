@@ -3074,65 +3074,80 @@ if st.session_state.view == "lab":
         st.warning("The lab is sealed. Finish the observation puzzle in chat to unlock it.")
         st.rerun()
 
-    # Entrance cutscene — clean button (no mixed Lab/Nadir text)
+    # Entrance cutscene — isolated continue control
     if not st.session_state.get("_lab_cutscene_done"):
         st.markdown(
             """
             <style>
               .stApp, [data-testid="stAppViewContainer"], section.main {
-                background: #000 !important;
+                background: #000000 !important;
               }
               [data-testid="stHeader"], footer, #MainMenu { display: none !important; }
               .lab-cut-wrap {
-                min-height: 62vh;
+                min-height: 58vh;
                 display: flex; flex-direction: column;
                 align-items: center; justify-content: center;
-                text-align: center; padding: 2rem 1.25rem;
+                text-align: center; padding: 2.5rem 1.25rem 1rem;
               }
               .lab-cut-text {
-                font-family: Georgia, serif;
-                color: #c05050;
-                font-size: clamp(1.25rem, 3.5vw, 1.85rem);
-                letter-spacing: 0.03em;
-                line-height: 1.45;
-                max-width: 16em;
-                text-shadow: 0 0 12px rgba(120,0,0,0.35);
+                font-family: Georgia, "Times New Roman", serif;
+                color: #b01010;
+                font-size: clamp(1.35rem, 4vw, 2rem);
+                letter-spacing: 0.02em;
+                line-height: 1.4;
+                max-width: 15em;
               }
               .lab-cut-sub {
-                margin-top: 0.85rem;
+                margin-top: 1rem;
                 font-family: ui-monospace, monospace;
-                font-size: 0.72rem;
-                letter-spacing: 0.18em;
-                color: #6a3030;
+                font-size: 0.7rem;
+                letter-spacing: 0.2em;
+                color: #5a2828;
               }
-              div[data-testid="stButton"] button {
-                background: #1a0808 !important;
-                color: #e8b0b0 !important;
-                border: 1px solid #5a2020 !important;
+              /* Scope button styles to this cutscene only via following sibling block */
+              .lab-cut-btn-anchor + div button {
+                background-color: #140808 !important;
+                background-image: none !important;
+                color: #f0c8c8 !important;
+                border: 1px solid #6a2828 !important;
                 border-radius: 999px !important;
+                box-shadow: none !important;
+                min-height: 3rem !important;
+                font-size: 1rem !important;
                 font-weight: 600 !important;
-                min-height: 2.6rem !important;
               }
-              div[data-testid="stButton"] button p {
-                color: #e8b0b0 !important;
+              .lab-cut-btn-anchor + div button p,
+              .lab-cut-btn-anchor + div button span {
+                color: #f0c8c8 !important;
+                font-size: 1rem !important;
+                font-weight: 600 !important;
                 white-space: nowrap !important;
-                overflow: hidden !important;
-                text-overflow: clip !important;
+                overflow: visible !important;
                 mix-blend-mode: normal !important;
+                opacity: 1 !important;
               }
             </style>
             <div class="lab-cut-wrap">
               <div class="lab-cut-text">You were not meant to see this.</div>
               <div class="lab-cut-sub">OBSERVATION LOG · SEAL BROKEN</div>
             </div>
+            <div class="lab-cut-btn-anchor"></div>
             """,
             unsafe_allow_html=True,
         )
-        b1, b2, b3 = st.columns([1, 2, 1])
-        with b2:
-            if st.button("Enter the lab", key="lab_cutscene_enter", use_container_width=True, type="primary"):
-                st.session_state._lab_cutscene_done = True
-                st.rerun()
+        mid = st.container()
+        with mid:
+            c1, c2, c3 = st.columns([1, 2, 1])
+            with c2:
+                cont = st.button(
+                    "Continue",
+                    key="lab_cutscene_continue_v2",
+                    use_container_width=True,
+                    type="primary",
+                )
+        if cont:
+            st.session_state._lab_cutscene_done = True
+            st.rerun()
         st.stop()
 
     if not st.session_state.get("_currently_in_lab"):
@@ -7353,3 +7368,4 @@ if st.session_state.view == "chat" and st.session_state.get("_last_speak"):
         st.components.v1.html(speak_html(spoken, autoplay=False), height=70)
 
 st.markdown("</div>", unsafe_allow_html=True)
+
