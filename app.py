@@ -1361,6 +1361,7 @@ _DEFAULT_SITE_EFFECTS = {
     "quiet_mode": False,
     "creator_watermark": True,
     "force_theme": "",
+    "announce_enabled": True,  # master switch for site-wide announcement
     "announce_text": "",
     "announce_style": "violet",  # violet | alert | residual | soft
     "announce_id": "",
@@ -1410,17 +1411,12 @@ def apply_site_effects_css() -> None:
     css_parts = []
     html_parts = []
 
-    # ---- Announcement (site-wide) ----
-    # Streamlit layout often breaks sticky banners inside markdown containers.
-    # Use fixed positioning + parent-document injection so the banner stays on top.
+    # ---- Announcement (site-wide) — single fixed banner only ----
     ann = (fx.get("announce_text") or "").strip()
+    ann_on = bool(fx.get("announce_enabled", True))
     show_ann = False
     ann_aid = ""
-    ann_accent = "#c4a7e7"
-    ann_bg = "rgba(28,16,48,0.97)"
-    ann_border = "rgba(167,139,250,0.45)"
-    ann_safe = ""
-    if ann:
+    if ann and ann_on:
         ann_aid = str(fx.get("announce_id") or "").strip() or "legacy"
         dismissed = st.session_state.get("_dismissed_announce_id")
         if dismissed != ann_aid:
@@ -1432,35 +1428,35 @@ def apply_site_effects_css() -> None:
                 "residual": ("#5eead4", "rgba(6,20,18,0.97)", "rgba(45,212,191,0.4)"),
                 "soft": ("#f9a8d4", "rgba(40,16,32,0.97)", "rgba(244,114,182,0.4)"),
             }
-            ann_accent, ann_bg, ann_border = palettes.get(style, palettes["violet"])
-            ann_safe = _html.escape(ann)[:220]
+            accent, bg, border = palettes.get(style, palettes["violet"])
+            safe = _html.escape(ann)[:220]
             css_parts.append(
                 f"""
                 .block-container {{
-                  padding-top: 5.5rem !important;
+                  padding-top: 5.25rem !important;
                 }}
-                #drae-announce-banner {{
+                .drae-announce-banner {{
                   position: fixed !important;
                   top: 0 !important;
                   left: 0 !important;
                   right: 0 !important;
-                  z-index: 2147483000 !important;
+                  z-index: 999999 !important;
                   text-align: center;
-                  padding: 0.85rem 2.6rem 0.8rem 1.1rem;
-                  background: {ann_bg} !important;
-                  border-bottom: 1px solid {ann_border} !important;
+                  padding: 0.85rem 1.2rem 0.8rem;
+                  background: {bg} !important;
+                  border-bottom: 1px solid {border} !important;
                   box-shadow: 0 12px 40px rgba(0,0,0,0.55);
                   pointer-events: auto;
                 }}
-                #drae-announce-banner .drae-ann-kicker {{
+                .drae-announce-banner .drae-ann-kicker {{
                   font-family: ui-monospace, monospace;
                   font-size: 0.6rem;
                   letter-spacing: 0.24em;
-                  color: {ann_accent};
+                  color: {accent};
                   opacity: 0.9;
                   margin-bottom: 0.28rem;
                 }}
-                #drae-announce-banner .drae-ann-body {{
+                .drae-announce-banner .drae-ann-body {{
                   font-family: 'Cormorant Garamond', Georgia, serif;
                   font-style: italic;
                   font-size: clamp(1.05rem, 2.8vw, 1.35rem);
@@ -1471,13 +1467,12 @@ def apply_site_effects_css() -> None:
             )
             html_parts.append(
                 f"""
-                <div id="drae-announce-banner" data-ann-id="{_html.escape(ann_aid)}">
+                <div class="drae-announce-banner" data-ann-id="{_html.escape(ann_aid)}">
                   <div class="drae-ann-kicker">SITE ANNOUNCEMENT · DRAE</div>
-                  <div class="drae-ann-body">{ann_safe}</div>
+                  <div class="drae-ann-body">{safe}</div>
                 </div>
                 """
             )
-            # Keep a flag so the caller can render a native dismiss control
             st.session_state["_active_announce_id"] = ann_aid
             st.session_state["_active_announce_text"] = ann
     if not show_ann:
@@ -1701,77 +1696,7 @@ def apply_site_effects_css() -> None:
     if payload.strip():
         st.markdown(payload, unsafe_allow_html=True)
 
-    # Re-inject announcement into the parent document so Streamlit layout
-    # cannot bury or clip it inside nested containers.
-    if show_ann and ann_safe:
-        import json as _json
-        _payload = {
-            "id": ann_aid,
-            "text": ann,  # raw text; escaped in JS
-            "accent": ann_accent,
-            "bg": ann_bg,
-            "border": ann_border,
-        }
-        _js = _json.dumps(_payload)
-        st.components.v1.html(
-            f"""
-            <script>
-            (function() {{
-              try {{
-                var data = {_js};
-                var roots = [];
-                try {{ roots.push(window.parent); }} catch (e) {{}}
-                try {{ roots.push(window.top); }} catch (e) {{}}
-                roots.push(window);
-                function esc(s) {{
-                  return String(s || '')
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;');
-                }}
-                for (var r = 0; r < roots.length; r++) {{
-                  var root = roots[r];
-                  if (!root || !root.document || !root.document.body) continue;
-                  try {{
-                    var old = root.document.getElementById('drae-announce-banner');
-                    if (old) old.remove();
-                    var el = root.document.createElement('div');
-                    el.id = 'drae-announce-banner';
-                    el.setAttribute('data-ann-id', data.id || '');
-                    el.style.cssText = [
-                      'position:fixed',
-                      'top:0',
-                      'left:0',
-                      'right:0',
-                      'z-index:2147483000',
-                      'text-align:center',
-                      'padding:0.85rem 2.6rem 0.8rem 1.1rem',
-                      'background:' + data.bg,
-                      'border-bottom:1px solid ' + data.border,
-                      'box-shadow:0 12px 40px rgba(0,0,0,0.55)',
-                      'pointer-events:auto',
-                      'font-family:Georgia,serif'
-                    ].join(';');
-                    el.innerHTML =
-                      '<div style="font-family:ui-monospace,monospace;font-size:0.6rem;letter-spacing:0.24em;color:' +
-                      data.accent + ';opacity:0.9;margin-bottom:0.28rem">SITE ANNOUNCEMENT · DRAE</div>' +
-                      '<div style="font-family:Cormorant Garamond,Georgia,serif;font-style:italic;font-size:clamp(1.05rem,2.8vw,1.35rem);color:#faf7ff;line-height:1.35">' +
-                      esc(data.text) + '</div>';
-                    root.document.body.appendChild(el);
-                    // Push Streamlit content below the fixed banner
-                    try {{
-                      var app = root.document.querySelector('[data-testid="stAppViewContainer"]') || root.document.body;
-                      if (app) app.style.paddingTop = '4.8rem';
-                    }} catch (e2) {{}}
-                  }} catch (e3) {{}}
-                }}
-              }} catch (e) {{}}
-            }})();
-            </script>
-            """,
-            height=0,
-        )
+
 
 def save_user_data():
     name = (st.session_state.get("username") or "").strip()
@@ -3267,38 +3192,14 @@ try:
 except Exception:
     pass
 
-# Native dismiss control for site announcement (session-local)
+# Session-local dismiss for site announcement (one control, no duplicate banners)
 _aid = st.session_state.get("_active_announce_id")
 if st.session_state.get("signed_in") and _aid and st.session_state.get("_dismissed_announce_id") != _aid:
-    _dc1, _dc2 = st.columns([6, 1])
-    with _dc2:
-        if st.button("Dismiss", key="dismiss_site_announce", help="Hide this announcement for this session"):
-            st.session_state._dismissed_announce_id = _aid
-            st.session_state.pop("_active_announce_id", None)
-            # Remove injected parent banner immediately on next run
-            st.components.v1.html(
-                """
-                <script>
-                (function(){
-                  try {
-                    var roots = [window];
-                    try { if (window.parent) roots.push(window.parent); } catch(e){}
-                    try { if (window.top) roots.push(window.top); } catch(e){}
-                    for (var i=0;i<roots.length;i++){
-                      try {
-                        var el = roots[i].document.getElementById('drae-announce-banner');
-                        if (el) el.remove();
-                        var app = roots[i].document.querySelector('[data-testid="stAppViewContainer"]');
-                        if (app) app.style.paddingTop = '';
-                      } catch(e){}
-                    }
-                  } catch(e){}
-                })();
-                </script>
-                """,
-                height=0,
-            )
-            st.rerun()
+    if st.button("Dismiss announcement", key="dismiss_site_announce", help="Hide this announcement for this session"):
+        st.session_state._dismissed_announce_id = _aid
+        st.session_state.pop("_active_announce_id", None)
+        st.session_state.pop("_active_announce_text", None)
+        st.rerun()
 
 # Hard-stop Nadir ambient (Run Rabbit Run) when leaving the channel
 if st.session_state.get("_force_stop_nadir_audio") and st.session_state.get("view") not in (
@@ -7838,7 +7739,18 @@ if st.session_state.view == "owner":
 
         st.markdown("---")
         st.markdown("**Site announcement**")
-        st.caption("Sticky banner at the top of every page. Empty = no announcement.")
+        st.caption("Fixed banner at the top of every signed-in page. Turn off to hide for everyone.")
+        _ann_live = bool((fx.get("announce_text") or "").strip()) and bool(fx.get("announce_enabled", True))
+        if _ann_live:
+            st.info(f"Currently live: “{(fx.get('announce_text') or '').strip()[:120]}”")
+        else:
+            st.caption("No announcement is currently broadcasting.")
+        ann_enabled = st.toggle(
+            "Broadcast announcement",
+            value=bool(fx.get("announce_enabled", True)),
+            key="fx_ann_enabled",
+            help="Master switch — off hides the banner for every user without deleting the text.",
+        )
         ann_text = st.text_area(
             "Announcement text",
             value=str(fx.get("announce_text") or ""),
@@ -7866,9 +7778,10 @@ if st.session_state.view == "owner":
             key="fx_force_theme",
         )
 
-        a1, a2 = st.columns(2)
+        a1, a2, a3 = st.columns(3)
         with a1:
             if st.button("⚡ Apply to whole site", key="fx_apply", type="primary", use_container_width=True):
+                new_text = (ann_text or "").strip()[:220]
                 new_fx = {
                     "rainbow_chat": bool(rainbow),
                     "aurora_shell": bool(aurora),
@@ -7881,19 +7794,44 @@ if st.session_state.view == "owner":
                     "heart_cursor": bool(heart),
                     "creator_watermark": bool(mark),
                     "force_theme": "" if force_all == "(off)" else force_all,
-                    "announce_text": (ann_text or "").strip()[:220],
+                    "announce_enabled": bool(ann_enabled),
+                    "announce_text": new_text,
                     "announce_style": ann_style,
-                    "announce_id": uuid.uuid4().hex[:10] if (ann_text or "").strip() else "",
+                    "announce_id": uuid.uuid4().hex[:10] if new_text and ann_enabled else "",
                 }
-                # keep same announce_id if text unchanged so dismiss state stays
-                if (ann_text or "").strip() == (fx.get("announce_text") or "").strip() and fx.get("announce_id"):
+                # keep same announce_id if text + enabled state unchanged so dismiss stays
+                if (
+                    new_text
+                    and ann_enabled
+                    and new_text == (fx.get("announce_text") or "").strip()
+                    and bool(fx.get("announce_enabled", True))
+                    and fx.get("announce_id")
+                ):
                     new_fx["announce_id"] = fx.get("announce_id")
                 site_effects_save(new_fx)
-                st.success("Site rewritten. Navigate once — effects hit every session.")
+                if new_text and ann_enabled:
+                    st.success("Announcement is live for everyone signed in.")
+                elif new_text and not ann_enabled:
+                    st.success("Announcement saved but turned off — not shown.")
+                else:
+                    st.success("Site rewritten. No announcement broadcasting.")
                 st.rerun()
         with a2:
+            if st.button("Turn off announcement", key="fx_ann_off", use_container_width=True):
+                cur = site_effects_load()
+                cur["announce_enabled"] = False
+                cur["announce_text"] = ""
+                cur["announce_id"] = ""
+                site_effects_save(cur)
+                st.session_state.pop("_active_announce_id", None)
+                st.session_state.pop("_active_announce_text", None)
+                st.success("Server announcement cleared for everyone.")
+                st.rerun()
+        with a3:
             if st.button("Clear everything", key="fx_clear", use_container_width=True):
                 site_effects_save(dict(_DEFAULT_SITE_EFFECTS))
+                st.session_state.pop("_active_announce_id", None)
+                st.session_state.pop("_active_announce_text", None)
                 st.success("Reality restored.")
                 st.rerun()
 
