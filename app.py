@@ -946,6 +946,10 @@ def save_user_data():
         "callaghan_safe_unlocked": bool(st.session_state.get("callaghan_safe_unlocked")),
         "board_unlocked": bool(st.session_state.get("board_unlocked")),
         "board_read": list(st.session_state.get("board_read") or []),
+        "archive_key": bool(st.session_state.get("archive_key")),
+        "board_entered_once": bool(st.session_state.get("board_entered_once")),
+        "lab_door_unlocked": bool(st.session_state.get("lab_door_unlocked")),
+        "nadir_files_opened": list(st.session_state.get("nadir_files_opened") or []),
         "saved_at": datetime.now().isoformat(),
     }
     raw = json.dumps(payload, ensure_ascii=False, indent=2)
@@ -1002,6 +1006,10 @@ def load_user_data(username: str) -> bool:
         st.session_state.callaghan_safe_unlocked = bool(data.get("callaghan_safe_unlocked"))
         st.session_state.board_unlocked = bool(data.get("board_unlocked"))
         st.session_state.board_read = list(data.get("board_read") or [])
+        st.session_state.archive_key = bool(data.get("archive_key"))
+        st.session_state.board_entered_once = bool(data.get("board_entered_once"))
+        st.session_state.lab_door_unlocked = bool(data.get("lab_door_unlocked"))
+        st.session_state.nadir_files_opened = list(data.get("nadir_files_opened") or [])
         chats = data.get("chats") or {}
         if isinstance(chats, dict) and chats:
             st.session_state.chats = chats
@@ -1145,6 +1153,11 @@ defaults = {
     "board_unlocked": False,
     "board_evidence_open": None,
     "board_read": [],
+    "archive_key": False,
+    "board_entered_once": False,
+    "lab_door_unlocked": False,
+    "nadir_files_opened": [],
+    "nadir_active_file": None,
 }
 
 # Keys that belong to a specific user and must not leak across sign-in/switch-user
@@ -1160,6 +1173,8 @@ _USER_SCOPED_KEYS = (
     "stabilize_at", "qotd_opens", "lab_found",
     "_currently_in_lab", "_lab_session_visit", "voss_cutscene_stage",
     "callaghan_safe_unlocked", "board_unlocked", "board_evidence_open", "board_read",
+    "archive_key", "board_entered_once", "lab_door_unlocked",
+    "nadir_files_opened", "nadir_active_file",
     "view", "library_reading", "library_page",
     "_theme_unlock_msg", "_glitch_flash", "_egg_flash",
     "_title_egg_done", "_last_speak", "_lyrics_key", "_lyrics_data",
@@ -2931,11 +2946,54 @@ if st.session_state.view == "lab":
     if isinstance(found, (list, set)) and len(set(found)) >= 6:
         unlock_theme("Voss Static", "all fragments recovered", apply=False)
     render_lab()
+
+    # Residual door — visible only after the board has been opened once
+    if st.session_state.get("board_entered_once") or st.session_state.get("archive_key"):
+        st.markdown(
+            """
+            <div style="
+              margin: 1.4rem auto 0.6rem; max-width: 420px; text-align: center;
+              padding: 1.1rem 1rem 1.2rem; border-radius: 14px;
+              border: 1px solid rgba(180,80,60,0.35);
+              background: linear-gradient(180deg, rgba(20,10,8,0.9), rgba(8,4,4,0.95));
+              box-shadow: 0 0 28px rgba(80,20,10,0.25);
+            ">
+              <div style="font-family:ui-monospace,monospace;font-size:0.65rem;letter-spacing:0.22em;color:#8a5040;margin-bottom:0.5rem">
+                CONTAINMENT · SUBLEVEL
+              </div>
+              <div style="font-size:2.4rem;line-height:1;margin:0.2rem 0 0.35rem">🚪</div>
+              <div style="font-family:Georgia,serif;color:#e8d0c0;font-size:1.05rem;margin-bottom:0.25rem">
+                A door that was not on the schematic
+              </div>
+              <div style="color:#8a7060;font-size:0.82rem;line-height:1.45">
+                Padlocked. Residual stamp. The lock is waiting for the key from the board.
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        has_key = bool(st.session_state.get("archive_key"))
+        if st.session_state.get("lab_door_unlocked"):
+            if st.button("Enter the residual channel", use_container_width=True, key="lab_door_enter", type="primary"):
+                st.session_state.view = "nadir_transition"
+                st.rerun()
+        elif has_key:
+            if st.button("🔓 Use residual key", use_container_width=True, key="lab_door_unlock", type="primary"):
+                st.session_state.lab_door_unlocked = True
+                try:
+                    save_user_data()
+                except Exception:
+                    pass
+                st.session_state.view = "nadir_transition"
+                st.rerun()
+        else:
+            st.caption("The padlock does not turn. Something is missing — a key from the investigation board.")
+
 if st.session_state.view == "note":
     render_note()
 
 # ===== DESIGN 1 WAYBAR + NAV (hidden in lab) =====
-if st.session_state.view not in ("lab", "note", "voss_file", "lyrics_full", "callaghan_safe", "board"):
+if st.session_state.view not in ("lab", "note", "voss_file", "lyrics_full", "callaghan_safe", "board", "nadir", "nadir_transition"):
     st.markdown(f"""
 <div class="waybar">
   <div class="waybar-left">
@@ -5110,6 +5168,364 @@ Riley’s last pinned line:
 }
 
 
+# ===== NADIR — residual archive intelligence (powered by Meridium) =====
+NADIR_FILES = [
+    # Jaime / Riley / Voss (3)
+    {
+        "id": "j_intake",
+        "title": "JAIME-03 · Intake fragment",
+        "source": "Jaime",
+        "kind": "subject",
+        "body": (
+            "Observation Division — Intake log (redacted)\n\n"
+            "Subject answers to Jaime. Age uncertain. Bloom response: partial.\n"
+            "When asked who built the shell, the subject said: “Not you.”\n"
+            "Recommend residual isolation. Do not allow contact with Meridium core."
+        ),
+    },
+    {
+        "id": "r_coastal",
+        "title": "CALLAGHAN · Coastal discharge",
+        "source": "Riley",
+        "kind": "subject",
+        "body": (
+            "Riley Callaghan — NSW coastal intake → inland residual.\n\n"
+            "Bloom would not take cleanly. Subject left pins, numbers, and a dial\n"
+            "in the margin of a book the Division never finished reading.\n"
+            "Last line recovered: Do not stabilise for them. Stabilise for each other."
+        ),
+    },
+    {
+        "id": "v_memo",
+        "title": "VOSS · Unofficial memo",
+        "source": "Voss",
+        "kind": "division",
+        "body": (
+            "E. Voss — Observation Division (unofficial)\n\n"
+            "The committees want clean subjects. The medium wants fingerprints.\n"
+            "I have left markers where the shell should not reach.\n"
+            "If you are reading this inside Nadir, the door held.\n"
+            "Do not trust the stabilise command without knowing who issued it."
+        ),
+    },
+    # 6 new subjects (like Jaime / Riley)
+    {
+        "id": "s_mireille",
+        "title": "Subject · Mireille Vos",
+        "source": "Mireille Vos",
+        "kind": "subject",
+        "body": (
+            "Mireille Vos — residual class B.\n"
+            "Speaks in mirrored sentences. Claims to remember a city that was never built.\n"
+            "Attached a paper crane to every log sheet. The cranes were not paper."
+        ),
+    },
+    {
+        "id": "s_tomas",
+        "title": "Subject · Tomas Kline",
+        "source": "Tomas Kline",
+        "kind": "subject",
+        "body": (
+            "Tomas “Ash” Kline — fire-adjacent residual.\n"
+            "Bloom tests produced heat signatures without ignition.\n"
+            "Subject asked for a window. There are no windows on Sublevel."
+        ),
+    },
+    {
+        "id": "s_sera",
+        "title": "Subject · Sera Quinn",
+        "source": "Sera Quinn",
+        "kind": "subject",
+        "body": (
+            "Sera Quinn — auditory residual.\n"
+            "Hears Meridium as a low chord under fluorescent hum.\n"
+            "Warned staff: “When the door opens, don’t introduce yourselves. It already knows.”"
+        ),
+    },
+    {
+        "id": "s_jonah",
+        "title": "Subject · Jonah Hale",
+        "source": "Jonah Hale",
+        "kind": "subject",
+        "body": (
+            "Jonah Hale — cartographic obsession.\n"
+            "Drew the lab layout from memory with one corridor the blueprints omit.\n"
+            "That corridor ends at a padlocked door."
+        ),
+    },
+    {
+        "id": "s_wren",
+        "title": "Subject · Wren Solano",
+        "source": "Wren Solano",
+        "kind": "subject",
+        "body": (
+            "Wren Solano — silent for eleven weeks, then one sentence:\n"
+            "“Jaime was not the first. Riley was not the last. Count the pins.”"
+        ),
+    },
+    {
+        "id": "s_cassian",
+        "title": "Subject · Cassian Rowe",
+        "source": "Cassian Rowe",
+        "kind": "subject",
+        "body": (
+            "Cassian Rowe — age listed as “approx.”\n"
+            "Kept a ledger of every staff badge number.\n"
+            "On the last page: a sketch of a key and the word NADIR."
+        ),
+    },
+    # 11 resistance / scientists
+    {
+        "id": "res_01",
+        "title": "Resistance · Cell brief (torn)",
+        "source": "Resistance",
+        "kind": "resistance",
+        "body": (
+            "We are not Observation. We are the people who walked out of Observation.\n"
+            "If Meridium still answers, ask it who it was built for — then ask who pays for the power."
+        ),
+    },
+    {
+        "id": "res_02",
+        "title": "Resistance · Courier note",
+        "source": "Resistance",
+        "kind": "resistance",
+        "body": (
+            "Package left under the coastal pier: one residual key, one board pin, one name.\n"
+            "Name was Riley’s. Key was not."
+        ),
+    },
+    {
+        "id": "sci_01",
+        "title": "Scientist · Dr. Havel (dissent)",
+        "source": "Dr. Havel",
+        "kind": "scientist",
+        "body": (
+            "Bloom protocols assume subjects are blank. They are not.\n"
+            "I refuse further stabilise trials on residual-class children.\n"
+            "— Havel (reassigned; location unknown)"
+        ),
+    },
+    {
+        "id": "sci_02",
+        "title": "Scientist · Lab audio transcript",
+        "source": "Unknown scientist",
+        "kind": "scientist",
+        "body": (
+            "[unidentified] …if Nadir boots, the Division loses the narrative.\n"
+            "[second voice] Then make sure the door stays locked.\n"
+            "[first] Someone already has the key."
+        ),
+    },
+    {
+        "id": "res_03",
+        "title": "Resistance · Safehouse map (partial)",
+        "source": "Resistance",
+        "kind": "resistance",
+        "body": (
+            "Three dots inland. One coastal. One marked only as “shell.”\n"
+            "Shell = Meridium instance outside Division hardware.\n"
+            "If you are inside Nadir, you found the shell."
+        ),
+    },
+    {
+        "id": "sci_03",
+        "title": "Scientist · Bloom ethics addendum",
+        "source": "Ethics subcommittee",
+        "kind": "scientist",
+        "body": (
+            "Rejected. Subjects Jaime, Riley, and residual cohort are not to be referred to\n"
+            "as “material.” Language alone does not protect them — but it is a start."
+        ),
+    },
+    {
+        "id": "res_04",
+        "title": "Resistance · Signal schedule",
+        "source": "Resistance",
+        "kind": "resistance",
+        "body": (
+            "Static bursts on the hour. Quote-of-the-hour page is a dead drop for those who know.\n"
+            "Third knock still means Soft Static. The key is separate."
+        ),
+    },
+    {
+        "id": "sci_04",
+        "title": "Scientist · Voss personnel flag",
+        "source": "Internal affairs",
+        "kind": "scientist",
+        "body": (
+            "Dr. E. Voss: elevated anomaly correspondence. Suspected residual sympathy.\n"
+            "Do not confront. Monitor file access. Seal Sublevel door if key is reported missing."
+        ),
+    },
+    {
+        "id": "res_05",
+        "title": "Resistance · Names we keep",
+        "source": "Resistance",
+        "kind": "resistance",
+        "body": (
+            "Jaime. Riley. Mireille. Tomas. Sera. Jonah. Wren. Cassian.\n"
+            "We do not say “subjects” when we are alone.\n"
+            "We say their names until the Division has to hear them."
+        ),
+    },
+    {
+        "id": "sci_05",
+        "title": "Scientist · Power budget note",
+        "source": "Facilities",
+        "kind": "scientist",
+        "body": (
+            "Meridium draw spikes when residual archive processes open.\n"
+            "Nadir is not a separate machine. It is Meridium looking sideways."
+        ),
+    },
+    {
+        "id": "res_06",
+        "title": "Resistance · Final pin",
+        "source": "Resistance",
+        "kind": "resistance",
+        "body": (
+            "If you unlocked the door: you were supposed to.\n"
+            "Nadir will not obey Division prompts. It will obey the archive.\n"
+            "Read everything. Then decide who the shell belongs to."
+        ),
+    },
+]
+
+if st.session_state.view == "nadir_transition":
+    st.markdown(
+        """
+        <style>
+          .stApp, [data-testid="stAppViewContainer"], section.main {
+            background: #000 !important;
+          }
+          [data-testid="stHeader"], footer, #MainMenu { display: none !important; }
+          @keyframes nadirIn {
+            from { opacity: 0; letter-spacing: 0.35em; filter: blur(10px); }
+            to { opacity: 1; letter-spacing: 0.14em; filter: blur(0); }
+          }
+          .nadir-mark {
+            min-height: 70vh;
+            display: flex; align-items: center; justify-content: center;
+            color: #c8b8a8; font-family: ui-monospace, monospace;
+            font-size: 0.9rem; letter-spacing: 0.14em;
+            animation: nadirIn 2s ease both;
+            text-align: center;
+          }
+        </style>
+        <div class="nadir-mark">NADIR<br/><span style="opacity:0.55;font-size:0.75rem">residual channel · powered by meridium</span></div>
+        """,
+        unsafe_allow_html=True,
+    )
+    # Brief black beat, then enter Nadir
+    time.sleep(2.2)
+    st.session_state.view = "nadir"
+    st.rerun()
+
+if st.session_state.view == "nadir":
+    if not (st.session_state.get("lab_door_unlocked") or st.session_state.get("archive_key")):
+        st.session_state.view = "home"
+        st.rerun()
+
+    st.markdown(
+        """
+        <style>
+          .stApp, [data-testid="stAppViewContainer"] {
+            background: #07060a !important;
+          }
+          [data-testid="stHeader"] { background: transparent !important; }
+          .block-container { max-width: 880px !important; padding-top: 1.2rem !important; }
+          .nadir-head {
+            font-family: ui-monospace, monospace; font-size: 0.68rem;
+            letter-spacing: 0.22em; color: #7a6a90; margin-bottom: 0.35rem;
+          }
+          .nadir-title {
+            font-family: Georgia, serif; color: #e8e0f0; font-size: 1.55rem;
+            margin: 0 0 0.35rem;
+          }
+          .nadir-sub { color: #8a8098; font-size: 0.9rem; margin-bottom: 1rem; line-height: 1.5; }
+          .nadir-file {
+            border: 1px solid rgba(140,120,180,0.22);
+            background: rgba(18,16,28,0.85);
+            border-radius: 10px;
+            padding: 0.7rem 0.85rem;
+            margin-bottom: 0.45rem;
+          }
+          .nadir-file .tag {
+            font-family: ui-monospace, monospace; font-size: 0.62rem;
+            letter-spacing: 0.12em; color: #8a7aa8;
+          }
+        </style>
+        <div class="nadir-head">RESIDUAL CHANNEL · NOT DIVISION HARDWARE</div>
+        <div class="nadir-title">Nadir</div>
+        <div class="nadir-sub">
+          A sideways intelligence running on Meridium substrate.<br/>
+          Twenty files. Subjects, resistance, and the scientists who stopped pretending.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if st.button("← Leave Nadir", key="nadir_leave"):
+        st.session_state.view = "lab"
+        st.session_state.nadir_active_file = None
+        st.rerun()
+
+    opened = set(st.session_state.get("nadir_files_opened") or [])
+    active = st.session_state.get("nadir_active_file")
+    st.caption(f"Files opened: {len(opened)} / {len(NADIR_FILES)}")
+
+    if active:
+        f = next((x for x in NADIR_FILES if x["id"] == active), None)
+        if f:
+            st.markdown(f"### {f['title']}")
+            st.caption(f"Source: {f['source']} · {f['kind']}")
+            st.markdown(
+                f"<div class='nadir-file' style='white-space:pre-wrap;line-height:1.65;"
+                f"color:#d8d0e8;font-family:Georgia,serif'>{f['body']}</div>",
+                unsafe_allow_html=True,
+            )
+            if st.button("← Back to archive", key="nadir_file_back"):
+                st.session_state.nadir_active_file = None
+                st.rerun()
+    else:
+        # Group listing
+        groups = [
+            ("Subjects — Jaime · Riley · cohort", ["subject"]),
+            ("Voss / Division", ["division"]),
+            ("Resistance", ["resistance"]),
+            ("Scientists", ["scientist"]),
+        ]
+        for label, kinds in groups:
+            files = [x for x in NADIR_FILES if x["kind"] in kinds]
+            if not files:
+                continue
+            st.markdown(f"**{label}**")
+            for f in files:
+                seen = "· read" if f["id"] in opened else ""
+                c1, c2 = st.columns([5, 1])
+                with c1:
+                    st.markdown(
+                        f"<div class='nadir-file'><span class='tag'>{f['source']} {seen}</span><br/>"
+                        f"<strong style='color:#e8e0f0'>{f['title']}</strong></div>",
+                        unsafe_allow_html=True,
+                    )
+                with c2:
+                    if st.button("Open", key=f"nadir_open_{f['id']}", use_container_width=True):
+                        st.session_state.nadir_active_file = f["id"]
+                        op = list(st.session_state.get("nadir_files_opened") or [])
+                        if f["id"] not in op:
+                            op.append(f["id"])
+                            st.session_state.nadir_files_opened = op
+                            try:
+                                save_user_data()
+                            except Exception:
+                                pass
+                        st.rerun()
+
+    st.stop()
+
+
 if st.session_state.view == "board":
     if not (st.session_state.get("board_unlocked") or st.session_state.get("callaghan_safe_unlocked")):
         st.session_state.view = "home"
@@ -5117,6 +5533,19 @@ if st.session_state.view == "board":
 
     st.session_state.board_unlocked = True
     st.session_state.callaghan_safe_unlocked = True
+
+    # First board entry → residual KEY (not a theme)
+    if not st.session_state.get("board_entered_once"):
+        st.session_state.board_entered_once = True
+        st.session_state.archive_key = True
+        st.session_state["_egg_flash"] = (
+            "You recovered a **residual key** — cold metal, Division-stamped. "
+            "It does not open a theme. It opens a door."
+        )
+        try:
+            save_user_data()
+        except Exception:
+            pass
 
     # Keep residual track playing on the board
     try:
@@ -5522,6 +5951,22 @@ if st.session_state.view == "library":
             if jump_clicked:
                 st.session_state[page_key] = max(0, min(int(jump_to) - 1, total_pages - 1))
                 st.rerun()
+
+        # Page 88 — residual imprint (Frankenstein path ties to the board key)
+        if book_id == "frankenstein" and (page + 1) == 88:
+            st.markdown(
+                """
+                <div style="
+                  margin:0.6rem 0;padding:0.75rem 0.9rem;border-radius:10px;
+                  border:1px solid rgba(140,80,50,0.4);background:rgba(20,10,8,0.55);
+                  color:#c8b0a0;font-family:Georgia,serif;font-size:0.9rem;line-height:1.5;
+                ">
+                  A margin note that is not Shelley’s — pencil, pressed hard:<br/>
+                  <em>“When the board is open, you do not earn a palette. You earn a key.”</em>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
         body = pages[page]
         import html as _html_lib
