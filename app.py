@@ -257,6 +257,13 @@ SECRET_THEMES = {
         "accent": "#f472b6", "accent2": "#60a5fa", "accent_soft": "rgba(244,114,182,0.18)",
         "unlock": "notallowed",
     },
+    # Unlocked when Project Nadir / residual door opens
+    "Nadir Residual": {
+        "bg": "#05040a", "panel": "rgba(16, 12, 28, 0.90)", "panel_solid": "#100c1c",
+        "border": "rgba(167,139,250,0.32)", "text": "#ede9fe", "muted": "#8b7fb8",
+        "accent": "#a78bfa", "accent2": "#6d28d9", "accent_soft": "rgba(167,139,250,0.18)",
+        "unlock": "nadir",
+    },
 
 }
 
@@ -3313,6 +3320,10 @@ if st.session_state.view == "lab":
                 st.session_state.lab_door_unlocked = True
                 st.session_state.archive_key = True
                 try:
+                    unlock_theme("Nadir Residual", "the residual key turned", apply=False)
+                except Exception:
+                    pass
+                try:
                     save_user_data()
                 except Exception:
                     pass
@@ -5963,6 +5974,11 @@ def _nadir_reply(prompt: str) -> str:
 
 
 if st.session_state.view == "nadir_transition":
+    # Unlock Nadir Residual theme on first channel open (does not auto-apply)
+    try:
+        unlock_theme("Nadir Residual", "the residual channel opened", apply=False)
+    except Exception:
+        pass
     # Start Run Rabbit Run at the beginning of the cutscene (only track)
     try:
         stop_all_meridium_audio()
@@ -7368,4 +7384,3 @@ if st.session_state.view == "chat" and st.session_state.get("_last_speak"):
         st.components.v1.html(speak_html(spoken, autoplay=False), height=70)
 
 st.markdown("</div>", unsafe_allow_html=True)
-
