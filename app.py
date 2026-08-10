@@ -6418,58 +6418,85 @@ if st.session_state.view == "cinema":
 
 # ===== SHORTS — vertical short-form feed (YouTube Shorts style) =====
 SHORTS_CATALOG = [
-    # Real YouTube Shorts — themes mirror Cinema shelves (study, science, outdoors, mindset).
-    # ids are from youtube.com/shorts/… (not long-form Cinema titles).
+    # Clash Royale
+    {"id": "cr_1", "title": "Clash Royale Shorts", "creator": "Mr CR",
+     "youtube_id": "rrt6Wapf9Aw", "shelf": "Clash Royale", "tags": ["clash"]},
+    {"id": "cr_2", "title": "Clash Royale Shorts", "creator": "Mr CR",
+     "youtube_id": "l3wpMEpMB1o", "shelf": "Clash Royale", "tags": ["clash"]},
+    {"id": "cr_3", "title": "Clash Royale Shorts", "creator": "Mr CR",
+     "youtube_id": "-a1KLCB6IgQ", "shelf": "Clash Royale", "tags": ["clash"]},
+    {"id": "cr_4", "title": "Exclusive log play", "creator": "Clash Royale",
+     "youtube_id": "JX3SKfeCkq0", "shelf": "Clash Royale", "tags": ["clash"]},
+    {"id": "cr_5", "title": "Strongest Evo Elite Barbarians", "creator": "BREAKER",
+     "youtube_id": "Y5kXZuYTkck", "shelf": "Clash Royale", "tags": ["clash"]},
+    {"id": "cr_6", "title": "Card that wins games alone", "creator": "BREAKER",
+     "youtube_id": "9T1RONA2KL8", "shelf": "Clash Royale", "tags": ["clash"]},
+    {"id": "cr_7", "title": "Elite Barbarians are back", "creator": "BREAKER",
+     "youtube_id": "nE_clTAlEVc", "shelf": "Clash Royale", "tags": ["clash"]},
+    {"id": "cr_8", "title": "2.6 deck biggest weakness", "creator": "BREAKER",
+     "youtube_id": "CEc3xJRnJP4", "shelf": "Clash Royale", "tags": ["clash"]},
 
-    # —— Simple But Effective / study ——
-    {"id": "sh_school_reset", "title": "Prepare your brain for school", "creator": "Study Shorts",
-     "youtube_id": "nOHltvqObkE", "shelf": "Simple But Effective", "tags": ["study"]},
-    {"id": "sh_study_system", "title": "The study mistake that cost a semester", "creator": "Study Shorts",
-     "youtube_id": "OChk0SjF0GU", "shelf": "Simple But Effective", "tags": ["study"]},
-    {"id": "sh_pomodoro", "title": "Pomodoro: study for hours without losing focus", "creator": "Dr. Tanu Jain",
-     "youtube_id": "Nvwrih-xqn4", "shelf": "Simple But Effective", "tags": ["study", "focus"]},
-    {"id": "sh_remember", "title": "How to remember anything faster", "creator": "Roar Within",
-     "youtube_id": "5PV9XecUOsw", "shelf": "Simple But Effective", "tags": ["study", "memory"]},
-    {"id": "sh_pomodoro_30", "title": "Pomodoro in 30 seconds", "creator": "Magnet Brains",
-     "youtube_id": "L8pFDiNkFMM", "shelf": "Simple But Effective", "tags": ["study"]},
+    # Working out
+    {"id": "wo_1", "title": "Biggest chest workout mistake", "creator": "ATHLEAN-X",
+     "youtube_id": "KjA5yI-ktgM", "shelf": "Working Out", "tags": ["gym"]},
+    {"id": "wo_2", "title": "Do this one thing for bigger biceps", "creator": "ATHLEAN-X",
+     "youtube_id": "Zavyu36CuE4", "shelf": "Working Out", "tags": ["gym"]},
+    {"id": "wo_3", "title": "5 lifts everyone must do", "creator": "ATHLEAN-X",
+     "youtube_id": "2TV6_6jmy8I", "shelf": "Working Out", "tags": ["gym"]},
+    {"id": "wo_4", "title": "Stop doing this on every set", "creator": "ATHLEAN-X",
+     "youtube_id": "pc36k0tNIZY", "shelf": "Working Out", "tags": ["gym"]},
+    {"id": "wo_5", "title": "2 squat tips you must try", "creator": "ATHLEAN-X",
+     "youtube_id": "4tGRDpXlJvY", "shelf": "Working Out", "tags": ["gym"]},
+    {"id": "wo_6", "title": "Face pulls wrong? Fix it", "creator": "Gym Lab",
+     "youtube_id": "bOU1P24rwC8", "shelf": "Working Out", "tags": ["gym"]},
+    {"id": "wo_7", "title": "How fast can you lose fat without losing muscle?", "creator": "Stronger By Science",
+     "youtube_id": "TEsAwLlw-eI", "shelf": "Working Out", "tags": ["gym", "science"]},
+    {"id": "wo_8", "title": "How heavy should you lift to build muscle?", "creator": "Stronger By Science",
+     "youtube_id": "BFI-SsHcwH4", "shelf": "Working Out", "tags": ["gym"]},
 
-    # —— Mindset / stoicism (cinema adjacent) ——
-    {"id": "sh_stoic_focus", "title": "Focus your mind — Stoic philosophy", "creator": "Like Stories of Old",
-     "youtube_id": "bA7bf5mmzhE", "shelf": "Simple But Effective", "tags": ["stoicism", "mindset"]},
-    {"id": "sh_strength", "title": "The strength nobody talks about", "creator": "The Quiet Stoic",
-     "youtube_id": "e2ifMvRy07Y", "shelf": "Simple But Effective", "tags": ["stoicism"]},
-    {"id": "sh_comfort", "title": "Comfort is making you weak", "creator": "The Quiet Stoic",
-     "youtube_id": "mpwXSFybHXA", "shelf": "Simple But Effective", "tags": ["stoicism"]},
-    {"id": "sh_validation", "title": "What Marcus Aurelius noticed about validation", "creator": "The Quiet Stoic",
-     "youtube_id": "C4woxuXNoi4", "shelf": "Simple But Effective", "tags": ["stoicism"]},
-
-    # —— Science (Veritasium Shorts — same shelf as Cinema Science) ——
-    {"id": "sh_submarines", "title": "How do submarines know where they are?", "creator": "Veritasium",
+    # Science
+    {"id": "sci_1", "title": "How do submarines know where they are?", "creator": "Veritasium",
      "youtube_id": "_1G8nrmBKeY", "shelf": "Science", "tags": ["science"]},
-    {"id": "sh_weight", "title": "The world's heaviest weight", "creator": "Veritasium",
+    {"id": "sci_2", "title": "The world's heaviest weight", "creator": "Veritasium",
      "youtube_id": "3HQkVfZ4DNY", "shelf": "Science", "tags": ["science"]},
-    {"id": "sh_waves", "title": "Why waves travel faster at the top", "creator": "Veritasium",
+    {"id": "sci_3", "title": "Why waves travel faster at the top", "creator": "Veritasium",
      "youtube_id": "RmHcX5oVzvs", "shelf": "Science", "tags": ["science"]},
-    {"id": "sh_google_q", "title": "The Google interview question everyone gets wrong", "creator": "Veritasium",
+    {"id": "sci_4", "title": "Google interview question everyone gets wrong", "creator": "Veritasium",
      "youtube_id": "kP7l1agsTzQ", "shelf": "Science", "tags": ["science"]},
-    {"id": "sh_light_path", "title": "How does light know the shortest path?", "creator": "Veritasium",
+    {"id": "sci_5", "title": "How does light know the shortest path?", "creator": "Veritasium",
      "youtube_id": "h1YeIE0vEIs", "shelf": "Science", "tags": ["science"]},
-    {"id": "sh_bikes", "title": "How bikes actually work", "creator": "Veritasium",
+    {"id": "sci_6", "title": "How bikes actually work", "creator": "Veritasium",
      "youtube_id": "scliyWrN7mk", "shelf": "Science", "tags": ["science"]},
-    {"id": "sh_ladders", "title": "Falling ladders — why does this happen?", "creator": "Veritasium",
+    {"id": "sci_7", "title": "Falling ladders — why does this happen?", "creator": "Veritasium",
      "youtube_id": "n8WxkqMRgS4", "shelf": "Science", "tags": ["science"]},
+    {"id": "sci_8", "title": "Can you swim in shade balls?", "creator": "Veritasium",
+     "youtube_id": "zQ2ZJuUJeyo", "shelf": "Science", "tags": ["science"]},
+    {"id": "sci_9", "title": "The real science of black holes", "creator": "Veritasium",
+     "youtube_id": "ORxKf1FN3ro", "shelf": "Science", "tags": ["science"]},
 
-    # —— Outdoors (Outdoor Boys Shorts — same shelf as Cinema Outdoors) ——
-    {"id": "sh_griddle", "title": "Make your own lightweight griddle", "creator": "Outdoor Boys",
-     "youtube_id": "1YFyw2JI0fE", "shelf": "Outdoors", "tags": ["outdoors"]},
-    {"id": "sh_axe", "title": "Custom axe from a $4 hatchet", "creator": "Outdoor Boys",
-     "youtube_id": "vGbYD_8jUe4", "shelf": "Outdoors", "tags": ["outdoors"]},
-    {"id": "sh_snow", "title": "10 ft deep snow shelter", "creator": "Outdoor Boys",
-     "youtube_id": "JttsFQei9xI", "shelf": "Outdoors", "tags": ["outdoors", "survival"]},
-    {"id": "sh_charcloth", "title": "Make fire like a boss — char cloth", "creator": "Outdoor Boys",
-     "youtube_id": "5RrTApT8c2U", "shelf": "Outdoors", "tags": ["outdoors", "survival"]},
-    {"id": "sh_spoon", "title": "Spoon from cow horn", "creator": "Outdoor Boys",
-     "youtube_id": "AZINvA7CA24", "shelf": "Outdoors", "tags": ["outdoors"]},
+    # Documentary / history-style shorts
+    {"id": "doc_1", "title": "Focus your mind — Stoic philosophy", "creator": "Like Stories of Old",
+     "youtube_id": "bA7bf5mmzhE", "shelf": "Documentary", "tags": ["doc", "philosophy"]},
+    {"id": "doc_2", "title": "More words of wisdom", "creator": "Vsauce",
+     "youtube_id": "f4wzUEQxurM", "shelf": "Documentary", "tags": ["doc", "curiosity"]},
+    {"id": "doc_3", "title": "The 'No, You Don't' Law", "creator": "Veritasium",
+     "youtube_id": "2FLqOI9jw-E", "shelf": "Documentary", "tags": ["doc", "science"]},
+    {"id": "doc_4", "title": "Testing the US military's worst idea", "creator": "Veritasium",
+     "youtube_id": "y2y8ME02lX4", "shelf": "Documentary", "tags": ["doc", "history"]},
+    {"id": "doc_5", "title": "Blue LED was almost impossible to make", "creator": "Veritasium",
+     "youtube_id": "UKfnXd3x-rw", "shelf": "Documentary", "tags": ["doc", "science"]},
+
+    # Internet rabbit holes
+    {"id": "rh_1", "title": "How dishwashers actually work", "creator": "Veritasium",
+     "youtube_id": "NKG0pRwTC5A", "shelf": "Rabbit Holes", "tags": ["rabbit-hole"]},
+    {"id": "rh_2", "title": "Best way to tie your shoelaces", "creator": "Veritasium",
+     "youtube_id": "0MX-5BDeEnA", "shelf": "Rabbit Holes", "tags": ["rabbit-hole"]},
+    {"id": "rh_3", "title": "Most controversial thought experiment in physics", "creator": "Veritasium",
+     "youtube_id": "2_VB-oc_pmk", "shelf": "Rabbit Holes", "tags": ["rabbit-hole"]},
+    {"id": "rh_4", "title": "Ring on a chain trick", "creator": "Veritasium",
+     "youtube_id": "Tmy7VYhZEKQ", "shelf": "Rabbit Holes", "tags": ["rabbit-hole"]},
+    {"id": "rh_5", "title": "Indestructible coating?!", "creator": "Veritasium",
+     "youtube_id": "P_MSlxczd94", "shelf": "Rabbit Holes", "tags": ["rabbit-hole"]},
 ]
 
 
@@ -6559,7 +6586,7 @@ if st.session_state.view == "shorts":
         </style>
         <div class="shorts-hero">
           <h1>Shorts</h1>
-          <p>Vertical feed · swipe with buttons</p>
+          <p>Clash · Gym · Science · Docs · Rabbit holes</p>
         </div>
         """,
         unsafe_allow_html=True,
