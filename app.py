@@ -14,9 +14,51 @@ from duckduckgo_search import DDGS
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 
-from arg_story import arg_match, arg_reply, is_owner, is_lab_entry
-from lab_view import render_lab
-from note_view import render_note
+try:
+    from arg_story import arg_match, arg_reply, is_owner, is_lab_entry
+except Exception:
+    def arg_match(prompt=""):
+        return None
+    def arg_reply(stage="", user_name=""):
+        return ""
+    def is_owner(username=""):
+        return False
+    def is_lab_entry(prompt=""):
+        return False
+
+try:
+    from lab_view import render_lab
+except Exception:
+    def render_lab():
+        st.markdown(
+            """
+            <div style="
+              max-width:520px;margin:1rem auto;padding:1.2rem 1.1rem;
+              border:1px solid rgba(180,60,60,0.35);border-radius:12px;
+              background:rgba(12,6,6,0.9);color:#e8c8c8;font-family:Georgia,serif;
+            ">
+              <div style="font-family:ui-monospace,monospace;font-size:0.65rem;letter-spacing:0.2em;color:#c05050;margin-bottom:0.5rem">
+                OBSERVATION LOG · LAB
+              </div>
+              <p style="margin:0;line-height:1.55;font-size:0.95rem">
+                The lab is active. Hotspots and fragments load when
+                <code>lab_view.py</code> is present on the server.
+                The residual door still functions below when you have the key.
+              </p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+try:
+    from note_view import render_note
+except Exception:
+    def render_note():
+        st.markdown("### Sealed note")
+        st.caption("note_view module not found — placeholder.")
+        if st.button("← Home", key="note_fallback_home"):
+            st.session_state.view = "home"
+            st.rerun()
 # theme_unlocks imported after SECRET_THEMES (see below)
 
 try:
@@ -2718,7 +2760,7 @@ if st.session_state.popup:
             st.session_state.popup = False
             st.rerun()
         if lab_is_unlocked():
-            if st.button("Lab", use_container_width=True, key="pop_lab"):
+            if st.button("🔬  Lab", use_container_width=True, key="pop_lab"):
                 st.session_state.view = "lab"
                 st.session_state.popup = False
                 st.rerun()
@@ -3184,8 +3226,7 @@ if st.session_state.view == "lab":
         if unlocked:
             if st.button("Enter residual channel - Nadir", use_container_width=True, key="lab_door_enter", type="primary"):
                 try:
-                    stop_meridium_track("nadir")
-                    play_meridium_track(DOOR_WOLF_URL, tag="door", volume=0.5, loop=True)
+                    stop_all_meridium_audio()
                 except Exception:
                     pass
                 st.session_state.view = "nadir_transition"
@@ -3202,10 +3243,6 @@ if st.session_state.view == "lab":
                     stop_all_meridium_audio()
                 except Exception:
                     pass
-                try:
-                    play_meridium_track(DOOR_WOLF_URL, tag="door", volume=0.5, loop=True)
-                except Exception:
-                    pass
                 st.session_state.view = "nadir_transition"
                 st.rerun()
         else:
@@ -3213,8 +3250,16 @@ if st.session_state.view == "lab":
 
     try:
         render_lab()
-    except Exception as _lab_err:
-        st.caption(f"Lab shell: {_lab_err}")
+    except Exception:
+        st.markdown(
+            """
+            <div style="max-width:520px;margin:1rem auto;padding:1rem;border:1px solid rgba(180,60,60,0.3);
+              border-radius:12px;background:rgba(10,6,6,0.85);color:#d8b8b8;font-family:Georgia,serif;">
+              Observation lab online. Residual systems standing by.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     # Door controls again under lab content if lab_view rendered above the first block only
     if show_door and not st.session_state.get("lab_door_unlocked"):
@@ -3228,10 +3273,6 @@ if st.session_state.view == "lab":
                     pass
                 try:
                     stop_all_meridium_audio()
-                except Exception:
-                    pass
-                try:
-                    play_meridium_track(DOOR_WOLF_URL, tag="door", volume=0.5, loop=True)
                 except Exception:
                     pass
                 st.session_state.view = "nadir_transition"
@@ -5803,6 +5844,15 @@ def _nadir_reply(prompt: str) -> str:
 
 
 if st.session_state.view == "nadir_transition":
+    # Start Run Rabbit Run at the beginning of the cutscene (only track)
+    try:
+        stop_all_meridium_audio()
+    except Exception:
+        pass
+    try:
+        play_meridium_track(NADIR_RABBIT_URL, tag="nadir", volume=0.42, loop=True)
+    except Exception:
+        pass
     st.markdown(
         """
         <style>
@@ -5827,12 +5877,7 @@ if st.session_state.view == "nadir_transition":
         """,
         unsafe_allow_html=True,
     )
-    # Door music already playing; brief black beat, then enter Nadir
     time.sleep(2.2)
-    try:
-        stop_meridium_track("door")
-    except Exception:
-        pass
     st.session_state.view = "nadir"
     st.rerun()
 
@@ -5841,11 +5886,13 @@ if st.session_state.view == "nadir":
         st.session_state.view = "home"
         st.rerun()
 
-    # Run Rabbit Run while inside Nadir
-    try:
-        play_meridium_track(NADIR_RABBIT_URL, tag="nadir", volume=0.4, loop=True)
-    except Exception:
-        pass
+    # Keep Run Rabbit Run going (started in cutscene); restart if missing
+    if not st.session_state.get("_nadir_music_on"):
+        try:
+            play_meridium_track(NADIR_RABBIT_URL, tag="nadir", volume=0.42, loop=True)
+            st.session_state._nadir_music_on = True
+        except Exception:
+            pass
 
     reader = st.session_state.get("nadir_reader")
     # ----- Darkened file reader (page flick) -----
@@ -5986,8 +6033,10 @@ if st.session_state.view == "nadir":
         try:
             stop_meridium_track("nadir")
             stop_meridium_track("door")
+            stop_all_meridium_audio()
         except Exception:
             pass
+        st.session_state._nadir_music_on = False
         st.session_state.view = "lab"
         st.session_state.nadir_active_file = None
         st.session_state.nadir_reader = None
@@ -6673,7 +6722,7 @@ if st.session_state.view == "home":
                 st.session_state.view = "board"
                 st.rerun()
         if lab_is_unlocked():
-            if st.button("Lab", use_container_width=True, key="bm_lab"):
+            if st.button("🔬  Lab", use_container_width=True, key="bm_lab"):
                 st.session_state.view = "lab"
                 st.rerun()
         if st.session_state.get("voss_file_unlocked"):
