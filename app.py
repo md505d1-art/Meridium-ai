@@ -1918,6 +1918,8 @@ def save_user_data():
         "chats": safe_chats,
         "current_chat_id": st.session_state.get("current_chat_id"),
         "meridium_playlist": st.session_state.get("meridium_playlist") or [],
+        "shorts_custom": list(st.session_state.get("shorts_custom") or []),
+        "shorts_liked": list(st.session_state.get("shorts_liked") or []),
         "eq_bands": list(st.session_state.get("eq_bands") or [0,0,0,0,0,0,0]),
         "eq_preset": st.session_state.get("eq_preset") or "Flat",
         "eq_custom_presets": dict(st.session_state.get("eq_custom_presets") or {}),
@@ -1971,6 +1973,8 @@ def load_user_data(username: str) -> bool:
         st.session_state.use_wiki_toggle = data.get("use_wiki_toggle", True)
         st.session_state.use_web_toggle = data.get("use_web_toggle", True)
         st.session_state.meridium_playlist = data.get("meridium_playlist") or []
+        st.session_state.shorts_custom = list(data.get("shorts_custom") or [])
+        st.session_state.shorts_liked = list(data.get("shorts_liked") or [])
         _eb = data.get("eq_bands")
         if isinstance(_eb, list) and len(_eb) == 7:
             st.session_state.eq_bands = [float(x) for x in _eb]
@@ -2134,6 +2138,9 @@ defaults = {
     "arg_stabilized": False,
     "unlocked_themes": [],
     "meridium_playlist": [],
+    "shorts_custom": [],
+    "shorts_liked": [],
+    "shorts_index": 0,
     "music_status": "",
     "eq_bands": [0, 0, 0, 0, 0, 0, 0],
     "eq_preset": "Flat",
@@ -2164,7 +2171,7 @@ _USER_SCOPED_KEYS = (
     "provider", "model_name", "api_key_val",
     "arg_unlocked", "anomaly_warned", "glitches_found",
     "voss_file_unlocked", "lab_visits", "arg_stabilized",
-    "unlocked_themes", "meridium_playlist", "music_status",
+    "unlocked_themes", "meridium_playlist", "shorts_custom", "shorts_liked", "shorts_index", "music_status",
     "eq_bands", "eq_preset", "eq_custom_presets", "eq_enabled",
     "stabilize_at", "qotd_opens", "lab_found",
     "_currently_in_lab", "_lab_session_visit", "voss_cutscene_stage",
@@ -3986,6 +3993,11 @@ if st.session_state.popup:
         if st.button("🎬  Cinema", use_container_width=True, key="pop_cinema"):
             st.session_state.cinema_watching = None
             st.session_state.view = "cinema"
+            st.session_state.popup = False
+            st.rerun()
+        if st.button("▶  Shorts", use_container_width=True, key="pop_shorts"):
+            st.session_state.shorts_index = st.session_state.get("shorts_index") or 0
+            st.session_state.view = "shorts"
             st.session_state.popup = False
             st.rerun()
         if lab_is_unlocked():
@@ -6404,6 +6416,224 @@ if st.session_state.view == "cinema":
 
 
 
+# ===== SHORTS — vertical short-form feed (YouTube Shorts style) =====
+SHORTS_CATALOG = [
+    # Curated short-form / vertical-friendly picks (YouTube ids). Expand anytime.
+    {"id": "sh_focus", "title": "Focus in 60 seconds", "creator": "Meridium picks", "youtube_id": "XQFsva8fi9k", "tags": ["focus"]},
+    {"id": "sh_study", "title": "Study so fast it feels illegal", "creator": "simple, actually", "youtube_id": "ZTFcn5rbBFg", "tags": ["study"]},
+    {"id": "sh_memory", "title": "Memory palace that works", "creator": "simple, actually", "youtube_id": "mTK3T8p4md8", "tags": ["study"]},
+    {"id": "sh_stoic", "title": "Never get angry (stoicism)", "creator": "simple, actually", "youtube_id": "OgJQkabvdA4", "tags": ["mindset"]},
+    {"id": "sh_peak", "title": "Peak performance", "creator": "riskambition", "youtube_id": "18Nh2H0RwLM", "tags": ["productivity"]},
+    {"id": "sh_cant", "title": "If you can't study", "creator": "simple, actually", "youtube_id": "Wm-qGO_dme4", "tags": ["study"]},
+]
+
+
+def _shorts_feed() -> list:
+    """Built-in catalog + session custom shorts (pasted links)."""
+    feed = list(SHORTS_CATALOG)
+    custom = list(st.session_state.get("shorts_custom") or [])
+    # customs first so new pastes show up immediately
+    return custom + feed
+
+
+def _shorts_liked() -> set:
+    liked = st.session_state.get("shorts_liked")
+    if not isinstance(liked, (set, list)):
+        liked = []
+        st.session_state.shorts_liked = liked
+    return set(liked) if not isinstance(liked, set) else liked
+
+
+def render_shorts_player(item: dict, height: int = 640) -> None:
+    """Vertical 9:16 YouTube embed — Shorts-style frame."""
+    import html as _html
+    yid = (item.get("youtube_id") or _youtube_id_from_url(item.get("url") or "") or "").strip()
+    title = item.get("title") or "Short"
+    safe_title = _html.escape(title)
+    if not yid:
+        st.warning("Missing video id.")
+        return
+    embed_src = (
+        f"https://www.youtube-nocookie.com/embed/{yid}"
+        f"?rel=0&modestbranding=1&playsinline=1&loop=1&playlist={yid}"
+    )
+    # Tall vertical frame, centered
+    st.components.v1.html(
+        f"""
+        <div style="display:flex;justify-content:center;width:100%;">
+          <div style="
+            position:relative;
+            width:min(100%, 360px);
+            aspect-ratio: 9 / 16;
+            max-height: {height}px;
+            border-radius: 18px;
+            overflow: hidden;
+            background: #0a0a0e;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.55), 0 0 0 1px rgba(196,167,231,0.18);
+          ">
+            <iframe
+              src="{embed_src}"
+              title="{safe_title}"
+              style="position:absolute;inset:0;width:100%;height:100%;border:0;"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+              referrerpolicy="strict-origin-when-cross-origin"
+            ></iframe>
+          </div>
+        </div>
+        """,
+        height=height + 24,
+        scrolling=False,
+    )
+
+
+if st.session_state.view == "shorts":
+    st.markdown(
+        """
+        <style>
+          .shorts-hero {
+            text-align: center; padding: 4px 0 10px;
+          }
+          .shorts-hero h1 {
+            font-size: 1.35rem; font-weight: 650; letter-spacing: -0.03em; margin: 0 0 2px;
+          }
+          .shorts-hero p { margin: 0; opacity: 0.5; font-size: 0.82rem; }
+          .shorts-meta {
+            text-align: center; margin: 8px auto 4px; max-width: 360px;
+          }
+          .shorts-meta .t {
+            font-size: 0.95rem; font-weight: 600; margin: 0;
+          }
+          .shorts-meta .c {
+            font-size: 0.78rem; opacity: 0.55; margin: 2px 0 0;
+          }
+          .shorts-dots {
+            text-align: center; letter-spacing: 0.15em;
+            font-size: 0.7rem; opacity: 0.45; margin: 6px 0 2px;
+          }
+        </style>
+        <div class="shorts-hero">
+          <h1>Shorts</h1>
+          <p>Vertical feed · swipe with buttons</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    feed = _shorts_feed()
+    if not feed:
+        st.info("No shorts yet — paste a YouTube or Shorts link below.")
+    else:
+        # clamp index
+        idx = int(st.session_state.get("shorts_index") or 0)
+        if idx < 0:
+            idx = 0
+        if idx >= len(feed):
+            idx = len(feed) - 1
+        st.session_state.shorts_index = idx
+        item = feed[idx]
+
+        render_shorts_player(item, height=620)
+
+        title = item.get("title") or "Short"
+        creator = item.get("creator") or item.get("note") or ""
+        st.markdown(
+            f"""
+            <div class="shorts-meta">
+              <p class="t">{title}</p>
+              <p class="c">{creator}</p>
+            </div>
+            <div class="shorts-dots">{idx + 1} / {len(feed)}</div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        # Controls: prev / like / next
+        c1, c2, c3, c4 = st.columns([1, 1, 1, 1])
+        with c1:
+            if st.button("↑ Prev", use_container_width=True, key="shorts_prev", disabled=(idx <= 0)):
+                st.session_state.shorts_index = max(0, idx - 1)
+                st.rerun()
+        with c2:
+            liked = _shorts_liked()
+            sid = item.get("id") or item.get("youtube_id") or str(idx)
+            is_liked = sid in liked
+            label = "♥ Liked" if is_liked else "♡ Like"
+            if st.button(label, use_container_width=True, key="shorts_like"):
+                cur = list(st.session_state.get("shorts_liked") or [])
+                if is_liked:
+                    cur = [x for x in cur if x != sid]
+                else:
+                    cur.append(sid)
+                st.session_state.shorts_liked = cur
+                try:
+                    save_user_data()
+                except Exception:
+                    pass
+                st.rerun()
+        with c3:
+            if st.button("↓ Next", use_container_width=True, key="shorts_next", disabled=(idx >= len(feed) - 1)):
+                st.session_state.shorts_index = min(len(feed) - 1, idx + 1)
+                st.rerun()
+        with c4:
+            yid = item.get("youtube_id") or ""
+            if yid:
+                st.link_button("YT", f"https://www.youtube.com/shorts/{yid}", use_container_width=True)
+
+        # Open on YouTube full watch as fallback
+        yid = (item.get("youtube_id") or "").strip()
+        if yid:
+            st.caption(
+                "If the embed is blocked by the channel, open on YouTube — "
+                "some creators disable embedding."
+            )
+
+    with st.expander("Add a Short (YouTube / Shorts link)", expanded=False):
+        custom = st.text_input(
+            "Paste link",
+            placeholder="https://www.youtube.com/shorts/… or watch?v=…",
+            key="shorts_custom_url",
+            label_visibility="collapsed",
+        )
+        title_in = st.text_input("Title (optional)", key="shorts_custom_title", placeholder="My short")
+        if st.button("Add to feed", key="shorts_add_custom", use_container_width=True):
+            yid = _youtube_id_from_url(custom)
+            if not yid:
+                st.warning("Could not read a YouTube id from that link.")
+            else:
+                entry = {
+                    "id": f"custom::{yid}",
+                    "title": (title_in or "").strip() or "Custom short",
+                    "creator": "You",
+                    "youtube_id": yid,
+                    "tags": ["custom"],
+                }
+                cur = list(st.session_state.get("shorts_custom") or [])
+                # dedupe by youtube id
+                cur = [x for x in cur if x.get("youtube_id") != yid]
+                cur.insert(0, entry)
+                st.session_state.shorts_custom = cur[:40]
+                st.session_state.shorts_index = 0
+                try:
+                    save_user_data()
+                except Exception:
+                    pass
+                st.rerun()
+
+    b1, b2 = st.columns(2)
+    with b1:
+        if st.button("← Home", key="shorts_home", use_container_width=True):
+            st.session_state.view = "home"
+            st.rerun()
+    with b2:
+        if st.button("🎬 Cinema", key="shorts_to_cinema", use_container_width=True):
+            st.session_state.cinema_watching = None
+            st.session_state.view = "cinema"
+            st.rerun()
+
+    st.stop()
+
+
 # ===== INVESTIGATION BOARD =====
 BOARD_EVIDENCE = {
     "riley": {
@@ -8589,6 +8819,10 @@ if st.session_state.view == "home":
         if st.button("🎬  Cinema", use_container_width=True, key="bm_cinema"):
             st.session_state.cinema_watching = None
             st.session_state.view = "cinema"
+            st.rerun()
+        if st.button("▶  Shorts", use_container_width=True, key="bm_shorts"):
+            st.session_state.shorts_index = st.session_state.get("shorts_index") or 0
+            st.session_state.view = "shorts"
             st.rerun()
         if st.session_state.get("board_unlocked") or st.session_state.get("callaghan_safe_unlocked"):
             if st.button("📌  Board", use_container_width=True, key="bm_board"):
