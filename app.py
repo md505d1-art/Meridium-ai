@@ -1294,6 +1294,7 @@ def chatroom_decline(username: str) -> bool:
 
 
 def chatroom_post(username: str, text: str) -> None:
+    """Ephemeral message — only kept while someone is active in the room."""
     room = chatroom_load()
     msgs = list(room.get("messages") or [])
     msgs.append({
@@ -1301,7 +1302,38 @@ def chatroom_post(username: str, text: str) -> None:
         "text": str(text)[:800],
         "ts": datetime.now().isoformat(),
     })
-    room["messages"] = msgs[-120:]  # keep last 120
+    room["messages"] = msgs[-80:]
+    chatroom_save(room)
+
+
+def chatroom_enter_active(username: str) -> None:
+    room = chatroom_load()
+    active = [m.lower() for m in (room.get("active") or []) if m]
+    u = (username or "").strip().lower()
+    if u and u not in active:
+        active.append(u)
+        room["active"] = active
+        chatroom_save(room)
+
+
+def chatroom_leave(username: str) -> None:
+    """Leave the live room. When no one remains active, wipe messages (ephemeral)."""
+    room = chatroom_load()
+    u = (username or "").strip().lower()
+    active = [m.lower() for m in (room.get("active") or []) if m]
+    members = [m.lower() for m in (room.get("members") or []) if m]
+    active = [m for m in active if m != u]
+    # Guests lose membership on leave; owner stays in members list for invites
+    if u and not is_owner(u):
+        members = [m for m in members if m != u]
+    room["active"] = active
+    room["members"] = members
+    if not active:
+        # Everyone left — messages do not persist
+        room["messages"] = []
+        # Reset guest memberships; keep owner for next session
+        room["members"] = [m for m in members if is_owner(m)]
+        room["pending"] = list(room.get("pending") or [])
     chatroom_save(room)
 
 
@@ -7318,60 +7350,209 @@ if st.session_state.view == "owner_room":
             st.rerun()
         st.stop()
 
+    try:
+        chatroom_enter_active(me)
+    except Exception:
+        pass
+
+    room = chatroom_load()
+    active = room.get("active") or []
+    members = room.get("members") or []
+    active_label = ", ".join(active) if active else "—"
+
     st.markdown(
-        """
-        <div class="panel">
-          <div class="panel-label">Owner chatroom</div>
-          <div class="hero" style="font-size:1.25rem;">Observation desk</div>
-          <div class="sub">Live channel · auto-updates · moderated</div>
-          <div class="ridge"></div>
+        f"""
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+          .room-shell {{
+            max-width: 720px; margin: 0 auto 0.5rem;
+          }}
+          .room-hero {{
+            position: relative;
+            padding: 1.35rem 1.35rem 1.15rem;
+            border-radius: 22px;
+            overflow: hidden;
+            border: 1px solid rgba(167,139,250,0.35);
+            background:
+              radial-gradient(ellipse at 0% 0%, rgba(167,139,250,0.28), transparent 50%),
+              radial-gradient(ellipse at 100% 100%, rgba(244,114,182,0.18), transparent 45%),
+              linear-gradient(145deg, #120c1c 0%, #0a0812 55%, #0e0a18 100%);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
+          }}
+          .room-hero::before {{
+            content: "";
+            position: absolute; inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+            animation: roomShimmer 6s ease-in-out infinite;
+            pointer-events: none;
+          }}
+          @keyframes roomShimmer {{
+            0%,100% {{ opacity: 0.3; transform: translateX(-30%); }}
+            50% {{ opacity: 0.7; transform: translateX(30%); }}
+          }}
+          .room-kicker {{
+            font-family: ui-monospace, monospace;
+            font-size: 0.65rem;
+            letter-spacing: 0.28em;
+            color: #c4b5fd;
+            margin-bottom: 0.45rem;
+            text-transform: uppercase;
+          }}
+          .room-title {{
+            font-family: Syne, system-ui, sans-serif;
+            font-weight: 700;
+            font-size: clamp(1.55rem, 4vw, 2rem);
+            color: #faf5ff;
+            letter-spacing: -0.02em;
+            margin: 0 0 0.35rem;
+            line-height: 1.15;
+          }}
+          .room-sub {{
+            font-family: "IBM Plex Sans", system-ui, sans-serif;
+            font-size: 0.88rem;
+            color: rgba(220,210,245,0.72);
+            line-height: 1.45;
+          }}
+          .room-live-pill {{
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            margin-top: 0.75rem;
+            padding: 0.28rem 0.7rem;
+            border-radius: 999px;
+            background: rgba(34,197,94,0.12);
+            border: 1px solid rgba(34,197,94,0.35);
+            color: #86efac;
+            font-family: ui-monospace, monospace;
+            font-size: 0.68rem;
+            letter-spacing: 0.08em;
+          }}
+          .room-live-dot {{
+            width: 7px; height: 7px; border-radius: 50%;
+            background: #22c55e;
+            box-shadow: 0 0 10px #22c55e;
+            animation: livePulse 1.4s ease-in-out infinite;
+          }}
+          @keyframes livePulse {{
+            0%,100% {{ opacity: 1; transform: scale(1); }}
+            50% {{ opacity: 0.45; transform: scale(0.85); }}
+          }}
+          .room-msg {{
+            margin: 0.55rem 0;
+            padding: 0.75rem 0.95rem;
+            border-radius: 16px;
+            font-family: "IBM Plex Sans", system-ui, sans-serif;
+            line-height: 1.45;
+            max-width: 92%;
+          }}
+          .room-msg.mine {{
+            margin-left: auto;
+            background: linear-gradient(135deg, rgba(167,139,250,0.35), rgba(124,58,237,0.25));
+            border: 1px solid rgba(196,181,253,0.35);
+            color: #f5f3ff;
+          }}
+          .room-msg.theirs {{
+            margin-right: auto;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #e8e4f5;
+          }}
+          .room-msg.owner {{
+            background: linear-gradient(135deg, rgba(244,114,182,0.22), rgba(167,139,250,0.2));
+            border: 1px solid rgba(244,114,182,0.3);
+          }}
+          .room-msg .who {{
+            font-size: 0.72rem;
+            letter-spacing: 0.04em;
+            opacity: 0.7;
+            margin-bottom: 0.2rem;
+            font-weight: 600;
+          }}
+          .room-msg .body {{ white-space: pre-wrap; word-break: break-word; }}
+          .room-empty {{
+            text-align: center; padding: 2rem 1rem;
+            color: rgba(200,190,230,0.55);
+            font-family: Syne, system-ui, sans-serif;
+            font-size: 0.95rem;
+          }}
+        </style>
+        <div class="room-shell">
+          <div class="room-hero">
+            <div class="room-kicker">Creator channel · ephemeral</div>
+            <div class="room-title">Observation desk</div>
+            <div class="room-sub">
+              Live · moderated · messages vanish when everyone leaves
+            </div>
+            <div class="room-live-pill">
+              <span class="room-live-dot"></span>
+              LIVE · {active_label}
+            </div>
+          </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    b1, b2, b3 = st.columns(3)
-    with b1:
-        if st.button("← Home", key="room_home", use_container_width=True):
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        if st.button("Leave room", key="room_leave", use_container_width=True):
+            try:
+                chatroom_leave(me)
+            except Exception:
+                pass
             st.session_state.view = "home"
             st.rerun()
-    with b2:
+    with c2:
         if is_owner(me):
             if st.button("Owner desk", key="room_to_owner", use_container_width=True):
                 st.session_state.view = "owner"
                 st.rerun()
-    with b3:
-        if st.button("Refresh now", key="room_refresh", use_container_width=True):
+        else:
+            st.caption("")
+    with c3:
+        if st.button("↻", key="room_refresh", use_container_width=True, help="Refresh"):
             st.rerun()
-
-    room = chatroom_load()
-    members = room.get("members") or []
-    st.caption("In room: " + (", ".join(members) if members else "—") + " · live")
 
     def _render_room_messages():
         r = chatroom_load()
         msgs = list(r.get("messages") or [])[-50:]
+        me_l = (me or "").strip().lower()
         if not msgs:
-            st.info("No messages yet. Say hello.")
+            st.markdown(
+                '<div class="room-empty">Quiet channel — say something.</div>',
+                unsafe_allow_html=True,
+            )
             return
+        import html as _html
         for m in msgs:
             who = m.get("user") or "?"
-            text = m.get("text") or ""
-            ts = (m.get("ts") or "")[:19].replace("T", " ")
-            with st.chat_message("assistant" if is_owner(who) else "user"):
-                st.markdown(f"**{who}** · `{ts}`  \n{text}")
+            text = _html.escape(m.get("text") or "")
+            ts = (m.get("ts") or "")[11:16]
+            who_l = who.strip().lower()
+            if who_l == me_l:
+                cls = "room-msg mine"
+            elif is_owner(who):
+                cls = "room-msg theirs owner"
+            else:
+                cls = "room-msg theirs"
+            st.markdown(
+                f'<div class="{cls}"><div class="who">{_html.escape(who)} · {ts}</div>'
+                f'<div class="body">{text}</div></div>',
+                unsafe_allow_html=True,
+            )
 
-    # Live auto-refresh of the message list (Streamlit fragment if available)
     try:
         from datetime import timedelta as _td
 
         @st.fragment(run_every=_td(seconds=2))
         def _live_room_feed():
+            try:
+                chatroom_enter_active(me)
+            except Exception:
+                pass
             _render_room_messages()
 
         _live_room_feed()
     except Exception:
         _render_room_messages()
-        # Fallback: soft auto-rerun every 3s while in the room
         st.components.v1.html(
             """
             <script>
@@ -7381,11 +7562,10 @@ if st.session_state.view == "owner_room":
                 window.__mer_room_timer = setTimeout(function(){
                   try {
                     var doc = window.parent.document;
-                    // Prefer Streamlit's own rerun if available
                     var btns = doc.querySelectorAll('button');
                     for (var i=0;i<btns.length;i++){
                       var t = (btns[i].innerText || '').trim();
-                      if (t === 'Refresh now') { btns[i].click(); break; }
+                      if (t === '↻') { btns[i].click(); break; }
                     }
                   } catch(e){}
                 }, 3000);
@@ -7396,8 +7576,9 @@ if st.session_state.view == "owner_room":
             height=0,
         )
 
+    st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
     with st.form(key="owner_room_send", clear_on_submit=True):
-        msg = st.text_input("Message", key="owner_room_msg", placeholder="Type a message…")
+        msg = st.text_input("Message", key="owner_room_msg", placeholder="Message the desk…", label_visibility="collapsed")
         sent = st.form_submit_button("Send", use_container_width=True, type="primary")
         if sent:
             ok, cleaned = moderate_chat_message(msg)
@@ -7409,6 +7590,7 @@ if st.session_state.view == "owner_room":
             else:
                 chatroom_post(me, cleaned)
                 st.rerun()
+    st.caption("Ephemeral — when you and Drae both leave, the transcript is wiped.")
     st.stop()
 
 
