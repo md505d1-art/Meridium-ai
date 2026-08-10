@@ -6418,13 +6418,58 @@ if st.session_state.view == "cinema":
 
 # ===== SHORTS — vertical short-form feed (YouTube Shorts style) =====
 SHORTS_CATALOG = [
-    # Curated short-form / vertical-friendly picks (YouTube ids). Expand anytime.
-    {"id": "sh_focus", "title": "Focus in 60 seconds", "creator": "Meridium picks", "youtube_id": "XQFsva8fi9k", "tags": ["focus"]},
-    {"id": "sh_study", "title": "Study so fast it feels illegal", "creator": "simple, actually", "youtube_id": "ZTFcn5rbBFg", "tags": ["study"]},
-    {"id": "sh_memory", "title": "Memory palace that works", "creator": "simple, actually", "youtube_id": "mTK3T8p4md8", "tags": ["study"]},
-    {"id": "sh_stoic", "title": "Never get angry (stoicism)", "creator": "simple, actually", "youtube_id": "OgJQkabvdA4", "tags": ["mindset"]},
-    {"id": "sh_peak", "title": "Peak performance", "creator": "riskambition", "youtube_id": "18Nh2H0RwLM", "tags": ["productivity"]},
-    {"id": "sh_cant", "title": "If you can't study", "creator": "simple, actually", "youtube_id": "Wm-qGO_dme4", "tags": ["study"]},
+    # Real YouTube Shorts — themes mirror Cinema shelves (study, science, outdoors, mindset).
+    # ids are from youtube.com/shorts/… (not long-form Cinema titles).
+
+    # —— Simple But Effective / study ——
+    {"id": "sh_school_reset", "title": "Prepare your brain for school", "creator": "Study Shorts",
+     "youtube_id": "nOHltvqObkE", "shelf": "Simple But Effective", "tags": ["study"]},
+    {"id": "sh_study_system", "title": "The study mistake that cost a semester", "creator": "Study Shorts",
+     "youtube_id": "OChk0SjF0GU", "shelf": "Simple But Effective", "tags": ["study"]},
+    {"id": "sh_pomodoro", "title": "Pomodoro: study for hours without losing focus", "creator": "Dr. Tanu Jain",
+     "youtube_id": "Nvwrih-xqn4", "shelf": "Simple But Effective", "tags": ["study", "focus"]},
+    {"id": "sh_remember", "title": "How to remember anything faster", "creator": "Roar Within",
+     "youtube_id": "5PV9XecUOsw", "shelf": "Simple But Effective", "tags": ["study", "memory"]},
+    {"id": "sh_pomodoro_30", "title": "Pomodoro in 30 seconds", "creator": "Magnet Brains",
+     "youtube_id": "L8pFDiNkFMM", "shelf": "Simple But Effective", "tags": ["study"]},
+
+    # —— Mindset / stoicism (cinema adjacent) ——
+    {"id": "sh_stoic_focus", "title": "Focus your mind — Stoic philosophy", "creator": "Like Stories of Old",
+     "youtube_id": "bA7bf5mmzhE", "shelf": "Simple But Effective", "tags": ["stoicism", "mindset"]},
+    {"id": "sh_strength", "title": "The strength nobody talks about", "creator": "The Quiet Stoic",
+     "youtube_id": "e2ifMvRy07Y", "shelf": "Simple But Effective", "tags": ["stoicism"]},
+    {"id": "sh_comfort", "title": "Comfort is making you weak", "creator": "The Quiet Stoic",
+     "youtube_id": "mpwXSFybHXA", "shelf": "Simple But Effective", "tags": ["stoicism"]},
+    {"id": "sh_validation", "title": "What Marcus Aurelius noticed about validation", "creator": "The Quiet Stoic",
+     "youtube_id": "C4woxuXNoi4", "shelf": "Simple But Effective", "tags": ["stoicism"]},
+
+    # —— Science (Veritasium Shorts — same shelf as Cinema Science) ——
+    {"id": "sh_submarines", "title": "How do submarines know where they are?", "creator": "Veritasium",
+     "youtube_id": "_1G8nrmBKeY", "shelf": "Science", "tags": ["science"]},
+    {"id": "sh_weight", "title": "The world's heaviest weight", "creator": "Veritasium",
+     "youtube_id": "3HQkVfZ4DNY", "shelf": "Science", "tags": ["science"]},
+    {"id": "sh_waves", "title": "Why waves travel faster at the top", "creator": "Veritasium",
+     "youtube_id": "RmHcX5oVzvs", "shelf": "Science", "tags": ["science"]},
+    {"id": "sh_google_q", "title": "The Google interview question everyone gets wrong", "creator": "Veritasium",
+     "youtube_id": "kP7l1agsTzQ", "shelf": "Science", "tags": ["science"]},
+    {"id": "sh_light_path", "title": "How does light know the shortest path?", "creator": "Veritasium",
+     "youtube_id": "h1YeIE0vEIs", "shelf": "Science", "tags": ["science"]},
+    {"id": "sh_bikes", "title": "How bikes actually work", "creator": "Veritasium",
+     "youtube_id": "scliyWrN7mk", "shelf": "Science", "tags": ["science"]},
+    {"id": "sh_ladders", "title": "Falling ladders — why does this happen?", "creator": "Veritasium",
+     "youtube_id": "n8WxkqMRgS4", "shelf": "Science", "tags": ["science"]},
+
+    # —— Outdoors (Outdoor Boys Shorts — same shelf as Cinema Outdoors) ——
+    {"id": "sh_griddle", "title": "Make your own lightweight griddle", "creator": "Outdoor Boys",
+     "youtube_id": "1YFyw2JI0fE", "shelf": "Outdoors", "tags": ["outdoors"]},
+    {"id": "sh_axe", "title": "Custom axe from a $4 hatchet", "creator": "Outdoor Boys",
+     "youtube_id": "vGbYD_8jUe4", "shelf": "Outdoors", "tags": ["outdoors"]},
+    {"id": "sh_snow", "title": "10 ft deep snow shelter", "creator": "Outdoor Boys",
+     "youtube_id": "JttsFQei9xI", "shelf": "Outdoors", "tags": ["outdoors", "survival"]},
+    {"id": "sh_charcloth", "title": "Make fire like a boss — char cloth", "creator": "Outdoor Boys",
+     "youtube_id": "5RrTApT8c2U", "shelf": "Outdoors", "tags": ["outdoors", "survival"]},
+    {"id": "sh_spoon", "title": "Spoon from cow horn", "creator": "Outdoor Boys",
+     "youtube_id": "AZINvA7CA24", "shelf": "Outdoors", "tags": ["outdoors"]},
 ]
 
 
@@ -6537,11 +6582,13 @@ if st.session_state.view == "shorts":
 
         title = item.get("title") or "Short"
         creator = item.get("creator") or item.get("note") or ""
+        shelf = item.get("shelf") or ""
+        sub = " · ".join(x for x in (creator, shelf) if x)
         st.markdown(
             f"""
             <div class="shorts-meta">
               <p class="t">{title}</p>
-              <p class="c">{creator}</p>
+              <p class="c">{sub}</p>
             </div>
             <div class="shorts-dots">{idx + 1} / {len(feed)}</div>
             """,
