@@ -26,14 +26,51 @@ except Exception:
     def is_lab_entry(prompt=""):
         return False
 
-OWNER_NAMES = {"drae"}
-OWNER_PASSWORD = "Meridium2026"
+def _owner_names() -> set:
+    """Owner usernames. Handles are public; the password is never stored in source."""
+    names = {"drae"}
+    try:
+        raw = ""
+        try:
+            raw = st.secrets.get("OWNER_NAMES", "") or ""
+        except Exception:
+            raw = ""
+        if not raw:
+            raw = os.getenv("OWNER_NAMES", "") or ""
+        for part in str(raw).replace(";", ",").split(","):
+            p = part.strip().lower()
+            if p:
+                names.add(p)
+    except Exception:
+        pass
+    return names
+
+
+def _owner_password() -> str:
+    """Owner password from Streamlit secrets or env — never hardcoded in source."""
+    try:
+        pw = st.secrets.get("OWNER_PASSWORD", "")
+        if isinstance(pw, str) and pw.strip():
+            return pw.strip()
+    except Exception:
+        pass
+    try:
+        pw = os.getenv("OWNER_PASSWORD", "")
+        if isinstance(pw, str) and pw.strip():
+            return pw.strip()
+    except Exception:
+        pass
+    return ""
+
+
+# Public handle list (not a secret). Password lives only in secrets/env.
+OWNER_NAMES = _owner_names()
 
 
 def is_owner(username="") -> bool:
-    """Owner is drae (password-gated at sign-in). Also honor arg_story owner if present."""
+    """Owner is password-gated at sign-in. Also honor arg_story owner if present."""
     n = (username or "").strip().lower()
-    if n in OWNER_NAMES:
+    if n in _owner_names():
         return True
     try:
         return bool(_arg_is_owner(username))
@@ -3459,7 +3496,7 @@ if not st.session_state.get("signed_in") or not st.session_state.get("username")
     """, unsafe_allow_html=True)
     name = st.text_input("Your name", placeholder="e.g. Alex", key="signin_name", label_visibility="collapsed")
     name_l = (name or "").strip().lower()
-    needs_owner_pw = name_l in OWNER_NAMES
+    needs_owner_pw = name_l in _owner_names()
     owner_pw = ""
     if needs_owner_pw:
         st.caption("Owner sign-in — password required.")
@@ -3474,11 +3511,24 @@ if not st.session_state.get("signed_in") or not st.session_state.get("username")
     with c2:
         if st.button("Enter Meridium", use_container_width=True, type="primary", key="signin_btn"):
             ok, result = moderate_username(name)
+            owner_ok = True
             if not ok:
                 st.error(result)
-            elif needs_owner_pw and (owner_pw or "") != OWNER_PASSWORD:
-                st.error("Owner password incorrect.")
-            else:
+                owner_ok = False
+            elif needs_owner_pw:
+                expected = _owner_password()
+                given = (owner_pw or "").strip()
+                if not expected:
+                    st.error(
+                        "Owner login is locked on this deploy. "
+                        "Add OWNER_PASSWORD in Streamlit Secrets "
+                        "(Manage app → Settings → Secrets)."
+                    )
+                    owner_ok = False
+                elif not given or given != expected:
+                    st.error("Owner password incorrect.")
+                    owner_ok = False
+            if ok and owner_ok:
                 # Always clear previous user's progress before loading this account
                 reset_user_session(keep_auth=False)
                 st.session_state.username = result[:32]
