@@ -5637,6 +5637,17 @@ if st.session_state.view == "board":
                 save_user_data()
             except Exception:
                 pass
+        # Just finished 7/7 while reading this pin
+        if len(read) >= len(BOARD_EVIDENCE) and not st.session_state.get("_board_key_notified"):
+            st.session_state.archive_key = True
+            st.session_state.board_entered_once = True
+            st.session_state._board_key_notified = True
+            st.session_state["_egg_flash"] = "You didn’t find a palette… but a **key**."
+            try:
+                save_user_data()
+            except Exception:
+                pass
+            st.success("You didn’t find a palette… but a **key**.")
         st.markdown(
             f"""
             <div class="ev-file">
@@ -5680,10 +5691,27 @@ if st.session_state.view == "board":
         n_read = len(read)
         st.caption(f"Evidence reviewed: {n_read} / {len(BOARD_EVIDENCE)}")
         if n_read >= len(BOARD_EVIDENCE):
+            # Completing the board awards the residual key (not a theme / palette)
+            newly_key = False
+            if not st.session_state.get("archive_key"):
+                st.session_state.archive_key = True
+                newly_key = True
+            st.session_state.board_entered_once = True
+            if not st.session_state.get("_board_key_notified"):
+                st.session_state._board_key_notified = True
+                st.session_state["_egg_flash"] = (
+                    "You didn’t find a palette… but a **key**."
+                )
+                try:
+                    save_user_data()
+                except Exception:
+                    pass
+            st.success("You didn’t find a palette… but a **key**.")
             st.markdown(
                 """
-                <p style="color:#8a7060;font-size:0.85rem;margin-top:0.6rem">
-                  All pins read. The board is quiet. Riley’s chain is complete — for now.
+                <p style="color:#8a7060;font-size:0.85rem;margin-top:0.45rem">
+                  7 / 7 evidence reviewed. The residual key is yours —
+                  take it back to the <strong>lab</strong>. A door that was not on the schematic is waiting.
                 </p>
                 """,
                 unsafe_allow_html=True,
