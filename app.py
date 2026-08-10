@@ -15,15 +15,29 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 
 try:
-    from arg_story import arg_match, arg_reply, is_owner, is_lab_entry
+    from arg_story import arg_match, arg_reply, is_owner as _arg_is_owner, is_lab_entry
 except Exception:
     def arg_match(prompt=""):
         return None
     def arg_reply(stage="", user_name=""):
         return ""
-    def is_owner(username=""):
+    def _arg_is_owner(username=""):
         return False
     def is_lab_entry(prompt=""):
+        return False
+
+OWNER_NAMES = {"drae"}
+OWNER_PASSWORD = "Meridium2026"
+
+
+def is_owner(username="") -> bool:
+    """Owner is drae (password-gated at sign-in). Also honor arg_story owner if present."""
+    n = (username or "").strip().lower()
+    if n in OWNER_NAMES:
+        return True
+    try:
+        return bool(_arg_is_owner(username))
+    except Exception:
         return False
 
 try:
@@ -1073,6 +1087,121 @@ def _user_file(username: str) -> Path:
     key = hashlib.sha256(username.strip().lower().encode("utf-8")).hexdigest()[:24]
     return DATA_DIR / f"{key}.json"
 
+
+PRESENCE_FILE = DATA_DIR / "presence.json"
+OWNER_GRANTS_FILE = DATA_DIR / "owner_grants.json"
+
+
+def _presence_load() -> dict:
+    try:
+        if PRESENCE_FILE.exists():
+            data = json.loads(PRESENCE_FILE.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                return data
+    except Exception:
+        pass
+    return {}
+
+
+def _presence_save(data: dict) -> None:
+    try:
+        PRESENCE_FILE.write_text(json.dumps(data, indent=0), encoding="utf-8")
+    except Exception:
+        pass
+
+
+def presence_heartbeat() -> None:
+    """Record this session as online (shared JSON)."""
+    name = (st.session_state.get("username") or "").strip()
+    if not name or not st.session_state.get("signed_in"):
+        return
+    sid = st.session_state.get("_presence_sid")
+    if not sid:
+        sid = uuid.uuid4().hex[:12]
+        st.session_state._presence_sid = sid
+    data = _presence_load()
+    data[sid] = {
+        "username": name,
+        "view": st.session_state.get("view") or "home",
+        "last_seen": datetime.now().isoformat(),
+        "title": st.session_state.get("owner_title") or "",
+        "theme": st.session_state.get("theme") or "Caelestia",
+        "is_owner": bool(is_owner(name)),
+    }
+    # Drop stale sessions (> 90s)
+    now = datetime.now()
+    cleaned = {}
+    for k, v in data.items():
+        try:
+            ts = datetime.fromisoformat(str(v.get("last_seen")))
+            if (now - ts).total_seconds() <= 90:
+                cleaned[k] = v
+        except Exception:
+            pass
+    _presence_save(cleaned)
+
+
+def presence_online(max_age_sec: int = 75) -> list:
+    """Return list of online presence records (newest activity first)."""
+    data = _presence_load()
+    now = datetime.now()
+    rows = []
+    for sid, v in data.items():
+        if not isinstance(v, dict):
+            continue
+        try:
+            ts = datetime.fromisoformat(str(v.get("last_seen")))
+            age = (now - ts).total_seconds()
+        except Exception:
+            continue
+        if age <= max_age_sec:
+            rows.append({**v, "session_id": sid, "age_sec": int(age)})
+    rows.sort(key=lambda r: r.get("age_sec", 999))
+    return rows
+
+
+def owner_grants_load() -> dict:
+    try:
+        if OWNER_GRANTS_FILE.exists():
+            d = json.loads(OWNER_GRANTS_FILE.read_text(encoding="utf-8"))
+            if isinstance(d, dict):
+                return d
+    except Exception:
+        pass
+    return {}
+
+
+def owner_grants_save(data: dict) -> None:
+    try:
+        OWNER_GRANTS_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
+
+def apply_owner_grants_for_user(username: str) -> None:
+    """Pull any owner-granted theme/title into this session."""
+    name = (username or "").strip().lower()
+    if not name:
+        return
+    grants = owner_grants_load().get(name) or {}
+    if not isinstance(grants, dict):
+        return
+    title = grants.get("title")
+    if title:
+        st.session_state.owner_title = str(title)[:48]
+    themes = grants.get("themes") or []
+    if isinstance(themes, list) and themes:
+        unlocked = list(st.session_state.get("unlocked_themes") or [])
+        for th in themes:
+            if th and th not in unlocked:
+                unlocked.append(th)
+        st.session_state.unlocked_themes = unlocked
+    if grants.get("force_theme") and grants.get("force_theme") in {**THEMES, **SECRET_THEMES}:
+        # Only apply force once per session unless owner re-grants
+        if not st.session_state.get("_owner_force_theme_applied"):
+            st.session_state.theme = grants["force_theme"]
+            st.session_state._owner_force_theme_applied = True
+
 def save_user_data():
     name = (st.session_state.get("username") or "").strip()
     if not name:
@@ -1112,6 +1241,7 @@ def save_user_data():
         "show_spotify": bool(st.session_state.get("show_spotify", False)),
         "use_wiki_toggle": bool(st.session_state.get("use_wiki_toggle", True)),
         "use_web_toggle": bool(st.session_state.get("use_web_toggle", True)),
+        "owner_title": st.session_state.get("owner_title") or "",
         "chats": safe_chats,
         "current_chat_id": st.session_state.get("current_chat_id"),
         "meridium_playlist": st.session_state.get("meridium_playlist") or [],
@@ -1182,6 +1312,7 @@ def load_user_data(username: str) -> bool:
         st.session_state.callaghan_safe_unlocked = bool(data.get("callaghan_safe_unlocked"))
         st.session_state.board_unlocked = bool(data.get("board_unlocked"))
         st.session_state.board_read = list(data.get("board_read") or [])
+        st.session_state.owner_title = str(data.get("owner_title") or "")
         st.session_state.archive_key = bool(data.get("archive_key"))
         st.session_state.board_entered_once = bool(data.get("board_entered_once"))
         st.session_state.lab_door_unlocked = bool(data.get("lab_door_unlocked"))
@@ -2643,19 +2774,33 @@ if not st.session_state.get("signed_in") or not st.session_state.get("username")
     <div class="panel" style="max-width:420px;margin:10vh auto;text-align:center;">
       <div class="panel-label">Meridium</div>
       <div class="hero" style="font-size:1.75rem;">Welcome</div>
-      <div class="sub">Sign in with your name to continue</div>
+      <div class="sub">Enter your name to continue</div>
       <div class="ridge"></div>
       <div class="muted" style="margin-top:8px;">Built with Grok · by xAI</div>
       <div class="muted" style="margin-top:6px;">iPhone: Share → Add to Home Screen</div>
     </div>
     """, unsafe_allow_html=True)
     name = st.text_input("Your name", placeholder="e.g. Alex", key="signin_name", label_visibility="collapsed")
+    name_l = (name or "").strip().lower()
+    needs_owner_pw = name_l in OWNER_NAMES
+    owner_pw = ""
+    if needs_owner_pw:
+        st.caption("Owner sign-in — password required.")
+        owner_pw = st.text_input(
+            "Owner password",
+            type="password",
+            key="signin_owner_pw",
+            placeholder="Password",
+            label_visibility="collapsed",
+        )
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
         if st.button("Enter Meridium", use_container_width=True, type="primary", key="signin_btn"):
             ok, result = moderate_username(name)
             if not ok:
                 st.error(result)
+            elif needs_owner_pw and (owner_pw or "") != OWNER_PASSWORD:
+                st.error("Owner password incorrect.")
             else:
                 # Always clear previous user's progress before loading this account
                 reset_user_session(keep_auth=False)
@@ -2674,13 +2819,28 @@ if not st.session_state.get("signed_in") or not st.session_state.get("username")
                     st.session_state.theme = "Caelestia"
                     st.session_state.font = "Inter"
                     st.session_state.view = "home"
+                    st.session_state.owner_title = ""
                     create_new_chat()
                 elif not st.session_state.get("chats"):
                     create_new_chat()
+                try:
+                    apply_owner_grants_for_user(st.session_state.username)
+                except Exception:
+                    pass
                 st.session_state.show_intro = True
                 save_user_data()
                 st.rerun()
     st.stop()
+
+# Live presence heartbeat (shared JSON — owner panel reads this)
+try:
+    presence_heartbeat()
+except Exception:
+    pass
+try:
+    apply_owner_grants_for_user(st.session_state.get("username") or "")
+except Exception:
+    pass
 
 # Personalized intro (once after sign-in)
 if st.session_state.show_intro:
@@ -6926,11 +7086,15 @@ if st.session_state.view == "home":
         _wiki_pill = "Wiki on" if st.session_state.use_wiki_toggle else "Wiki off"
         _web_pill = "Web on" if st.session_state.use_web_toggle else "Web off"
         _theme_pill = st.session_state.get("theme") or "Caelestia"
+        _title_bit = st.session_state.get("owner_title") or ""
+        _sub = owner_subline(st.session_state.username)
+        if _title_bit:
+            _sub = f"{_title_bit} · {_sub}"
         st.markdown(f"""
         <div class="panel">
           <div class="panel-label">Shell</div>
           <div class="hero">{greet_line(st.session_state.username)}</div>
-          <div class="sub">{owner_subline(st.session_state.username)}</div>
+          <div class="sub">{_sub}</div>
           <div class="ridge"></div>
           <div class="home-status">
             <span class="home-pill">{_theme_pill}</span>
@@ -6940,6 +7104,70 @@ if st.session_state.view == "home":
           </div>
         </div>
         """, unsafe_allow_html=True)
+
+        # ===== OWNER PANEL (drae only) =====
+        if is_owner(st.session_state.get("username") or ""):
+            with st.expander("Owner panel", expanded=False):
+                st.caption("Live sessions · grants · presence (local JSON). Only you can see this.")
+                online = presence_online()
+                st.markdown(f"**Online now:** {len(online)}")
+                if not online:
+                    st.caption("No active sessions (heartbeat every page load · 75s window).")
+                else:
+                    for row in online:
+                        u = row.get("username") or "?"
+                        v = row.get("view") or "?"
+                        age = row.get("age_sec", "?")
+                        th = row.get("theme") or ""
+                        title = row.get("title") or ""
+                        badge = " · owner" if row.get("is_owner") else ""
+                        st.markdown(
+                            f"- **{u}**{badge} · `{v}` · {age}s ago"
+                            + (f" · {th}" if th else "")
+                            + (f" · *{title}*" if title else "")
+                        )
+
+                st.markdown("---")
+                st.markdown("**Grant to user**")
+                target = st.text_input("Username", key="owner_grant_user", placeholder="exact name")
+                all_themes = list(THEMES.keys()) + list(SECRET_THEMES.keys())
+                grant_theme = st.selectbox(
+                    "Unlock theme",
+                    ["(none)"] + all_themes,
+                    key="owner_grant_theme",
+                )
+                force_theme = st.checkbox("Also switch their active theme to this", key="owner_force_theme")
+                grant_title = st.text_input(
+                    "Custom title / badge",
+                    key="owner_grant_title",
+                    placeholder="e.g. Residual Witness",
+                )
+                if st.button("Apply grant", key="owner_grant_btn", type="primary"):
+                    tname = (target or "").strip().lower()
+                    if not tname:
+                        st.error("Enter a username.")
+                    else:
+                        grants = owner_grants_load()
+                        entry = dict(grants.get(tname) or {})
+                        themes = list(entry.get("themes") or [])
+                        if grant_theme and grant_theme != "(none)":
+                            if grant_theme not in themes:
+                                themes.append(grant_theme)
+                            entry["themes"] = themes
+                            if force_theme:
+                                entry["force_theme"] = grant_theme
+                        if (grant_title or "").strip():
+                            entry["title"] = grant_title.strip()[:48]
+                        grants[tname] = entry
+                        owner_grants_save(grants)
+                        # If granting to self, apply immediately
+                        if tname == (st.session_state.get("username") or "").strip().lower():
+                            apply_owner_grants_for_user(tname)
+                            save_user_data()
+                        st.success(f"Grant saved for **{tname}**. They receive it on next page load.")
+                        st.rerun()
+
+                st.caption("Chatroom invite (phase 2) — presence + grants ship first.")
 
         # Quote of the hour
         qotd, qotd_author = quote_of_the_day()
