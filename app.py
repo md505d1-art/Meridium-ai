@@ -1345,6 +1345,170 @@ def chatroom_user_allowed(username: str) -> bool:
     members = [m.lower() for m in (room.get("members") or []) if m]
     return u in members
 
+
+# ----- Site-wide owner effects (shared JSON) -----
+SITE_EFFECTS_FILE = DATA_DIR / "owner_site_effects.json"
+
+_DEFAULT_SITE_EFFECTS = {
+    "rainbow_chat": False,
+    "global_banner": "",
+    "force_theme": "",          # empty = off
+    "residual_static": False,   # subtle VHS static overlay
+    "soft_bloom": False,        # pink/gold glow (Lumity-ish)
+    "quiet_mode": False,        # dim + hush captions
+    "creator_watermark": True,  # small "Meridium · Drae" mark
+}
+
+
+def site_effects_load() -> dict:
+    try:
+        if SITE_EFFECTS_FILE.exists():
+            d = json.loads(SITE_EFFECTS_FILE.read_text(encoding="utf-8"))
+            if isinstance(d, dict):
+                out = dict(_DEFAULT_SITE_EFFECTS)
+                out.update(d)
+                return out
+    except Exception:
+        pass
+    return dict(_DEFAULT_SITE_EFFECTS)
+
+
+def site_effects_save(data: dict) -> None:
+    try:
+        SITE_EFFECTS_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
+
+def apply_site_effects_css() -> None:
+    """Inject global visual effects for every signed-in user."""
+    fx = site_effects_load()
+    bits = []
+
+    banner = (fx.get("global_banner") or "").strip()
+    if banner:
+        import html as _html
+        safe = _html.escape(banner)[:160]
+        bits.append(
+            f"""
+            <div class="drae-global-banner">{safe}</div>
+            <style>
+              .drae-global-banner {{
+                position: sticky; top: 0; z-index: 9990;
+                text-align: center;
+                padding: 0.55rem 1rem;
+                font-family: Georgia, 'Cormorant Garamond', serif;
+                font-style: italic;
+                font-size: 0.95rem;
+                letter-spacing: 0.02em;
+                color: #f5f0ff;
+                background: linear-gradient(90deg, #1a1028, #2a1840, #1a1028);
+                border-bottom: 1px solid rgba(196,167,231,0.35);
+                box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+              }}
+            </style>
+            """
+        )
+
+    if fx.get("rainbow_chat"):
+        bits.append(
+            """
+            <style>
+              [data-testid="stChatMessage"] p,
+              [data-testid="stChatMessage"] span,
+              [data-testid="stChatMessage"] li,
+              [data-testid="stChatMessage"] .stMarkdown {
+                background: linear-gradient(90deg,#f472b6,#a78bfa,#60a5fa,#34d399,#fbbf24,#f472b6);
+                background-size: 200% auto;
+                -webkit-background-clip: text;
+                background-clip: text;
+                -webkit-text-fill-color: transparent;
+                animation: draeRainbow 4s linear infinite;
+              }
+              @keyframes draeRainbow {
+                to { background-position: 200% center; }
+              }
+              [data-testid="stChatMessage"] {
+                border: 1px solid rgba(167,139,250,0.25) !important;
+                border-radius: 16px !important;
+              }
+            </style>
+            """
+        )
+
+    if fx.get("residual_static"):
+        bits.append(
+            """
+            <style>
+              .stApp::after {
+                content: "";
+                pointer-events: none;
+                position: fixed; inset: 0; z-index: 9980;
+                opacity: 0.07;
+                background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+                animation: draeStatic 0.35s steps(3) infinite;
+                mix-blend-mode: overlay;
+              }
+              @keyframes draeStatic {
+                0% { transform: translate(0,0); }
+                50% { transform: translate(-1%,1%); }
+                100% { transform: translate(1%,-1%); }
+              }
+            </style>
+            """
+        )
+
+    if fx.get("soft_bloom"):
+        bits.append(
+            """
+            <style>
+              .stApp {
+                box-shadow: inset 0 0 120px rgba(244,114,182,0.12), inset 0 0 80px rgba(251,191,36,0.08) !important;
+              }
+              .panel, [data-testid="stVerticalBlockBorderWrapper"] {
+                border-color: rgba(244,114,182,0.25) !important;
+              }
+            </style>
+            """
+        )
+
+    if fx.get("quiet_mode"):
+        bits.append(
+            """
+            <style>
+              .stApp { filter: saturate(0.75) brightness(0.92); }
+              .sub, .muted, [data-testid="stCaption"] { opacity: 0.55 !important; }
+            </style>
+            """
+        )
+
+    if fx.get("creator_watermark"):
+        bits.append(
+            """
+            <style>
+              .drae-watermark {
+                position: fixed; right: 12px; bottom: 10px; z-index: 9970;
+                font-family: ui-monospace, monospace;
+                font-size: 0.62rem;
+                letter-spacing: 0.14em;
+                color: rgba(196,167,231,0.45);
+                pointer-events: none;
+                text-transform: uppercase;
+              }
+            </style>
+            <div class="drae-watermark">Meridium · Drae</div>
+            """
+        )
+
+    force = (fx.get("force_theme") or "").strip()
+    if force and force in {**THEMES, **SECRET_THEMES}:
+        # Soft-apply for non-owners only; owner keeps their choice in panel
+        if not is_owner(st.session_state.get("username") or ""):
+            st.session_state.theme = force
+
+    if bits:
+        st.markdown("\n".join(bits), unsafe_allow_html=True)
+
 def save_user_data():
     name = (st.session_state.get("username") or "").strip()
     if not name:
@@ -2833,6 +2997,11 @@ for _item in _pending:
         unlock_theme(_item[0], _item[1] if len(_item) > 1 else "", apply=False)
 
 inject_css(st.session_state.font, st.session_state.get("theme", "Caelestia"), st.session_state.popup)
+try:
+    if st.session_state.get("signed_in"):
+        apply_site_effects_css()
+except Exception:
+    pass
 
 # Hard-stop Nadir ambient (Run Rabbit Run) when leaving the channel
 if st.session_state.get("_force_stop_nadir_audio") and st.session_state.get("view") not in (
@@ -7226,11 +7395,53 @@ if st.session_state.view == "owner":
 
     st.markdown(
         """
-        <div class="panel">
-          <div class="panel-label">Owner desk</div>
-          <div class="hero" style="font-size:1.35rem;">Meridium control</div>
-          <div class="sub">Live sessions · chatroom · grants · only you</div>
-          <div class="ridge"></div>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700&family=Cormorant+Garamond:ital,wght@0,500;1,500&display=swap');
+          .drae-desk {
+            position: relative;
+            padding: 1.4rem 1.35rem 1.2rem;
+            border-radius: 22px;
+            overflow: hidden;
+            border: 1px solid rgba(196,167,231,0.4);
+            background:
+              radial-gradient(ellipse at 0% 0%, rgba(244,114,182,0.2), transparent 45%),
+              radial-gradient(ellipse at 100% 0%, rgba(167,139,250,0.25), transparent 50%),
+              radial-gradient(ellipse at 50% 100%, rgba(45,212,191,0.1), transparent 40%),
+              linear-gradient(160deg, #140c1e 0%, #0a0810 100%);
+            box-shadow: 0 24px 60px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
+            margin-bottom: 0.75rem;
+          }
+          .drae-desk .kicker {
+            font-family: ui-monospace, monospace;
+            font-size: 0.62rem; letter-spacing: 0.28em;
+            color: #c4a7e7; text-transform: uppercase; margin-bottom: 0.4rem;
+          }
+          .drae-desk .title {
+            font-family: Syne, system-ui, sans-serif;
+            font-weight: 700; font-size: clamp(1.5rem, 4vw, 1.95rem);
+            color: #faf5ff; letter-spacing: -0.02em; margin: 0 0 0.35rem;
+          }
+          .drae-desk .line {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-style: italic; font-size: 1.05rem;
+            color: rgba(230,220,250,0.78); line-height: 1.4;
+            max-width: 36rem;
+          }
+          .drae-desk .sig {
+            margin-top: 0.7rem;
+            font-family: ui-monospace, monospace;
+            font-size: 0.68rem; letter-spacing: 0.12em;
+            color: rgba(196,167,231,0.55);
+          }
+        </style>
+        <div class="drae-desk">
+          <div class="kicker">Creator channel · Drae only</div>
+          <div class="title">Architect’s desk</div>
+          <div class="line">
+            Residual keys, TV Girl pink, Nadir teal, Stringbean mint —
+            you built the shell that remembers. This desk moves the whole site.
+          </div>
+          <div class="sig">MERIDIUM · OWNER · NOT A COMMITTEE</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -7239,7 +7450,7 @@ if st.session_state.view == "owner":
         st.session_state.view = "home"
         st.rerun()
 
-    tab_live, tab_room, tab_grants = st.tabs(["Online", "Chatroom", "Grants"])
+    tab_live, tab_room, tab_fx, tab_grants = st.tabs(["Online", "Chatroom", "Site effects", "Grants"])
 
     with tab_live:
         online = presence_online()
@@ -7308,8 +7519,55 @@ if st.session_state.view == "owner":
         else:
             st.caption("No messages yet.")
 
+    with tab_fx:
+        st.markdown("**Site-wide effects** — hit every signed-in user on next load.")
+        fx = site_effects_load()
+        rainbow = st.toggle("🌈 Rainbow chat", value=bool(fx.get("rainbow_chat")), key="fx_rainbow")
+        static = st.toggle("📼 Residual static overlay", value=bool(fx.get("residual_static")), key="fx_static")
+        bloom = st.toggle("✨ Soft bloom (Lumity glow)", value=bool(fx.get("soft_bloom")), key="fx_bloom")
+        quiet = st.toggle("🤫 Quiet mode (dim / hush)", value=bool(fx.get("quiet_mode")), key="fx_quiet")
+        mark = st.toggle("✎ Creator watermark", value=bool(fx.get("creator_watermark", True)), key="fx_mark")
+        banner = st.text_input(
+            "Global banner (everyone sees this)",
+            value=str(fx.get("global_banner") or ""),
+            key="fx_banner",
+            placeholder="e.g. Observation desk is open tonight.",
+        )
+        theme_opts = ["(off)"] + list(THEMES.keys()) + list(SECRET_THEMES.keys())
+        cur_force = fx.get("force_theme") or "(off)"
+        if cur_force not in theme_opts:
+            cur_force = "(off)"
+        force_all = st.selectbox(
+            "Force everyone's theme",
+            theme_opts,
+            index=theme_opts.index(cur_force),
+            key="fx_force_theme",
+        )
+        if st.button("Apply site effects", key="fx_apply", type="primary", use_container_width=True):
+            new_fx = {
+                "rainbow_chat": bool(rainbow),
+                "residual_static": bool(static),
+                "soft_bloom": bool(bloom),
+                "quiet_mode": bool(quiet),
+                "creator_watermark": bool(mark),
+                "global_banner": (banner or "").strip()[:160],
+                "force_theme": "" if force_all == "(off)" else force_all,
+            }
+            site_effects_save(new_fx)
+            st.success("Site effects live — everyone picks them up on refresh / navigation.")
+            st.rerun()
+        if st.button("Clear all effects", key="fx_clear", use_container_width=True):
+            site_effects_save(dict(_DEFAULT_SITE_EFFECTS))
+            st.success("Effects cleared.")
+            st.rerun()
+        st.caption(
+            "Rainbow = Meridium chat text shifts colour. "
+            "Static = residual VHS grain. Bloom = pink/gold shell light. "
+            "Force theme overrides non-owners."
+        )
+
     with tab_grants:
-        st.markdown("Gift a theme or title to any username.")
+        st.markdown("Gift a theme or title to any username — residual badges, secret palettes.")
         target = st.text_input("Username", key="owner_grant_user", placeholder="exact name")
         all_themes = list(THEMES.keys()) + list(SECRET_THEMES.keys())
         grant_theme = st.selectbox("Unlock theme", ["(none)"] + all_themes, key="owner_grant_theme")
