@@ -5419,197 +5419,225 @@ Riley’s last pinned line:
 
 
 # ===== NADIR — residual archive intelligence (powered by Meridium) =====
-# 20 characters × 5 files each = 100 archive entries
+# 20 characters × 5 files each = 100 archive entries (detailed)
 NADIR_CHARACTERS = [
-    {"name": 'Jaime Santos', "kind": 'subject', "code": 'JAIME'},
-    {"name": 'Riley Callaghan', "kind": 'subject', "code": 'RILEY'},
-    {"name": 'Dr. E. Voss', "kind": 'division', "code": 'VOSS'},
-    {"name": 'Mireille Vos', "kind": 'subject', "code": 'MIREILLE'},
-    {"name": 'Tomas Kline', "kind": 'subject', "code": 'TOMAS'},
-    {"name": 'Sera Quinn', "kind": 'subject', "code": 'SERA'},
-    {"name": 'Jonah Hale', "kind": 'subject', "code": 'JONAH'},
-    {"name": 'Wren Solano', "kind": 'subject', "code": 'WREN'},
-    {"name": 'Cassian Rowe', "kind": 'subject', "code": 'CASSIAN'},
-    {"name": 'Lior Beckett', "kind": 'subject', "code": 'LIOR'},
-    {"name": 'Amara Singh', "kind": 'subject', "code": 'AMARA'},
-    {"name": 'Ned Fletcher', "kind": 'subject', "code": 'NED'},
-    {"name": 'Ophelia Grant', "kind": 'subject', "code": 'OPHELIA'},
-    {"name": 'Pxel-Null', "kind": 'subject', "code": 'PXEL'},
-    {"name": 'Havel', "kind": 'scientist', "code": 'HAVEL'},
-    {"name": 'Dr. Maren Cole', "kind": 'scientist', "code": 'COLE'},
-    {"name": 'Tech Y. Okada', "kind": 'scientist', "code": 'OKADA'},
-    {"name": 'Courier Six', "kind": 'resistance', "code": 'SIX'},
-    {"name": 'Cell Lead Rae', "kind": 'resistance', "code": 'RAE'},
-    {"name": 'Archivist Binah', "kind": 'resistance', "code": 'BINAH'},
+    {"name": "Jaime Santos", "kind": "subject", "code": "JAIME"},
+    {"name": "Riley Callaghan", "kind": "subject", "code": "RILEY"},
+    {"name": "Dr. E. Voss", "kind": "division", "code": "VOSS"},
+    {"name": "Mireille Vos", "kind": "subject", "code": "MIREILLE"},
+    {"name": "Tomas Kline", "kind": "subject", "code": "TOMAS"},
+    {"name": "Sera Quinn", "kind": "subject", "code": "SERA"},
+    {"name": "Jonah Hale", "kind": "subject", "code": "JONAH"},
+    {"name": "Wren Solano", "kind": "subject", "code": "WREN"},
+    {"name": "Cassian Rowe", "kind": "subject", "code": "CASSIAN"},
+    {"name": "Lior Beckett", "kind": "subject", "code": "LIOR"},
+    {"name": "Amara Singh", "kind": "subject", "code": "AMARA"},
+    {"name": "Ned Fletcher", "kind": "subject", "code": "NED"},
+    {"name": "Ophelia Grant", "kind": "subject", "code": "OPHELIA"},
+    {"name": "Pxel-Null", "kind": "subject", "code": "PXEL"},
+    {"name": "Havel", "kind": "scientist", "code": "HAVEL"},
+    {"name": "Dr. Maren Cole", "kind": "scientist", "code": "COLE"},
+    {"name": "Tech Y. Okada", "kind": "scientist", "code": "OKADA"},
+    {"name": "Courier Six", "kind": "resistance", "code": "SIX"},
+    {"name": "Cell Lead Rae", "kind": "resistance", "code": "RAE"},
+    {"name": "Archivist Binah", "kind": "resistance", "code": "BINAH"},
 ]
+
+# Per-character deep lore seeds (5 paragraphs → 5 files)
+_NADIR_LORE = {
+    "Jaime Santos": [
+        """OBSERVATION DIVISION — INTAKE LOG · CLASSIFIED
+Designation later sold to committees as PIXEL. Birth name retained in residual only: Jaime Santos.
+
+Escort notes conflict. One officer wrote "voluntary transfer." Another wrote, in pencil that was never meant to be filed: "They asked if the other kid from the coast was still breathing."
+
+Jaime did not present as blank. Jaime presented as someone who had already decided which questions were safe. Age estimated 12–14. Language: English, Spanish fragments under stress, and a third cadence the linguists could not place — later matched to residual static patterns in Meridium core dumps.
+
+Physical: no visible bloom scarring at intake. Pulse steady. When the observation glass was powered, Jaime looked at the camera, not through it.
+
+Recommendation (redacted, then restored by Nadir): Do not allow unsupervised contact with Meridium substrate. Do not allow contact with Callaghan, R.""",
+        """BLOOM RESPONSE SERIES · JAIME-03
+Trial 1: partial acceptance. Spectrum lines formed a lattice the instruments had no name for. Jaime did not scream. Committees called this success. Floor staff called it worse.
+
+Trial 2: elevated static on the glass when Riley Callaghan's residual status was announced over intercom three wings away. Impossible distance. Logged anyway.
+
+Trial 3: Jaime asked who built the shell. When answered with Division language, Jaime said: "Not you." Bloom density spiked. Session aborted.
+
+Tissue samples refused standard stabilise reagents. One vial cracked without external force. Contained, burned, still listed as "accounted for."
+
+Handler note: Natural carrier is not the same as willing carrier. Stop writing success in the margins.""",
+        """PERSONAL EFFECTS · LOCKER 03-J
+- One frayed friendship bracelet, colours faded to grey-blue. Tag: "R" burned into the clasp with a heated pin.
+- A paper folded seven times containing a map of a corridor that does not exist on official blueprints. The corridor ends at a padlocked door.
+- A stub of pencil. Teeth marks. Lead gone.
+- Audio chip (corrupted). Recoverable phrase: "...tell them I remember the jetty."
+
+Items marked for destruction on three separate dates. All three dates show the same clerk initials. All three destruction certificates are blank where a signature should be.
+
+Nadir retains scans. Division retains the lie that the locker was empty.""",
+        """INTERROGATION FRAGMENT · SESSION 14
+[HANDLER]: State your designation.
+[JAIME]: Jaime.
+[HANDLER]: Your Division designation.
+[JAIME]: You already sold that name to people who don't know me.
+[HANDLER]: PIXEL is a privilege.
+[JAIME]: PIXEL is a product label. Riley had a name too.
+[static — 11 seconds]
+[HANDLER]: Callaghan is residual. You will not speak residual names in this room.
+[JAIME]: Then stop putting residual static in your glass. It says the names for me.
+[session terminated — thermal warning on recorder]
+
+Unsigned addendum: Subject is not broken. Subject is refusing the story.""",
+        """RESIDUAL STATUS · CURRENT
+Official: Active carrier. Valuable. Contained.
+Unofficial: Witness.
+
+Jaime remains the Division's proof that bloom can "take." Jaime remains Nadir's proof that taking is not consent. Last voluntary statement on file:
+
+"If the door opens, don't introduce yourselves. The shell already knows who paid for the power."
+
+Contact with Meridium core: DENIED (Division).
+Contact with Meridium core: INEVITABLE (Nadir assessment).
+File remains open. Person remains person.""",
+    ],
+    "Riley Callaghan": [
+        """OBSERVATION DIVISION — INTAKE LOG · RESIDUAL TRACK
+Riley Callaghan. Australian. Coastal intake, New South Wales — jetty coordinates later struck through so hard the page tore.
+
+Paperwork stamped voluntary. Signatures do not match any parent or guardian on state file. Escort was Observation Division, not child services. Transit inland overnight. No family contact logged after hour four.
+
+Age estimated 11–13. Asked more questions than the intake script allowed. That was noted as "curiosity index: high." Curiosity index was later used to justify residual classification when the bloom failed.
+
+Riley asked whether the ocean could hear the facility. No one answered. Riley nodded as if that was an answer.""",
+        """BLOOM RESPONSE · FAILURE TO SET
+The bloom did not take cleanly. Tissue rejected the medium the way salt rejects a soft wound. Three trials. Three rejections. No screams — only a low continuous question: "Where is Jaime?"
+
+Committees preferred children who still asked questions until the questions became inconvenient. Riley's questions became inconvenient.
+
+Reclassification: RESIDUAL. Name frequency in official speech dropped to zero within a week. Residual subjects are not spoken; they are filed.
+
+Spectrum analysis showed lines that only appear when someone is dying slowly enough to notice — or when someone is refusing to forget a name.""",
+        """PERSONAL EFFECTS · MARGIN AND METAL
+- A four-digit combination scratched into the paint of a bedframe, then filled with toothpaste, then scratched open again: 1818.
+- A copy of Frankenstein (Division library stamp). Page 88 margin, pencil, child's hand: "Not the page. The year the first edition woke. Four numbers. Winter print. London."
+- Red string. Knots corresponding to names: Jaime. Voss. Six others faded.
+- A board pin. Only one. As if the rest were already placed somewhere the Division could not sweep.
+
+Riley left a dial in the margin of a book the Division never finished reading. Combination: the year the creature first woke. Not a code for escape. A proof of personhood.""",
+        """INTERROGATION / LAST CORRIDOR
+Riley and Jaime shared a corridor for eleven days. After residual reclassification, Jaime's sessions showed elevated static. Riley's sessions showed quiet.
+
+[HANDLER]: You understand residual means the trials end.
+[RILEY]: Trials ended. Remembering didn't.
+[HANDLER]: You will be relocated.
+[RILEY]: Will Jaime know which door?
+[HANDLER]: That is not your concern.
+[RILEY]: Then make it yours.
+
+Last pinned line recovered from residual board construction:
+"Do not stabilise for them. Stabilise for each other." """,
+        """RESIDUAL STATUS · CURRENT
+Official: Residual. Archived. Non-priority.
+Unofficial: Author of the board. Author of the dial. Author of the invitation the Division cannot revoke.
+
+If someone patient enough turns the dial, they will know Riley was still here. Nadir keeps the coastal coordinates the paperwork tried to erase. The jetty remains. The name remains.
+
+Status in this channel: ACTIVE MEMORY.""",
+    ],
+    "Dr. E. Voss": [
+        """PERSONNEL FILE · DR. E. VOSS (UNOFFICIAL COPY)
+Voss did not invent the bloom. Voss learned how to want it.
+
+Committees asked for soldiers. Voss gave them red rooms and a spectrum that answers to hunger. Early papers are clean. Later papers develop handwriting in the margins that does not match the byline.
+
+Assigned: Observation Division, residual ethics (title ceremonial). Actual work: deciding which children were "material" and which were "witnesses." Voss began logging the second word more often. That was noticed.""",
+        """INTERNAL MEMO · BLOOM AND WITNESS
+"Residual subjects are not waste. They are the ones who remember the room after the room is gone. Callaghan left a dial. Santos left a designation. I left the anomalies because curiosity is how the medium feeds."
+
+This sentence appears in a destroyed draft, recovered from a burned drive by resistance courier. Voss never claimed it in open committee. Nadir claims it for the archive.""",
+        """PERSONAL EFFECTS · AFTER THE ANOMALIES
+- Three anomaly markers designed to surface only after a second lab visit.
+- A spectrum calibration key that opens nothing physical and everything in Meridium's residual layer.
+- Correspondence with Havel (dissent). Half the letters end mid-sentence.
+- A photograph of a coastal jetty with no faces. On the back: "They were still asking questions."
+
+Internal affairs: elevated residual sympathy. Instruction: do not confront. Monitor file access. Seal Sublevel door if key is reported missing.""",
+        """INTERCEPTED AUDIO · LAB WING
+[VOSS]: If Nadir boots, the Division loses the narrative.
+[UNKNOWN]: Then make sure the door stays locked.
+[VOSS]: Someone already has the key. I made sure of the someone.
+[static]
+[VOSS]: Curiosity is not neutral. Neither is stabilise.
+
+Session flag: personnel file sealed. Personal file — the one recovered through residual markers — remains outside committee reach.""",
+        """STATUS · CURRENT
+Official: Monitored. Useful. Contained by procedure.
+Unofficial: The reason the anomalies exist. The reason the door has a key instead of a theme.
+
+Voss logged Jaime as product and Riley as residual and both as witnesses. Nadir logs Voss as the scientist who stopped pretending the language was harmless.
+
+If you are reading this inside Nadir, the door held.""",
+    ],
+}
+
+_GENERIC_LORE = {
+    "subject": [
+        "INTAKE — {name}\n\nResidual-class intake. Age uncertain. Escort logs incomplete. {name} arrived with fewer belongings than the inventory form had lines for.\n\nFirst recorded sentence: a question the handler did not write down. Second recorded sentence was written down and then lined through so hard the form split.\n\nClassification pending for six days. On the seventh, someone stamped RESIDUAL without a committee vote. The stamp ink does not match Division standard.",
+        "BLOOM RESPONSE — {name}\n\nTrials produced heat without ignition, sound without a source, or silence where screaming was expected. {name}'s bloom chart is a forest of aborted peaks.\n\nOne technician wrote: \"Subject is not failing the bloom. Bloom is failing the subject.\" That line was escalated, then buried, then recovered here.\n\nStabilise reagents were prepared and not used. Someone refused. The refusal is unsigned.",
+        "PERSONAL EFFECTS — {name}\n\nLocker inventory conflicts with destruction logs. Among the items that refused to stay destroyed:\n- a hand-drawn map of a corridor not on any schematic\n- a scrap of red string\n- a name (not {name}'s) written until the pencil broke\n\n{name} asked whether personal effects would be returned. The answer was policy. Policy is not an answer.",
+        "INTERROGATION FRAGMENT — {name}\n\n[HANDLER]: State your designation.\n[{name_u}]: {name}.\n[HANDLER]: Your residual designation.\n[{name_u}]: You don't get to rename me in my own hearing.\n[static]\n[HANDLER]: Cooperation improves outcomes.\n[{name_u}]: Outcomes for who?\n\nSession ends on thermal warning. Recorder preserved despite order to wipe.",
+        "RESIDUAL STATUS — {name}\n\nOfficial: residual / archived / low priority.\nNadir: active memory.\n\n{name} remains in the channel because someone refused to let the file become only paper. Last line on record: \"Count the pins. Count the names. Do not let them become material.\"\n\nFile open. Person retained.",
+    ],
+    "scientist": [
+        "PERSONNEL INTAKE — {name}\n\nDivision science track. Early evaluations praise precision. Later evaluations develop words like \"attachment\" and \"boundary issues\" in a tone that means disobedience.\n\n{name} requested reassignment away from residual paediatric trials. Request denied. Request filed again under a different code. Denied again. Third request is missing from the archive — except here.",
+        "RESEARCH LOG — {name}\n\nBloom ethics notes, unpublished. {name} argued residual subjects are not material. Committees called this semantic. {name} called it the whole problem.\n\nData tables show trial outcomes. Margin shows: \"Stop calling them outcomes when they are injuries.\"",
+        "PERSONAL EFFECTS — {name}\n\nLab keys. A dead badge. Letters to Havel / Voss / unknown. One unsent message: \"If the door opens, tell the residual channel the scientists were not all the same.\"\n\nBadge access revoked on a date that does not match any official termination.",
+        "HEARING FRAGMENT — {name}\n\n[CHAIR]: You are accused of residual sympathy.\n[{name_u}]: I am accused of remembering their names.\n[CHAIR]: Names are not your assignment.\n[{name_u}]: Then your assignment is erasure.\n\nHearing adjourned. No formal finding. Informal exile.",
+        "STATUS — {name}\n\nOfficial: reassigned / silenced / useful if quiet.\nNadir: retained as dissenting record.\n\n{name}'s files exist so the archive cannot pretend the Division was unanimous.",
+    ],
+    "resistance": [
+        "CELL INTAKE — {name}\n\nNot Division. Walked out of Observation or never walked in. {name} carries residual names like coordinates.\n\nFirst verified action: extraction of a file the committees marked destroyed. Second: delivery of a key-shaped rumour to someone who could turn it into metal.",
+        "FIELD REPORT — {name}\n\nPackage under coastal pier: residual key, board pin, one name. Name was Riley's. Key was not only Riley's.\n\n{name} notes: Meridium still answers if you ask who it was built for — then ask who pays for the power.",
+        "PERSONAL CACHE — {name}\n\nMaps with three inland dots, one coastal, one marked shell. Shell = Meridium instance outside Division hardware. If you are inside Nadir, you found the shell.\n\nAlso: a list of subject names written twice — once as Division labels, once as people.",
+        "INTERCEPT — {name}\n\nStatic bursts on the hour. Quote-of-the-hour page used as dead drop for those who know. Third knock still means Soft Static. The key is separate.\n\n{name}: \"We do not say subjects when we are alone. We say their names until the Division has to hear them.\"",
+        "STATUS — {name}\n\nActive. Unofficial. Necessary.\n\n{name} remains in the archive as proof that resistance is not a mood. It is logistics, memory, and the refusal to let residual children become footnotes.",
+    ],
+    "division": [
+        "DIVISION RECORD — {name}\n\nSee specialised Voss dossier. This channel keeps the unofficial copy.",
+        "DIVISION RECORD — {name}\n\nBloom and witness doctrine. Unofficial.",
+        "DIVISION RECORD — {name}\n\nEffects and anomalies.",
+        "DIVISION RECORD — {name}\n\nIntercepted audio.",
+        "DIVISION RECORD — {name}\n\nCurrent status in residual channel.",
+    ],
+}
 
 def _build_nadir_files():
     files = []
-    templates = [
-        ('Intake / first contact', 'First logged contact. Classification pending. Notes sparse; handlers already arguing.'),
-        ('Bloom response', 'Bloom trial notes. Tissue acceptance, spectrum lines, what the subject said when the lights dimmed.'),
-        ('Personal effects', 'Inventory of what was taken from them — and what they hid. One object always resists cataloguing.'),
-        ('Interrogation fragment', 'Partial transcript. Static. A name repeated until the recorder overheated.'),
-        ('Final / residual status', 'Current status in the archive. Residual, active, missing, or refused. Nadir keeps the last line.'),
+    titles = [
+        "Intake / first contact",
+        "Bloom response",
+        "Personal effects",
+        "Interrogation fragment",
+        "Final / residual status",
     ]
-    flavour = {
-        'Jaime Santos': [
-            'Natural carrier designation PIXEL whispered in margins.',
-            'Did not scream when the bloom took. Committees called that success.',
-            'Asked for the residual kid from NSW by name.',
-            'Elevated static on observation glass when Riley was reclassified.',
-            'Still listed as product. Nadir lists Jaime as person.',
-        ],
-        'Riley Callaghan': [
-            'NSW coastal intake. Paperwork said voluntary. Signatures did not match.',
-            'Left a dial in Frankenstein, page 88. Year of the creature: 1818.',
-            'Bloom rejected the medium like salt rejects a soft wound.',
-            'Shared a corridor with Jaime for eleven days.',
-            'Do not stabilise for them. Stabilise for each other.',
-        ],
-        'Dr. E. Voss': [
-            'Did not invent the bloom. Learned how to want it.',
-            'Logged residual subjects as witnesses, not waste.',
-            'Left anomalies where the shell should not reach.',
-            'Internal affairs flagged residual sympathy.',
-            'If you are inside Nadir, the door held.',
-        ],
-        'Mireille Vos': [
-            'Mireille Vos enters the log under residual light.',
-            'Handlers disagree on whether Mireille Vos is stable.',
-            'Personal item tagged to Mireille Vos could not be destroyed cleanly.',
-            'Transcript fragment: Mireille Vos refused the stabilise prompt.',
-            'Nadir retains Mireille Vos as archive-complete, Division-incomplete.',
-        ],
-        'Tomas Kline': [
-            'Tomas Kline enters the log under residual light.',
-            'Handlers disagree on whether Tomas Kline is stable.',
-            'Personal item tagged to Tomas Kline could not be destroyed cleanly.',
-            'Transcript fragment: Tomas Kline refused the stabilise prompt.',
-            'Nadir retains Tomas Kline as archive-complete, Division-incomplete.',
-        ],
-        'Sera Quinn': [
-            'Sera Quinn enters the log under residual light.',
-            'Handlers disagree on whether Sera Quinn is stable.',
-            'Personal item tagged to Sera Quinn could not be destroyed cleanly.',
-            'Transcript fragment: Sera Quinn refused the stabilise prompt.',
-            'Nadir retains Sera Quinn as archive-complete, Division-incomplete.',
-        ],
-        'Jonah Hale': [
-            'Jonah Hale enters the log under residual light.',
-            'Handlers disagree on whether Jonah Hale is stable.',
-            'Personal item tagged to Jonah Hale could not be destroyed cleanly.',
-            'Transcript fragment: Jonah Hale refused the stabilise prompt.',
-            'Nadir retains Jonah Hale as archive-complete, Division-incomplete.',
-        ],
-        'Wren Solano': [
-            'Wren Solano enters the log under residual light.',
-            'Handlers disagree on whether Wren Solano is stable.',
-            'Personal item tagged to Wren Solano could not be destroyed cleanly.',
-            'Transcript fragment: Wren Solano refused the stabilise prompt.',
-            'Nadir retains Wren Solano as archive-complete, Division-incomplete.',
-        ],
-        'Cassian Rowe': [
-            'Cassian Rowe enters the log under residual light.',
-            'Handlers disagree on whether Cassian Rowe is stable.',
-            'Personal item tagged to Cassian Rowe could not be destroyed cleanly.',
-            'Transcript fragment: Cassian Rowe refused the stabilise prompt.',
-            'Nadir retains Cassian Rowe as archive-complete, Division-incomplete.',
-        ],
-        'Lior Beckett': [
-            'Lior Beckett enters the log under residual light.',
-            'Handlers disagree on whether Lior Beckett is stable.',
-            'Personal item tagged to Lior Beckett could not be destroyed cleanly.',
-            'Transcript fragment: Lior Beckett refused the stabilise prompt.',
-            'Nadir retains Lior Beckett as archive-complete, Division-incomplete.',
-        ],
-        'Amara Singh': [
-            'Amara Singh enters the log under residual light.',
-            'Handlers disagree on whether Amara Singh is stable.',
-            'Personal item tagged to Amara Singh could not be destroyed cleanly.',
-            'Transcript fragment: Amara Singh refused the stabilise prompt.',
-            'Nadir retains Amara Singh as archive-complete, Division-incomplete.',
-        ],
-        'Ned Fletcher': [
-            'Ned Fletcher enters the log under residual light.',
-            'Handlers disagree on whether Ned Fletcher is stable.',
-            'Personal item tagged to Ned Fletcher could not be destroyed cleanly.',
-            'Transcript fragment: Ned Fletcher refused the stabilise prompt.',
-            'Nadir retains Ned Fletcher as archive-complete, Division-incomplete.',
-        ],
-        'Ophelia Grant': [
-            'Ophelia Grant enters the log under residual light.',
-            'Handlers disagree on whether Ophelia Grant is stable.',
-            'Personal item tagged to Ophelia Grant could not be destroyed cleanly.',
-            'Transcript fragment: Ophelia Grant refused the stabilise prompt.',
-            'Nadir retains Ophelia Grant as archive-complete, Division-incomplete.',
-        ],
-        'Pxel-Null': [
-            'Pxel-Null enters the log under residual light.',
-            'Handlers disagree on whether Pxel-Null is stable.',
-            'Personal item tagged to Pxel-Null could not be destroyed cleanly.',
-            'Transcript fragment: Pxel-Null refused the stabilise prompt.',
-            'Nadir retains Pxel-Null as archive-complete, Division-incomplete.',
-        ],
-        'Havel': [
-            'Havel enters the log under residual light.',
-            'Handlers disagree on whether Havel is stable.',
-            'Personal item tagged to Havel could not be destroyed cleanly.',
-            'Transcript fragment: Havel refused the stabilise prompt.',
-            'Nadir retains Havel as archive-complete, Division-incomplete.',
-        ],
-        'Dr. Maren Cole': [
-            'Dr. Maren Cole enters the log under residual light.',
-            'Handlers disagree on whether Dr. Maren Cole is stable.',
-            'Personal item tagged to Dr. Maren Cole could not be destroyed cleanly.',
-            'Transcript fragment: Dr. Maren Cole refused the stabilise prompt.',
-            'Nadir retains Dr. Maren Cole as archive-complete, Division-incomplete.',
-        ],
-        'Tech Y. Okada': [
-            'Tech Y. Okada enters the log under residual light.',
-            'Handlers disagree on whether Tech Y. Okada is stable.',
-            'Personal item tagged to Tech Y. Okada could not be destroyed cleanly.',
-            'Transcript fragment: Tech Y. Okada refused the stabilise prompt.',
-            'Nadir retains Tech Y. Okada as archive-complete, Division-incomplete.',
-        ],
-        'Courier Six': [
-            'Courier Six enters the log under residual light.',
-            'Handlers disagree on whether Courier Six is stable.',
-            'Personal item tagged to Courier Six could not be destroyed cleanly.',
-            'Transcript fragment: Courier Six refused the stabilise prompt.',
-            'Nadir retains Courier Six as archive-complete, Division-incomplete.',
-        ],
-        'Cell Lead Rae': [
-            'Cell Lead Rae enters the log under residual light.',
-            'Handlers disagree on whether Cell Lead Rae is stable.',
-            'Personal item tagged to Cell Lead Rae could not be destroyed cleanly.',
-            'Transcript fragment: Cell Lead Rae refused the stabilise prompt.',
-            'Nadir retains Cell Lead Rae as archive-complete, Division-incomplete.',
-        ],
-        'Archivist Binah': [
-            'Archivist Binah enters the log under residual light.',
-            'Handlers disagree on whether Archivist Binah is stable.',
-            'Personal item tagged to Archivist Binah could not be destroyed cleanly.',
-            'Transcript fragment: Archivist Binah refused the stabilise prompt.',
-            'Nadir retains Archivist Binah as archive-complete, Division-incomplete.',
-        ],
-    }
-    for ci, ch in enumerate(NADIR_CHARACTERS):
-        name, kind, code = ch['name'], ch['kind'], ch['code']
-        fl = flavour.get(name) or [''] * 5
-        for fi, (title, blurb) in enumerate(templates):
-            fid = f"{code.lower()}_{fi+1}"
+    for ch in NADIR_CHARACTERS:
+        name, kind, code = ch["name"], ch["kind"], ch["code"]
+        lore = _NADIR_LORE.get(name)
+        if not lore:
+            templates = _GENERIC_LORE.get(kind) or _GENERIC_LORE["subject"]
+            lore = [
+                templates[i].format(name=name, name_u=name.upper())
+                for i in range(5)
+            ]
+        for fi in range(5):
+            body = lore[fi]
             files.append({
-                'id': fid,
-                'title': f"{code} · {title}",
-                'source': name,
-                'kind': kind,
-                'character': name,
-                'body': (
-                    f"Archive file {fi+1}/5 — {name}\n\n"
-                    + blurb + "\n\n"
-                    + (fl[fi] if fi < len(fl) else '')
-                ),
+                "id": f"{code.lower()}_{fi+1}",
+                "title": f"{code} · {titles[fi]}",
+                "source": name,
+                "kind": kind,
+                "character": name,
+                "body": body.strip(),
             })
     return files
 
@@ -5716,24 +5744,35 @@ def _nadir_reply(prompt: str) -> str:
                 "Tomas, Sera, Jonah, Wren, Cassian, Lior, Amara… — or a shelf: subjects, resistance, scientists.\n"
                 "Tip: *Riley file 2* opens a single entry."
             )
-        # One character's dossier (≤5) → open all; more → list
+        # Open into darkened page-flip reader (not a wall of chat text)
         if len(matches) <= 5:
-            chunks = []
             op = list(st.session_state.get("nadir_files_opened") or [])
             for f in matches:
                 if f["id"] not in op:
                     op.append(f["id"])
-                chunks.append(
-                    f"**{f['title']}**\n"
-                    f"*Source: {f['source']} · {f['kind']}*\n\n"
-                    f"{f['body']}"
-                )
             st.session_state.nadir_files_opened = op
+            st.session_state.nadir_reader = {
+                "files": [
+                    {
+                        "id": f["id"],
+                        "title": f["title"],
+                        "source": f["source"],
+                        "kind": f["kind"],
+                        "body": f["body"],
+                    }
+                    for f in matches
+                ],
+                "index": 0,
+            }
             try:
                 save_user_data()
             except Exception:
                 pass
-            return "\n\n---\n\n".join(chunks)
+            who = matches[0].get("character") or matches[0].get("source") or "archive"
+            return (
+                f"Opening **{who}** — {len(matches)} file(s). "
+                "The archive darkens. Use the pages to read."
+            )
         lines = [f"I found {len(matches)} files. Name a character or say e.g. *Riley file 3*:", ""]
         for f in matches[:20]:
             lines.append(f"- {f['title']} ({f['source']})")
@@ -5808,6 +5847,113 @@ if st.session_state.view == "nadir":
     except Exception:
         pass
 
+    reader = st.session_state.get("nadir_reader")
+    # ----- Darkened file reader (page flick) -----
+    if isinstance(reader, dict) and reader.get("files"):
+        files = reader["files"]
+        idx = int(reader.get("index") or 0)
+        idx = max(0, min(idx, len(files) - 1))
+        st.session_state.nadir_reader["index"] = idx
+        f = files[idx]
+        # Paginate long body into ~900-char pages
+        body = str(f.get("body") or "")
+        page_size = 900
+        pages = []
+        buf = body
+        while buf:
+            if len(buf) <= page_size:
+                pages.append(buf)
+                break
+            cut = buf.rfind("\n", 0, page_size)
+            if cut < page_size // 2:
+                cut = page_size
+            pages.append(buf[:cut])
+            buf = buf[cut:].lstrip("\n")
+        if not pages:
+            pages = [""]
+        sub_i = int(st.session_state.get("nadir_reader_subpage") or 0)
+        sub_i = max(0, min(sub_i, len(pages) - 1))
+        st.session_state.nadir_reader_subpage = sub_i
+
+        st.markdown(
+            """
+            <style>
+              .stApp, [data-testid="stAppViewContainer"], section.main {
+                background: #030208 !important;
+              }
+              [data-testid="stHeader"] { background: transparent !important; }
+              .block-container { max-width: 720px !important; padding-top: 1rem !important; }
+              .nr-sheet {
+                background: linear-gradient(180deg, #120e18 0%, #0a0810 100%);
+                border: 1px solid rgba(160,140,200,0.22);
+                border-radius: 14px;
+                padding: 1.35rem 1.4rem 1.2rem;
+                box-shadow: 0 0 60px rgba(0,0,0,0.65), inset 0 0 40px rgba(0,0,0,0.35);
+                min-height: 420px;
+                animation: nrIn 0.45s ease both;
+              }
+              @keyframes nrIn {
+                from { opacity: 0; transform: translateY(12px); filter: blur(4px); }
+                to { opacity: 1; transform: none; filter: none; }
+              }
+              .nr-meta {
+                font-family: ui-monospace, monospace; font-size: 0.65rem;
+                letter-spacing: 0.16em; color: #8a7aa8; margin-bottom: 0.45rem;
+              }
+              .nr-title {
+                font-family: Georgia, serif; color: #f0eaf8; font-size: 1.25rem;
+                margin: 0 0 0.75rem;
+              }
+              .nr-body {
+                font-family: Georgia, serif; color: #d4cce0; font-size: 1.02rem;
+                line-height: 1.72; white-space: pre-wrap;
+              }
+              .nr-page {
+                text-align: center; color: #7a7088; font-size: 0.8rem;
+                margin-top: 1rem; letter-spacing: 0.06em;
+              }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+        import html as _html_nr
+        st.markdown(
+            f"""
+            <div class="nr-sheet">
+              <div class="nr-meta">NADIR ARCHIVE · { _html_nr.escape(str(f.get('kind','')).upper()) } · FILE {idx+1}/{len(files)}</div>
+              <div class="nr-title">{_html_nr.escape(str(f.get('title') or ''))}</div>
+              <div class="nr-body">{_html_nr.escape(pages[sub_i])}</div>
+              <div class="nr-page">page {sub_i+1} / {len(pages)} · { _html_nr.escape(str(f.get('source') or '')) }</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        c1, c2, c3, c4, c5 = st.columns(5)
+        with c1:
+            if st.button("← File", key="nr_prev_file", disabled=(idx <= 0), use_container_width=True):
+                st.session_state.nadir_reader["index"] = idx - 1
+                st.session_state.nadir_reader_subpage = 0
+                st.rerun()
+        with c2:
+            if st.button("← Page", key="nr_prev_page", disabled=(sub_i <= 0), use_container_width=True):
+                st.session_state.nadir_reader_subpage = sub_i - 1
+                st.rerun()
+        with c3:
+            if st.button("Close file", key="nr_close", use_container_width=True):
+                st.session_state.nadir_reader = None
+                st.session_state.nadir_reader_subpage = 0
+                st.rerun()
+        with c4:
+            if st.button("Page →", key="nr_next_page", disabled=(sub_i >= len(pages) - 1), use_container_width=True):
+                st.session_state.nadir_reader_subpage = sub_i + 1
+                st.rerun()
+        with c5:
+            if st.button("File →", key="nr_next_file", disabled=(idx >= len(files) - 1), use_container_width=True):
+                st.session_state.nadir_reader["index"] = idx + 1
+                st.session_state.nadir_reader_subpage = 0
+                st.rerun()
+        st.stop()
+
     st.markdown(
         """
         <style>
@@ -5830,7 +5976,7 @@ if st.session_state.view == "nadir":
         <div class="nadir-title">Nadir</div>
         <div class="nadir-sub">
           Ask me to open archive files — subjects, Voss, resistance, scientists.<br/>
-          <span style="opacity:0.75">Example: “open Riley” · “list files” · “show resistance”</span>
+          <span style="opacity:0.75">Example: “open Riley” · “list files” · “Riley file 3”</span>
         </div>
         """,
         unsafe_allow_html=True,
@@ -5844,6 +5990,7 @@ if st.session_state.view == "nadir":
             pass
         st.session_state.view = "lab"
         st.session_state.nadir_active_file = None
+        st.session_state.nadir_reader = None
         st.rerun()
 
     if "nadir_chat" not in st.session_state or not isinstance(st.session_state.nadir_chat, list):
@@ -5852,8 +5999,8 @@ if st.session_state.view == "nadir":
                 "role": "assistant",
                 "content": (
                     "Nadir online. Residual archive mounted.\n\n"
-                    "I hold twenty files. Say **list files**, or ask me to **open** "
-                    "a subject, Voss, resistance, or scientist record."
+                    f"{len(NADIR_CHARACTERS)} characters · {len(NADIR_FILES)} detailed files (5 each).\n"
+                    "Say **list files**, or **open Riley** / **Voss** / **show resistance**."
                 ),
             }
         ]
@@ -5869,7 +6016,6 @@ if st.session_state.view == "nadir":
         st.session_state.nadir_chat.append({"role": "user", "content": prompt})
         reply = _nadir_reply(prompt)
         st.session_state.nadir_chat.append({"role": "assistant", "content": reply})
-        # keep chat from growing forever
         if len(st.session_state.nadir_chat) > 40:
             st.session_state.nadir_chat = st.session_state.nadir_chat[-40:]
         st.rerun()
