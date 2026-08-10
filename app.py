@@ -1404,83 +1404,220 @@ def site_effects_save(data: dict) -> None:
             pass
 
 
+
+def _announcement_active():
+    """Return active announcement dict or None if nothing should show."""
+    try:
+        fx = site_effects_load()
+    except Exception:
+        return None
+    msg = str(fx.get("announce_text") or "").strip()
+    if not msg:
+        return None
+    if not bool(fx.get("announce_enabled", True)):
+        return None
+    aid = str(fx.get("announce_id") or "").strip() or "legacy"
+    if st.session_state.get("_dismissed_announce_id") == aid:
+        return None
+    style = str(fx.get("announce_style") or "violet").lower().strip()
+    if style not in ("violet", "alert", "residual", "soft"):
+        style = "violet"
+    return {"text": msg[:220], "id": aid, "style": style}
+
+
+def render_site_announcement():
+    """Render one polished fixed announcement banner (or nothing)."""
+    info = _announcement_active()
+    if not info:
+        st.session_state.pop("_active_announce_id", None)
+        st.session_state.pop("_active_announce_text", None)
+        return
+
+    st.session_state["_active_announce_id"] = info["id"]
+    st.session_state["_active_announce_text"] = info["text"]
+
+    import html as _html
+    safe = _html.escape(info["text"])
+    style = info["style"]
+
+    packs = {
+        "violet": {
+            "accent": "#c4a7e7",
+            "accent2": "#a78bfa",
+            "glow": "rgba(167,139,250,0.45)",
+            "bg0": "rgba(18,10,32,0.94)",
+            "bg1": "rgba(36,18,56,0.92)",
+            "line": "rgba(196,167,231,0.55)",
+            "label": "TRANSMISSION",
+        },
+        "alert": {
+            "accent": "#fca5a5",
+            "accent2": "#ef4444",
+            "glow": "rgba(239,68,68,0.40)",
+            "bg0": "rgba(28,8,12,0.95)",
+            "bg1": "rgba(48,12,18,0.93)",
+            "line": "rgba(252,165,165,0.50)",
+            "label": "ALERT",
+        },
+        "residual": {
+            "accent": "#5eead4",
+            "accent2": "#2dd4bf",
+            "glow": "rgba(45,212,191,0.38)",
+            "bg0": "rgba(4,18,16,0.95)",
+            "bg1": "rgba(8,32,28,0.93)",
+            "line": "rgba(94,234,212,0.48)",
+            "label": "RESIDUAL",
+        },
+        "soft": {
+            "accent": "#f9a8d4",
+            "accent2": "#f472b6",
+            "glow": "rgba(244,114,182,0.40)",
+            "bg0": "rgba(28,10,24,0.95)",
+            "bg1": "rgba(44,14,36,0.93)",
+            "line": "rgba(249,168,212,0.48)",
+            "label": "SOFT CHANNEL",
+        },
+    }
+    p = packs.get(style, packs["violet"])
+
+    st.markdown(
+        f"""
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,500;1,600&display=swap');
+
+          .block-container {{
+            padding-top: 6.2rem !important;
+          }}
+
+          .mer-ann {{
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 999999 !important;
+            pointer-events: none;
+            padding: 0;
+            margin: 0;
+          }}
+
+          .mer-ann-inner {{
+            pointer-events: auto;
+            position: relative;
+            overflow: hidden;
+            margin: 0 auto;
+            padding: 0.95rem 1.35rem 1.05rem;
+            background:
+              radial-gradient(ellipse at 15% 0%, {p["glow"]}, transparent 55%),
+              radial-gradient(ellipse at 85% 100%, {p["glow"]}, transparent 50%),
+              linear-gradient(180deg, {p["bg1"]} 0%, {p["bg0"]} 100%);
+            border-bottom: 1px solid {p["line"]};
+            box-shadow:
+              0 18px 50px rgba(0,0,0,0.55),
+              0 0 40px {p["glow"]},
+              inset 0 1px 0 rgba(255,255,255,0.06);
+            text-align: center;
+            animation: merAnnIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+          }}
+
+          .mer-ann-inner::before {{
+            content: "";
+            position: absolute;
+            left: 0; right: 0; top: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, {p["accent"]}, {p["accent2"]}, {p["accent"]}, transparent);
+            opacity: 0.95;
+          }}
+
+          .mer-ann-inner::after {{
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.05) 48%, transparent 62%);
+            background-size: 220% 100%;
+            animation: merAnnSheen 7s ease-in-out infinite;
+            pointer-events: none;
+          }}
+
+          .mer-ann-kicker {{
+            position: relative;
+            z-index: 1;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 0.62rem;
+            letter-spacing: 0.28em;
+            text-transform: uppercase;
+            color: {p["accent"]};
+            opacity: 0.92;
+            margin: 0 0 0.35rem;
+            font-weight: 600;
+          }}
+
+          .mer-ann-body {{
+            position: relative;
+            z-index: 1;
+            font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+            font-style: italic;
+            font-weight: 500;
+            font-size: clamp(1.12rem, 2.6vw, 1.48rem);
+            line-height: 1.4;
+            color: #faf7ff;
+            text-shadow: 0 0 24px {p["glow"]};
+            max-width: 52rem;
+            margin: 0 auto;
+            letter-spacing: 0.01em;
+          }}
+
+          .mer-ann-orb {{
+            position: absolute;
+            width: 120px; height: 120px;
+            border-radius: 50%;
+            filter: blur(40px);
+            opacity: 0.35;
+            pointer-events: none;
+            z-index: 0;
+          }}
+          .mer-ann-orb.a {{
+            left: 8%; top: -40px;
+            background: {p["accent"]};
+          }}
+          .mer-ann-orb.b {{
+            right: 10%; bottom: -50px;
+            background: {p["accent2"]};
+          }}
+
+          @keyframes merAnnIn {{
+            from {{ opacity: 0; transform: translateY(-16px); filter: blur(6px); }}
+            to   {{ opacity: 1; transform: translateY(0); filter: blur(0); }}
+          }}
+          @keyframes merAnnSheen {{
+            0%, 100% {{ background-position: 120% 0; }}
+            50% {{ background-position: -20% 0; }}
+          }}
+
+          @media (max-width: 640px) {{
+            .block-container {{ padding-top: 7rem !important; }}
+            .mer-ann-inner {{ padding: 0.85rem 1rem 0.95rem; }}
+            .mer-ann-body {{ font-size: 1.08rem; }}
+          }}
+        </style>
+        <div class="mer-ann" role="status" aria-live="polite">
+          <div class="mer-ann-inner">
+            <div class="mer-ann-orb a"></div>
+            <div class="mer-ann-orb b"></div>
+            <div class="mer-ann-kicker">◈ Meridium · {p["label"]}</div>
+            <div class="mer-ann-body">{safe}</div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def apply_site_effects_css() -> None:
     """Hard-apply global visual effects for every signed-in user."""
     fx = site_effects_load()
     import html as _html
     css_parts = []
     html_parts = []
-
-    # ---- Announcement (site-wide) — single fixed banner only ----
-    ann = str(fx.get("announce_text") or "").strip()
-    ann_on = fx.get("announce_enabled", True)
-    if ann_on is None:
-        ann_on = True
-    ann_on = bool(ann_on)
-    show_ann = False
-    ann_aid = ""
-    if ann and ann_on:
-        ann_aid = str(fx.get("announce_id") or "").strip() or "legacy"
-        dismissed = st.session_state.get("_dismissed_announce_id")
-        if dismissed != ann_aid:
-            show_ann = True
-            style = str(fx.get("announce_style") or "violet").lower().strip()
-            palettes = {
-                "violet": ("#c4a7e7", "rgba(28,16,48,0.97)", "rgba(167,139,250,0.45)"),
-                "alert": ("#fca5a5", "rgba(40,10,14,0.97)", "rgba(239,68,68,0.45)"),
-                "residual": ("#5eead4", "rgba(6,20,18,0.97)", "rgba(45,212,191,0.4)"),
-                "soft": ("#f9a8d4", "rgba(40,16,32,0.97)", "rgba(244,114,182,0.4)"),
-            }
-            accent, bg, border = palettes.get(style, palettes["violet"])
-            safe = _html.escape(ann)[:220]
-            css_parts.append(
-                f"""
-                .block-container {{
-                  padding-top: 5.25rem !important;
-                }}
-                .drae-announce-banner {{
-                  position: fixed !important;
-                  top: 0 !important;
-                  left: 0 !important;
-                  right: 0 !important;
-                  z-index: 999999 !important;
-                  text-align: center;
-                  padding: 0.85rem 1.2rem 0.8rem;
-                  background: {bg} !important;
-                  border-bottom: 1px solid {border} !important;
-                  box-shadow: 0 12px 40px rgba(0,0,0,0.55);
-                  pointer-events: auto;
-                }}
-                .drae-announce-banner .drae-ann-kicker {{
-                  font-family: ui-monospace, monospace;
-                  font-size: 0.6rem;
-                  letter-spacing: 0.24em;
-                  color: {accent};
-                  opacity: 0.9;
-                  margin-bottom: 0.28rem;
-                }}
-                .drae-announce-banner .drae-ann-body {{
-                  font-family: 'Cormorant Garamond', Georgia, serif;
-                  font-style: italic;
-                  font-size: clamp(1.05rem, 2.8vw, 1.35rem);
-                  color: #faf7ff;
-                  line-height: 1.35;
-                }}
-                """
-            )
-            html_parts.append(
-                f"""
-                <div class="drae-announce-banner" data-ann-id="{_html.escape(ann_aid)}">
-                  <div class="drae-ann-kicker">SITE ANNOUNCEMENT · DRAE</div>
-                  <div class="drae-ann-body">{safe}</div>
-                </div>
-                """
-            )
-            st.session_state["_active_announce_id"] = ann_aid
-            st.session_state["_active_announce_text"] = ann
-    if not show_ann:
-        st.session_state.pop("_active_announce_id", None)
-        st.session_state.pop("_active_announce_text", None)
 
     # ---- Base keyframes always available when any fx on ----
     css_parts.append(
@@ -3191,11 +3328,12 @@ for _item in _pending:
 inject_css(st.session_state.font, st.session_state.get("theme", "Caelestia"), st.session_state.popup)
 try:
     if st.session_state.get("signed_in"):
+        render_site_announcement()
         apply_site_effects_css()
 except Exception:
     pass
 
-# Session-local dismiss for site announcement
+# Session-local dismiss — compact, only when a banner is live
 try:
     _aid = st.session_state.get("_active_announce_id")
     if (
@@ -3204,15 +3342,13 @@ try:
         and st.session_state.get("_dismissed_announce_id") != _aid
         and st.session_state.get("view") not in ("nadir_transition",)
     ):
-        if st.button(
-            "Dismiss announcement",
-            key="dismiss_site_announce",
-            help="Hide this announcement for this session only",
-        ):
-            st.session_state["_dismissed_announce_id"] = _aid
-            st.session_state.pop("_active_announce_id", None)
-            st.session_state.pop("_active_announce_text", None)
-            st.rerun()
+        _d1, _d2, _d3 = st.columns([5, 2, 5])
+        with _d2:
+            if st.button("Dismiss", key="dismiss_site_announce", use_container_width=True):
+                st.session_state["_dismissed_announce_id"] = _aid
+                st.session_state.pop("_active_announce_id", None)
+                st.session_state.pop("_active_announce_text", None)
+                st.rerun()
 except Exception:
     pass
 
@@ -7754,50 +7890,69 @@ if st.session_state.view == "owner":
 
         st.markdown("---")
         st.markdown("**Site announcement**")
-        st.caption("Banner at the top of every signed-in page. Turn off to hide it for everyone.")
-        _saved_ann = str(fx.get("announce_text") or "").strip()
-        _saved_on = bool(fx.get("announce_enabled", True))
-        _ann_live = bool(_saved_ann) and _saved_on
-        if _ann_live:
-            st.info("Currently live: " + _saved_ann[:120])
+        st.caption("Broadcast a banner to every signed-in user. Styles match the Meridium shell.")
+
+        _live = _announcement_active()
+        if _live:
+            st.success("Live now · " + str(_live.get("style", "violet")).upper() + " · " + str(_live.get("text", ""))[:100])
         else:
-            st.caption("No announcement is currently broadcasting.")
+            st.caption("No announcement is broadcasting.")
 
-        # Apply any pending widget-state updates BEFORE widgets are instantiated
-        # (Streamlit forbids changing a widget key after the widget is created).
-        _pending = st.session_state.pop("_fx_ann_pending", None)
-        if isinstance(_pending, dict):
-            if "enabled" in _pending:
-                st.session_state.fx_ann_enabled = bool(_pending["enabled"])
-            if "text" in _pending:
-                st.session_state.fx_ann_text = str(_pending["text"])
-            if "style" in _pending:
-                st.session_state.fx_ann_style = str(_pending["style"])
+        with st.form("fx_ann_form", clear_on_submit=False):
+            _fx = site_effects_load()
+            _cur_on = bool(_fx.get("announce_enabled", True))
+            _cur_text = str(_fx.get("announce_text") or "")
+            _cur_style = _fx.get("announce_style") if _fx.get("announce_style") in ("violet", "alert", "residual", "soft") else "violet"
 
-        if "fx_ann_enabled" not in st.session_state:
-            st.session_state.fx_ann_enabled = _saved_on
-        if "fx_ann_text" not in st.session_state:
-            st.session_state.fx_ann_text = _saved_ann
-        if "fx_ann_style" not in st.session_state:
-            _st = fx.get("announce_style") if fx.get("announce_style") in ("violet", "alert", "residual", "soft") else "violet"
-            st.session_state.fx_ann_style = _st
+            ann_enabled = st.checkbox("Broadcast announcement", value=_cur_on)
+            ann_text = st.text_area(
+                "Message",
+                value=_cur_text,
+                placeholder="The residual door is open. Library dial: 1818.",
+                height=90,
+                max_chars=220,
+            )
+            ann_style = st.selectbox(
+                "Style",
+                ["violet", "alert", "residual", "soft"],
+                index=["violet", "alert", "residual", "soft"].index(_cur_style),
+            )
+            c_apply, c_off = st.columns(2)
+            with c_apply:
+                submitted = st.form_submit_button("Publish announcement", use_container_width=True, type="primary")
+            with c_off:
+                turn_off = st.form_submit_button("Turn off announcement", use_container_width=True)
 
-        ann_enabled = st.checkbox(
-            "Broadcast announcement",
-            key="fx_ann_enabled",
-            help="Master switch — off hides the banner for every user without deleting the text.",
-        )
-        ann_text = st.text_area(
-            "Announcement text",
-            key="fx_ann_text",
-            placeholder="The residual door is open. Library dial: 1818.",
-            height=80,
-        )
-        ann_style = st.selectbox(
-            "Announcement style",
-            ["violet", "alert", "residual", "soft"],
-            key="fx_ann_style",
-        )
+        if submitted:
+            new_text = str(ann_text or "").strip()[:220]
+            cur = dict(site_effects_load())
+            cur["announce_enabled"] = bool(ann_enabled)
+            cur["announce_text"] = new_text
+            cur["announce_style"] = str(ann_style or "violet")
+            if new_text and ann_enabled:
+                # new id when text changes so previously-dismissed users see it again
+                if new_text != str(_fx.get("announce_text") or "").strip() or not _fx.get("announce_id"):
+                    cur["announce_id"] = uuid.uuid4().hex[:10]
+                else:
+                    cur["announce_id"] = _fx.get("announce_id") or uuid.uuid4().hex[:10]
+            else:
+                cur["announce_id"] = ""
+            site_effects_save(cur)
+            st.session_state.pop("_dismissed_announce_id", None)
+            st.session_state.pop("_active_announce_id", None)
+            st.session_state.pop("_active_announce_text", None)
+            st.rerun()
+
+        if turn_off:
+            cur = dict(site_effects_load())
+            cur["announce_enabled"] = False
+            cur["announce_text"] = ""
+            cur["announce_id"] = ""
+            site_effects_save(cur)
+            st.session_state.pop("_dismissed_announce_id", None)
+            st.session_state.pop("_active_announce_id", None)
+            st.session_state.pop("_active_announce_text", None)
+            st.rerun()
 
         theme_opts = ["(off)"] + list(THEMES.keys()) + list(SECRET_THEMES.keys())
         cur_force = fx.get("force_theme") or "(off)"
@@ -7810,11 +7965,11 @@ if st.session_state.view == "owner":
             key="fx_force_theme",
         )
 
-        a1, a2, a3 = st.columns(3)
+        a1, a2 = st.columns(2)
         with a1:
-            if st.button("Apply to whole site", key="fx_apply", type="primary", use_container_width=True):
-                new_text = str(ann_text or "").strip()[:220]
-                new_fx = {
+            if st.button("Apply visual effects", key="fx_apply", type="primary", use_container_width=True):
+                new_fx = dict(site_effects_load())
+                new_fx.update({
                     "rainbow_chat": bool(rainbow),
                     "aurora_shell": bool(aurora),
                     "neon_buttons": bool(neon),
@@ -7826,54 +7981,17 @@ if st.session_state.view == "owner":
                     "heart_cursor": bool(heart),
                     "creator_watermark": bool(mark),
                     "force_theme": "" if force_all == "(off)" else force_all,
-                    "announce_enabled": bool(ann_enabled),
-                    "announce_text": new_text,
-                    "announce_style": str(ann_style or "violet"),
-                    "announce_id": uuid.uuid4().hex[:10] if (new_text and ann_enabled) else "",
-                }
-                if (
-                    new_text
-                    and ann_enabled
-                    and new_text == str(fx.get("announce_text") or "").strip()
-                    and bool(fx.get("announce_enabled", True))
-                    and fx.get("announce_id")
-                ):
-                    new_fx["announce_id"] = fx.get("announce_id")
+                })
                 site_effects_save(new_fx)
-                # Defer widget updates to next run (before widgets instantiate)
-                st.session_state["_fx_ann_pending"] = {
-                    "enabled": bool(ann_enabled),
-                    "text": new_text,
-                    "style": str(ann_style or "violet"),
-                }
+                st.success("Visual effects updated for everyone.")
                 st.rerun()
         with a2:
-            if st.button("Turn off announcement", key="fx_ann_off", use_container_width=True):
-                cur = dict(site_effects_load())
-                cur["announce_enabled"] = False
-                cur["announce_text"] = ""
-                cur["announce_id"] = ""
-                site_effects_save(cur)
-                st.session_state.pop("_active_announce_id", None)
-                st.session_state.pop("_active_announce_text", None)
-                st.session_state.pop("_dismissed_announce_id", None)
-                st.session_state["_fx_ann_pending"] = {
-                    "enabled": False,
-                    "text": "",
-                    "style": st.session_state.get("fx_ann_style") or "violet",
-                }
-                st.rerun()
-        with a3:
-            if st.button("Clear everything", key="fx_clear", use_container_width=True):
+            if st.button("Clear all effects", key="fx_clear", use_container_width=True):
                 site_effects_save(dict(_DEFAULT_SITE_EFFECTS))
                 st.session_state.pop("_active_announce_id", None)
                 st.session_state.pop("_active_announce_text", None)
                 st.session_state.pop("_dismissed_announce_id", None)
-                st.session_state["_fx_ann_pending"] = {
-                    "enabled": True,
-                    "text": "",
-                    "style": "violet",
-                }
+                st.success("All site effects cleared.")
                 st.rerun()
 
         st.markdown(
