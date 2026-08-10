@@ -1211,10 +1211,13 @@ def chatroom_load() -> dict:
         if CHATROOM_FILE.exists():
             d = json.loads(CHATROOM_FILE.read_text(encoding="utf-8"))
             if isinstance(d, dict):
+                d.setdefault("members", [])
+                d.setdefault("pending", [])
+                d.setdefault("messages", [])
                 return d
     except Exception:
         pass
-    return {"members": [], "messages": [], "updated": None}
+    return {"members": [], "pending": [], "messages": [], "updated": None}
 
 
 def chatroom_save(data: dict) -> None:
@@ -1236,14 +1239,58 @@ def chatroom_ensure_owner(owner_name: str) -> dict:
     return room
 
 
-def chatroom_invite(username: str) -> None:
+def chatroom_invite(username: str) -> str:
+    """Create a pending invite. Returns status: invited | already_member | already_pending | empty."""
     room = chatroom_load()
     members = [m.lower() for m in (room.get("members") or []) if m]
+    pending = [m.lower() for m in (room.get("pending") or []) if m]
     u = (username or "").strip().lower()
-    if u and u not in members:
+    if not u:
+        return "empty"
+    if u in members:
+        return "already_member"
+    if u in pending:
+        return "already_pending"
+    pending.append(u)
+    room["pending"] = pending[:40]
+    chatroom_save(room)
+    return "invited"
+
+
+def chatroom_has_pending(username: str) -> bool:
+    u = (username or "").strip().lower()
+    if not u:
+        return False
+    room = chatroom_load()
+    pending = [m.lower() for m in (room.get("pending") or []) if m]
+    return u in pending
+
+
+def chatroom_accept(username: str) -> bool:
+    room = chatroom_load()
+    u = (username or "").strip().lower()
+    pending = [m.lower() for m in (room.get("pending") or []) if m]
+    members = [m.lower() for m in (room.get("members") or []) if m]
+    if u not in pending:
+        return False
+    pending = [m for m in pending if m != u]
+    if u not in members:
         members.append(u)
-        room["members"] = members[:40]
-        chatroom_save(room)
+    room["pending"] = pending
+    room["members"] = members[:40]
+    chatroom_save(room)
+    return True
+
+
+def chatroom_decline(username: str) -> bool:
+    room = chatroom_load()
+    u = (username or "").strip().lower()
+    pending = [m.lower() for m in (room.get("pending") or []) if m]
+    if u not in pending:
+        return False
+    room["pending"] = [m for m in pending if m != u]
+    chatroom_save(room)
+    return True
 
 
 def chatroom_post(username: str, text: str) -> None:
@@ -7107,20 +7154,33 @@ if st.session_state.view == "owner":
                 with c2:
                     if not row.get("is_owner"):
                         if st.button("Invite", key=f"own_inv_{row.get('session_id')}", use_container_width=True):
-                            chatroom_invite(u)
-                            st.success(f"Invited **{u}** to the room.")
+                            status = chatroom_invite(u)
+                            if status == "invited":
+                                st.success(f"Invite sent to **{u}** — waiting for accept.")
+                            elif status == "already_pending":
+                                st.info(f"**{u}** already has a pending invite.")
+                            elif status == "already_member":
+                                st.info(f"**{u}** is already in the room.")
                             st.rerun()
 
     with tab_room:
         me = st.session_state.get("username") or "drae"
         room = chatroom_ensure_owner(me)
         members = room.get("members") or []
+        pending = room.get("pending") or []
         st.caption("Members: " + (", ".join(members) if members else "—"))
+        if pending:
+            st.caption("Pending invites: " + ", ".join(pending))
         inv = st.text_input("Invite username", key="owner_room_invite", placeholder="exact name")
-        if st.button("Add to room", key="owner_room_add"):
+        if st.button("Send invite", key="owner_room_add"):
             if (inv or "").strip():
-                chatroom_invite(inv)
-                st.success(f"Added **{inv.strip()}**")
+                status = chatroom_invite(inv)
+                if status == "invited":
+                    st.success(f"Invite sent to **{inv.strip()}**")
+                elif status == "already_pending":
+                    st.info("Already pending.")
+                elif status == "already_member":
+                    st.info("Already a member.")
                 st.rerun()
         if st.button("Open chatroom →", key="owner_open_room", type="primary", use_container_width=True):
             st.session_state.view = "owner_room"
@@ -7325,6 +7385,66 @@ if st.session_state.view == "home":
             st.caption(_combo)
         if st.session_state.get("_egg_flash"):
             st.info(st.session_state.pop("_egg_flash"))
+
+        # Creator chatroom invite notification (accept / decline)
+        _uname = (st.session_state.get("username") or "").strip()
+        if _uname and not is_owner(_uname) and chatroom_has_pending(_uname):
+            st.markdown(
+                """
+                <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+                <style>
+                  .creator-invite {
+                    margin: 0.75rem 0 1rem;
+                    padding: 1.15rem 1.25rem 1rem;
+                    border-radius: 16px;
+                    border: 1px solid rgba(196,167,231,0.45);
+                    background:
+                      radial-gradient(ellipse at 20% 0%, rgba(196,167,231,0.18), transparent 55%),
+                      linear-gradient(180deg, rgba(28,22,40,0.95), rgba(14,12,22,0.98));
+                    box-shadow: 0 12px 40px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.04);
+                    text-align: center;
+                  }
+                  .creator-invite .ci-mark {
+                    font-family: ui-monospace, monospace;
+                    font-size: 0.62rem;
+                    letter-spacing: 0.22em;
+                    color: rgba(196,167,231,0.75);
+                    margin-bottom: 0.55rem;
+                  }
+                  .creator-invite .ci-title {
+                    font-family: "Cormorant Garamond", Georgia, serif;
+                    font-size: clamp(1.35rem, 3.2vw, 1.75rem);
+                    font-weight: 600;
+                    font-style: italic;
+                    color: #f3eefc;
+                    line-height: 1.35;
+                    letter-spacing: 0.01em;
+                  }
+                  .creator-invite .ci-sub {
+                    margin-top: 0.45rem;
+                    font-family: "Cormorant Garamond", Georgia, serif;
+                    font-size: 0.95rem;
+                    color: rgba(220,210,240,0.7);
+                  }
+                </style>
+                <div class="creator-invite">
+                  <div class="ci-mark">MERIDIUM · CREATOR CHANNEL</div>
+                  <div class="ci-title">The creator has invited you to chat.</div>
+                  <div class="ci-sub">Accept to join the observation desk with Drae.</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            ia, ib = st.columns(2)
+            with ia:
+                if st.button("Accept", key="chat_invite_accept", use_container_width=True, type="primary"):
+                    if chatroom_accept(_uname):
+                        st.session_state.view = "owner_room"
+                        st.rerun()
+            with ib:
+                if st.button("Decline", key="chat_invite_decline", use_container_width=True):
+                    chatroom_decline(_uname)
+                    st.rerun()
 
         _wiki_pill = "Wiki on" if st.session_state.use_wiki_toggle else "Wiki off"
         _web_pill = "Web on" if st.session_state.use_web_toggle else "Web off"
