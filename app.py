@@ -3101,21 +3101,7 @@ if st.session_state.view == "lab":
     if isinstance(found, (list, set)) and len(set(found)) >= 6:
         unlock_theme("Voss Static", "all fragments recovered", apply=False)
 
-    # Original lab view first (includes its own cutscene / "you're not supposed to know")
-    try:
-        render_lab()
-    except Exception:
-        st.markdown(
-            """
-            <div style="max-width:520px;margin:1rem auto;padding:1rem;border:1px solid rgba(180,60,60,0.3);
-              border-radius:12px;background:rgba(10,6,6,0.85);color:#d8b8b8;font-family:Georgia,serif;">
-              Observation lab online. Residual systems standing by.
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    # Residual door — only after lab content, short clean labels (no text bleed)
+    # Project Nadir door — MUST run before render_lab (lab_view often calls st.stop())
     show_door = bool(
         st.session_state.get("board_entered_once")
         or st.session_state.get("archive_key")
@@ -3124,8 +3110,37 @@ if st.session_state.view == "lab":
     if show_door:
         has_key = bool(st.session_state.get("archive_key") or st.session_state.get("lab_door_unlocked"))
         unlocked = bool(st.session_state.get("lab_door_unlocked"))
-        st.markdown("---")
-        st.caption("Sublevel door")
+        lock_label = "UNLOCKED" if unlocked else ("KEY READY" if has_key else "PADLOCKED")
+        lock_color = "#6a9a6a" if unlocked else ("#c4a060" if has_key else "#8a4040")
+        st.markdown(
+            f"""
+            <div style="
+              margin: 0.75rem auto 0.6rem; max-width: 420px; text-align: center;
+              padding: 1.15rem 1rem 1.05rem; border-radius: 14px;
+              border: 1px solid rgba(180,80,60,0.4);
+              background: linear-gradient(180deg, #140a08 0%, #080404 100%);
+            ">
+              <div style="font-family:ui-monospace,monospace;font-size:0.62rem;letter-spacing:0.2em;color:#8a5040;margin-bottom:0.45rem">
+                CONTAINMENT · SUBLEVEL · PROJECT NADIR
+              </div>
+              <div style="font-size:2rem;line-height:1;margin:0.1rem 0 0.3rem">{"🚪🔓" if unlocked else "🚪🔒"}</div>
+              <div style="font-family:Georgia,serif;color:#e8d0c0;font-size:1.05rem;margin-bottom:0.2rem">
+                A door that was not on the schematic
+              </div>
+              <div style="color:#8a7060;font-size:0.82rem;line-height:1.45;margin-bottom:0.3rem">
+                {"Door open. Channel ready." if unlocked else
+                 ("Key ready. Unlock to enter Nadir." if has_key else
+                  "Padlocked. Finish the board (7/7) for the residual key.")}
+              </div>
+              <div style="
+                display:inline-block;padding:0.16rem 0.55rem;border-radius:999px;
+                font-family:ui-monospace,monospace;font-size:0.62rem;letter-spacing:0.14em;
+                color:{lock_color};border:1px solid {lock_color}55;background:{lock_color}18;
+              ">{lock_label}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         if unlocked:
             if st.button("Enter Nadir", key="lab_door_enter", use_container_width=True):
                 try:
@@ -3152,8 +3167,20 @@ if st.session_state.view == "lab":
                     pass
                 st.session_state.view = "nadir_transition"
                 st.rerun()
-        else:
-            st.caption("Padlocked — finish the board for the residual key.")
+
+    # Lab content (may call st.stop — door above still rendered)
+    try:
+        render_lab()
+    except Exception:
+        st.markdown(
+            """
+            <div style="max-width:520px;margin:1rem auto;padding:1rem;border:1px solid rgba(180,60,60,0.3);
+              border-radius:12px;background:rgba(10,6,6,0.85);color:#d8b8b8;font-family:Georgia,serif;">
+              Observation lab online. Residual systems standing by.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     st.stop()
 
