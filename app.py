@@ -3484,30 +3484,235 @@ use_web = st.session_state.use_web_toggle
 
 # ===== SIGN IN =====
 if not st.session_state.get("signed_in") or not st.session_state.get("username"):
-    st.markdown("""
-    <div class="panel" style="max-width:420px;margin:10vh auto;text-align:center;">
-      <div class="panel-label">Meridium</div>
-      <div class="hero" style="font-size:1.75rem;">Welcome</div>
-      <div class="sub">Enter your name to continue</div>
-      <div class="ridge"></div>
-      <div class="muted" style="margin-top:8px;">Built with Grok · by xAI</div>
-      <div class="muted" style="margin-top:6px;">iPhone: Share → Add to Home Screen</div>
-    </div>
-    """, unsafe_allow_html=True)
-    name = st.text_input("Your name", placeholder="e.g. Alex", key="signin_name", label_visibility="collapsed")
+    st.markdown(
+        """
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Syne:wght@600;700&display=swap');
+
+          .stApp, [data-testid="stAppViewContainer"] {
+            background:
+              radial-gradient(900px 520px at 12% -8%, rgba(196,167,231,0.22), transparent 55%),
+              radial-gradient(700px 420px at 95% 8%, rgba(157,124,216,0.16), transparent 50%),
+              radial-gradient(600px 380px at 50% 110%, rgba(196,167,231,0.10), transparent 45%),
+              #0c0c10 !important;
+          }
+          .block-container {
+            max-width: 480px !important;
+            padding-top: 4.5vh !important;
+            padding-bottom: 2rem !important;
+          }
+          [data-testid="stHeader"], footer, #MainMenu { display: none !important; }
+
+          .si-wrap {
+            position: relative;
+            margin: 0 auto;
+            padding: 2.1rem 1.55rem 1.45rem;
+            border-radius: 22px;
+            overflow: hidden;
+            border: 1px solid rgba(196,167,231,0.28);
+            background:
+              radial-gradient(ellipse at 20% 0%, rgba(196,167,231,0.18), transparent 50%),
+              radial-gradient(ellipse at 90% 100%, rgba(157,124,216,0.12), transparent 45%),
+              linear-gradient(165deg, rgba(28,22,40,0.92) 0%, rgba(14,12,20,0.96) 100%);
+            box-shadow:
+              0 30px 80px rgba(0,0,0,0.55),
+              0 0 60px rgba(167,139,250,0.12),
+              inset 0 1px 0 rgba(255,255,255,0.06);
+            text-align: center;
+            animation: siIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+          }
+          .si-wrap::before {
+            content: "";
+            position: absolute; left: 0; right: 0; top: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, #c4a7e7, #9d7cd8, #c4a7e7, transparent);
+            opacity: 0.9;
+          }
+          .si-wrap::after {
+            content: "";
+            position: absolute; inset: 0;
+            background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.04) 50%, transparent 65%);
+            background-size: 220% 100%;
+            animation: siSheen 8s ease-in-out infinite;
+            pointer-events: none;
+          }
+
+          .si-mark {
+            position: relative; z-index: 1;
+            width: 64px; height: 64px; margin: 0 auto 1.05rem;
+            border-radius: 18px;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #c4a7e7, #9d7cd8 55%, #7c3aed);
+            box-shadow:
+              0 0 32px rgba(167,139,250,0.45),
+              0 12px 28px rgba(0,0,0,0.35),
+              inset 0 1px 0 rgba(255,255,255,0.25);
+            color: #fff;
+            font-family: Syne, system-ui, sans-serif;
+            font-weight: 700;
+            font-size: 1.55rem;
+            letter-spacing: -0.04em;
+            animation: siPulse 3.2s ease-in-out infinite;
+          }
+
+          .si-kicker {
+            position: relative; z-index: 1;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 0.62rem;
+            letter-spacing: 0.28em;
+            text-transform: uppercase;
+            color: #c4a7e7;
+            opacity: 0.85;
+            margin-bottom: 0.55rem;
+          }
+          .si-title {
+            position: relative; z-index: 1;
+            font-family: Syne, system-ui, sans-serif;
+            font-weight: 700;
+            font-size: clamp(1.85rem, 5vw, 2.25rem);
+            letter-spacing: -0.03em;
+            color: #f5f0ff;
+            margin: 0 0 0.4rem;
+            line-height: 1.15;
+          }
+          .si-sub {
+            position: relative; z-index: 1;
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-style: italic;
+            font-size: 1.12rem;
+            color: rgba(230,220,250,0.78);
+            line-height: 1.45;
+            margin: 0 auto 1.05rem;
+            max-width: 22rem;
+          }
+          .si-ridge {
+            position: relative; z-index: 1;
+            height: 1px; margin: 0.35rem auto 1.15rem;
+            max-width: 12rem;
+            background: linear-gradient(90deg, transparent, #c4a7e7, transparent);
+            opacity: 0.55;
+          }
+          .si-pills {
+            position: relative; z-index: 1;
+            display: flex; flex-wrap: wrap; gap: 0.4rem;
+            justify-content: center;
+            margin-bottom: 0.15rem;
+          }
+          .si-pill {
+            display: inline-flex; align-items: center; gap: 0.3rem;
+            padding: 0.28rem 0.7rem;
+            border-radius: 999px;
+            font-family: ui-monospace, monospace;
+            font-size: 0.65rem;
+            letter-spacing: 0.06em;
+            color: #c4a7e7;
+            background: rgba(196,167,231,0.10);
+            border: 1px solid rgba(196,167,231,0.22);
+          }
+          .si-foot {
+            position: relative; z-index: 1;
+            margin-top: 1.15rem;
+            font-family: ui-monospace, monospace;
+            font-size: 0.64rem;
+            letter-spacing: 0.08em;
+            color: rgba(180,170,200,0.45);
+            line-height: 1.55;
+          }
+
+          .si-owner-note {
+            margin: 0.35rem 0 0.55rem;
+            padding: 0.55rem 0.75rem;
+            border-radius: 12px;
+            border: 1px solid rgba(196,167,231,0.28);
+            background: rgba(28,16,48,0.55);
+            color: #d8c8f0;
+            font-family: ui-monospace, monospace;
+            font-size: 0.72rem;
+            letter-spacing: 0.06em;
+            text-align: center;
+          }
+
+          /* Tighten Streamlit inputs on this page */
+          div[data-testid="stTextInput"] input {
+            border-radius: 14px !important;
+            min-height: 48px !important;
+            font-size: 1rem !important;
+            text-align: center !important;
+            letter-spacing: 0.02em;
+          }
+          div[data-testid="stTextInput"] label { display: none !important; }
+          .stButton > button[kind="primary"],
+          button[data-testid="baseButton-primary"] {
+            min-height: 48px !important;
+            border-radius: 14px !important;
+            font-weight: 600 !important;
+            letter-spacing: 0.02em !important;
+            background: linear-gradient(135deg, rgba(196,167,231,0.28), rgba(157,124,216,0.22)) !important;
+            border: 1px solid rgba(196,167,231,0.55) !important;
+            color: #f3e8ff !important;
+            box-shadow: 0 8px 28px rgba(167,139,250,0.22) !important;
+          }
+          .stButton > button[kind="primary"]:hover {
+            border-color: #c4a7e7 !important;
+            box-shadow: 0 10px 36px rgba(167,139,250,0.35) !important;
+            transform: translateY(-1px);
+          }
+
+          @keyframes siIn {
+            from { opacity: 0; transform: translateY(18px) scale(0.98); filter: blur(6px); }
+            to   { opacity: 1; transform: none; filter: none; }
+          }
+          @keyframes siSheen {
+            0%, 100% { background-position: 130% 0; }
+            50% { background-position: -30% 0; }
+          }
+          @keyframes siPulse {
+            0%, 100% { box-shadow: 0 0 28px rgba(167,139,250,0.4), 0 12px 28px rgba(0,0,0,0.35); }
+            50% { box-shadow: 0 0 42px rgba(196,167,231,0.55), 0 12px 28px rgba(0,0,0,0.35); }
+          }
+        </style>
+
+        <div class="si-wrap">
+          <div class="si-mark">◈</div>
+          <div class="si-kicker">Personal intelligence shell</div>
+          <div class="si-title">Meridium</div>
+          <div class="si-sub">A quiet room for thought — enter your name to open the shell.</div>
+          <div class="si-ridge"></div>
+          <div class="si-pills">
+            <span class="si-pill">Caelestia</span>
+            <span class="si-pill">Chat · Music · Library</span>
+            <span class="si-pill">Private by design</span>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("<div style='height:1.1rem'></div>", unsafe_allow_html=True)
+
+    name = st.text_input(
+        "Your name",
+        placeholder="Your name",
+        key="signin_name",
+        label_visibility="collapsed",
+    )
     name_l = (name or "").strip().lower()
     needs_owner_pw = name_l in _owner_names()
     owner_pw = ""
     if needs_owner_pw:
-        st.caption("Owner sign-in — password required.")
+        st.markdown(
+            '<div class="si-owner-note">◈ OWNER CHANNEL · password required</div>',
+            unsafe_allow_html=True,
+        )
         owner_pw = st.text_input(
             "Owner password",
             type="password",
             key="signin_owner_pw",
-            placeholder="Password",
+            placeholder="Owner password",
             label_visibility="collapsed",
         )
-    c1, c2, c3 = st.columns([1, 2, 1])
+
+    st.markdown("<div style='height:0.35rem'></div>", unsafe_allow_html=True)
+    c1, c2, c3 = st.columns([0.6, 2.8, 0.6])
     with c2:
         if st.button("Enter Meridium", use_container_width=True, type="primary", key="signin_btn"):
             ok, result = moderate_username(name)
@@ -3557,6 +3762,16 @@ if not st.session_state.get("signed_in") or not st.session_state.get("username")
                 st.session_state.show_intro = True
                 save_user_data()
                 st.rerun()
+
+    st.markdown(
+        """
+        <div class="si-foot">
+          Built with care · Grok · xAI<br/>
+          iPhone · Share → Add to Home Screen
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     st.stop()
 
 # Live presence heartbeat (shared JSON — owner panel reads this)
