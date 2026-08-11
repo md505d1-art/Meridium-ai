@@ -918,9 +918,92 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
         height: 0 !important;
     }}
     .block-container {{
-        padding-top: 0.75rem !important;
-        padding-bottom: 5.5rem !important;
-        max-width: 980px !important;
+        padding-top: 1rem !important;
+        padding-bottom: 5.75rem !important;
+        max-width: 920px !important;
+    }}
+
+    /* Meridium 2026 shell — cleaner type + softer surfaces */
+    h1, h2, h3 {{
+        letter-spacing: -0.03em !important;
+        font-weight: 650 !important;
+    }}
+    p, li, label, .stMarkdown {{
+        line-height: 1.55 !important;
+    }}
+    .panel, .waybar, .bookmark-rail, .hist, .bloom-shell, .card {{
+        border-radius: 18px !important;
+        backdrop-filter: none !important;
+    }}
+    .panel {{
+        background: linear-gradient(165deg, {SHELL["panel_solid"]} 0%, {SHELL["bg"]} 140%) !important;
+        border: 1px solid {SHELL["border"]} !important;
+        box-shadow: 0 18px 48px rgba(0,0,0,0.28) !important;
+        padding: 1.15rem 1.25rem !important;
+    }}
+    .panel-label {{
+        font-size: 0.65rem !important;
+        letter-spacing: 0.22em !important;
+        text-transform: uppercase !important;
+        color: {SHELL["muted"]} !important;
+        margin-bottom: 0.55rem !important;
+        opacity: 0.85 !important;
+    }}
+    .ridge {{
+        height: 1px !important;
+        background: linear-gradient(90deg, transparent, {SHELL["border"]}, transparent) !important;
+        border: 0 !important;
+        margin: 0.85rem 0 !important;
+    }}
+    .bookmark-rail .stButton > button {{
+        border-radius: 12px !important;
+        min-height: 42px !important;
+        font-weight: 550 !important;
+        border: 1px solid {SHELL["border"]} !important;
+        background: {SHELL["panel_solid"]} !important;
+        color: {SHELL["text"]} !important;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease !important;
+    }}
+    .bookmark-rail .stButton > button:hover {{
+        border-color: {SHELL["accent"]} !important;
+        box-shadow: 0 0 0 1px {SHELL["accent_soft"]}, 0 8px 24px rgba(0,0,0,0.25) !important;
+        transform: translateY(-1px) !important;
+    }}
+    .stButton > button[kind="primary"],
+    button[data-testid="baseButton-primary"] {{
+        background: linear-gradient(135deg, {SHELL["accent_soft"]}, rgba(0,0,0,0.15)) !important;
+        border: 1px solid {SHELL["accent"]} !important;
+        color: {SHELL["text"]} !important;
+        border-radius: 12px !important;
+        font-weight: 600 !important;
+        box-shadow: 0 6px 20px {SHELL["accent_soft"]} !important;
+    }}
+    .stTextInput input, .stTextArea textarea {{
+        border-radius: 12px !important;
+        border: 1px solid {SHELL["border"]} !important;
+        background: {SHELL["panel_solid"]} !important;
+        color: {SHELL["text"]} !important;
+    }}
+    .stTextInput input:focus, .stTextArea textarea:focus {{
+        border-color: {SHELL["accent"]} !important;
+        box-shadow: 0 0 0 2px {SHELL["accent_soft"]} !important;
+    }}
+    [data-testid="stChatMessage"] {{
+        border-radius: 16px !important;
+        border: 1px solid {SHELL["border"]} !important;
+        background: {SHELL["panel"]} !important;
+        padding: 0.35rem 0.15rem !important;
+    }}
+    .pill {{
+        display: inline-block;
+        padding: 0.22rem 0.65rem;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        letter-spacing: 0.04em;
+        border: 1px solid {SHELL["border"]};
+        background: {SHELL["accent_soft"]};
+        color: {SHELL["text"]};
+        margin-right: 0.35rem;
     }}
 
     .waybar, .panel, .card, .hist, .bloom-shell {{
@@ -4091,13 +4174,13 @@ if not st.session_state.get("signed_in") or not st.session_state.get("username")
 
         <div class="si-wrap">
           <div class="si-mark">◈</div>
-          <div class="si-kicker">Personal intelligence shell</div>
+          <div class="si-kicker">Quiet intelligence shell</div>
           <div class="si-title">Meridium</div>
-          <div class="si-sub">A quiet room for thought — enter your name to open the shell.</div>
+          <div class="si-sub">A calm room for thought. Enter your name to open Meridium.</div>
           <div class="si-ridge"></div>
           <div class="si-pills">
             <span class="si-pill">Caelestia</span>
-            <span class="si-pill">Chat · Music · Library</span>
+            <span class="si-pill">Chat · Media · Library</span>
             <span class="si-pill">Private by design</span>
           </div>
         </div>
@@ -4409,14 +4492,6 @@ if st.session_state.popup:
         if st.button("▶  Shorts", use_container_width=True, key="pop_shorts"):
             st.session_state.shorts_index = st.session_state.get("shorts_index") or 0
             st.session_state.view = "shorts"
-            st.session_state.popup = False
-            st.rerun()
-        if st.button("◎  Character.AI", use_container_width=True, key="pop_cai"):
-            st.session_state.view = "character_ai"
-            st.session_state.popup = False
-            st.rerun()
-        if st.button("🌐  Web", use_container_width=True, key="pop_web"):
-            st.session_state.view = "web"
             st.session_state.popup = False
             st.rerun()
         if lab_is_unlocked():
@@ -7298,122 +7373,6 @@ if st.session_state.view == "shorts":
     st.stop()
 
 
-# ===== CHARACTER.AI SHORTCUT =====
-if st.session_state.view == "character_ai":
-    st.markdown(
-        """
-        <div style="text-align:center;padding:12px 0 8px;">
-          <h1 style="font-size:1.4rem;font-weight:650;margin:0 0 4px;">Character.AI</h1>
-          <p style="opacity:0.55;font-size:0.85rem;margin:0;">Opens on Character.AI — they block in-app embedding</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.info(
-        "Character.AI sets **X-Frame-Options: SAMEORIGIN**, so it cannot load inside Meridium. "
-        "Use the button below to open it in a new tab (works on phone/desktop)."
-    )
-    st.link_button(
-        "Open Character.AI ↗",
-        "https://character.ai",
-        use_container_width=True,
-        type="primary",
-    )
-    st.caption("Tip: on iPhone Safari, open the link → Share → Add to Home Screen for a quick icon.")
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button("← Home", key="cai_home", use_container_width=True):
-            st.session_state.view = "home"
-            st.rerun()
-    with c2:
-        if st.button("🌐 Web browser", key="cai_to_web", use_container_width=True):
-            st.session_state.view = "web"
-            st.rerun()
-    st.stop()
-
-
-# ===== WEB BROWSER (iframe for sites that allow embedding) =====
-if st.session_state.view == "web":
-    st.markdown(
-        """
-        <div style="text-align:center;padding:8px 0 6px;">
-          <h1 style="font-size:1.35rem;font-weight:650;margin:0 0 4px;">Web</h1>
-          <p style="opacity:0.5;font-size:0.82rem;margin:0;">In-app frame · many sites block embedding</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    default_url = st.session_state.get("web_url") or "https://example.com"
-    url_in = st.text_input(
-        "Address",
-        value=default_url,
-        key="web_url_input",
-        placeholder="https://…",
-    )
-    b1, b2, b3, b4 = st.columns([1.2, 1, 1, 1])
-    with b1:
-        go = st.button("Go", key="web_go", use_container_width=True, type="primary")
-    with b2:
-        if st.button("Character.AI", key="web_cai_btn", use_container_width=True):
-            st.session_state.web_url = "https://character.ai"
-            st.rerun()
-    with b3:
-        if st.button("Wikipedia", key="web_wiki", use_container_width=True):
-            st.session_state.web_url = "https://en.wikipedia.org"
-            st.rerun()
-    with b4:
-        if st.button("← Home", key="web_home", use_container_width=True):
-            st.session_state.view = "home"
-            st.rerun()
-
-    if go and (url_in or "").strip():
-        u = (url_in or "").strip()
-        if not u.startswith(("http://", "https://")):
-            u = "https://" + u
-        st.session_state.web_url = u
-        st.rerun()
-
-    current = (st.session_state.get("web_url") or "").strip()
-    if current:
-        # Character.AI and many big sites refuse iframes — warn clearly
-        blocked_hints = ("character.ai", "google.com", "youtube.com", "twitter.com", "x.com", "facebook.com", "instagram.com")
-        host = current.lower()
-        if any(h in host for h in blocked_hints):
-            st.warning(
-                "This site usually **blocks** being framed inside another app. "
-                "If the panel is blank, open it in a new tab instead."
-            )
-            st.link_button("Open in new tab ↗", current, use_container_width=True)
-
-        import html as _html
-        safe = _html.escape(current, quote=True)
-        st.components.v1.html(
-            f"""
-            <div style="border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);
-                        background:#0a0a0e;box-shadow:0 12px 40px rgba(0,0,0,0.4);">
-              <iframe
-                src="{safe}"
-                title="Meridium Web"
-                style="width:100%;height:720px;border:0;background:#111;"
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation"
-                referrerpolicy="no-referrer-when-downgrade"
-              ></iframe>
-            </div>
-            """,
-            height=740,
-            scrolling=True,
-        )
-        st.caption(
-            "Only sites that allow iframes will show here. "
-            "Character.AI, Google, YouTube, and most social apps block this on purpose."
-        )
-    else:
-        st.caption("Enter a URL and press Go.")
-
-    st.stop()
-
-
 
 # ===== INVESTIGATION BOARD =====
 BOARD_EVIDENCE = {
@@ -10031,13 +9990,18 @@ if st.session_state.view == "owner_room":
 
 
 # HOME — bookmark rail + calm main panel
+
+# Retired views
+if st.session_state.get("view") in ("character_ai", "web"):
+    st.session_state.view = "home"
+
 if st.session_state.view == "home":
     rail, body = st.columns([1.15, 3.35], gap="medium")
 
     # ---------- BOOKMARK RAIL ----------
     with rail:
         st.markdown(
-            '<div class="bookmark-rail"><div class="panel-label">Bookmarks</div>',
+            '<div class="bookmark-rail"><div class="panel-label">Navigate</div>',
             unsafe_allow_html=True,
         )
         if st.button("💬  Chat", use_container_width=True, key="bm_chat", type="primary"):
@@ -10065,12 +10029,6 @@ if st.session_state.view == "home":
         if st.button("▶  Shorts", use_container_width=True, key="bm_shorts"):
             st.session_state.shorts_index = st.session_state.get("shorts_index") or 0
             st.session_state.view = "shorts"
-            st.rerun()
-        if st.button("◎  Character.AI", use_container_width=True, key="bm_cai"):
-            st.session_state.view = "character_ai"
-            st.rerun()
-        if st.button("🌐  Web", use_container_width=True, key="bm_web"):
-            st.session_state.view = "web"
             st.rerun()
         if st.session_state.get("board_unlocked") or st.session_state.get("callaghan_safe_unlocked"):
             if st.button("📌  Board", use_container_width=True, key="bm_board"):
@@ -10147,15 +10105,17 @@ if st.session_state.view == "home":
             _sub = f"{_title_bit} · {_sub}"
         st.markdown(f"""
         <div class="panel">
-          <div class="panel-label">Shell</div>
-          <div class="hero">{greet_line(st.session_state.username)}</div>
-          <div class="sub">{_sub}</div>
+          <div class="panel-label">Meridium</div>
+          <div class="hero" style="font-size:clamp(1.45rem,3.2vw,1.85rem);font-weight:650;letter-spacing:-0.03em;line-height:1.2;margin:0.2rem 0 0.5rem;">
+            {greet_line(st.session_state.username)}
+          </div>
+          <div class="sub" style="opacity:0.72;line-height:1.5;margin-bottom:0.85rem;">{_sub}</div>
           <div class="ridge"></div>
-          <div class="home-status">
-            <span class="home-pill">{_theme_pill}</span>
-            <span class="home-pill">{st.session_state.provider}</span>
-            <span class="home-pill">{_wiki_pill}</span>
-            <span class="home-pill">{_web_pill}</span>
+          <div class="home-status" style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.15rem;">
+            <span class="pill">{_theme_pill}</span>
+            <span class="pill">{st.session_state.provider}</span>
+            <span class="pill">{_wiki_pill}</span>
+            <span class="pill">{_web_pill}</span>
           </div>
         </div>
         """, unsafe_allow_html=True)
