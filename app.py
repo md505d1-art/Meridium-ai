@@ -793,28 +793,39 @@ def lab_is_unlocked() -> bool:
 
 
 def available_themes() -> list:
-    """Public themes + ARG unlocks + owner-only palettes for the architect."""
+    """Public themes + ARG unlocks + owner palettes (owner always; others if granted)."""
     unlocked = set(st.session_state.get("unlocked_themes") or [])
     names = list(THEMES.keys())
     for name in SECRET_THEMES:
         if name in unlocked:
             names.append(name)
-    try:
-        if is_owner(st.session_state.get("username") or ""):
-            names.extend(list(OWNER_THEMES.keys()))
-    except Exception:
-        pass
+    # Owner themes: architect always has them; others only if unlocked via grant
+    for name in OWNER_THEMES:
+        try:
+            if is_owner(st.session_state.get("username") or "") or name in unlocked:
+                if name not in names:
+                    names.append(name)
+        except Exception:
+            if name in unlocked and name not in names:
+                names.append(name)
     return names
 
 
 def available_fonts() -> list:
-    """Public fonts + owner-only display faces."""
+    """Public fonts + owner display faces (owner, or user granted an owner theme)."""
     names = list(FONTS.keys())
+    unlocked = set(st.session_state.get("unlocked_themes") or [])
+    has_owner_theme = any(n in OWNER_THEMES for n in unlocked)
     try:
-        if is_owner(st.session_state.get("username") or ""):
-            names.extend(list(OWNER_FONTS.keys()))
+        if is_owner(st.session_state.get("username") or "") or has_owner_theme:
+            for n in OWNER_FONTS:
+                if n not in names:
+                    names.append(n)
     except Exception:
-        pass
+        if has_owner_theme:
+            for n in OWNER_FONTS:
+                if n not in names:
+                    names.append(n)
     return names
 
 
@@ -832,18 +843,25 @@ def theme_shell(theme_name: str) -> dict:
 
 def resolve_font_css(font_name: str, theme_name: str = "") -> str:
     """CSS font-family stack. Owner themes can pin a unique face."""
-    if theme_name in OWNER_THEMES:
+    unlocked = set(st.session_state.get("unlocked_themes") or [])
+    can_owner_face = False
+    try:
+        can_owner_face = is_owner(st.session_state.get("username") or "") or any(
+            n in OWNER_THEMES for n in unlocked
+        )
+    except Exception:
+        can_owner_face = any(n in OWNER_THEMES for n in unlocked)
+
+    if theme_name in OWNER_THEMES and (
+        can_owner_face or theme_name in unlocked
+    ):
         pinned = OWNER_THEMES[theme_name].get("font")
         if pinned and pinned in OWNER_FONTS:
             return OWNER_FONTS[pinned]
         if pinned and pinned in FONTS:
             return FONTS[pinned]
-    if font_name in OWNER_FONTS:
-        try:
-            if is_owner(st.session_state.get("username") or ""):
-                return OWNER_FONTS[font_name]
-        except Exception:
-            pass
+    if font_name in OWNER_FONTS and can_owner_face:
+        return OWNER_FONTS[font_name]
     return FONTS.get(font_name, FONTS["Inter"])
 
 
@@ -863,12 +881,14 @@ def unlock_theme(theme_name: str, reason: str = "", apply: bool = False) -> bool
 
 def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool = False):
     """Solid Meridium shell (no glass / blur)."""
-    # Non-owners cannot keep owner-only themes/fonts
+    # Owner themes/fonts require owner account or a grant (unlocked_themes)
     try:
-        if theme_name in OWNER_THEMES and not is_owner(st.session_state.get("username") or ""):
+        unlocked = set(st.session_state.get("unlocked_themes") or [])
+        is_own = is_owner(st.session_state.get("username") or "")
+        if theme_name in OWNER_THEMES and not is_own and theme_name not in unlocked:
             theme_name = "Caelestia"
             st.session_state.theme = "Caelestia"
-        if font_name in OWNER_FONTS and not is_owner(st.session_state.get("username") or ""):
+        if font_name in OWNER_FONTS and not is_own and not any(n in OWNER_THEMES for n in unlocked):
             font_name = "Inter"
             st.session_state.font = "Inter"
     except Exception:
@@ -9543,7 +9563,7 @@ if st.session_state.view == "owner":
             placeholder="exact name",
             value=st.session_state.get("owner_grant_user") or "",
         )
-        all_themes = list(THEMES.keys()) + list(SECRET_THEMES.keys())  # owner themes are not grantable
+        all_themes = list(THEMES.keys()) + list(SECRET_THEMES.keys()) + list(OWNER_THEMES.keys())
         grant_theme = st.selectbox("Unlock theme", ["(none)"] + all_themes, key="owner_grant_theme")
         force_theme = st.checkbox("Force their active theme to this", key="owner_force_theme")
         grant_title = st.text_input("Custom title / badge", key="owner_grant_title", placeholder="e.g. Residual Witness")
