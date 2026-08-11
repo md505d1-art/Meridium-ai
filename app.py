@@ -181,6 +181,84 @@ FONTS = {
     "Newsreader": "'Newsreader', Georgia, serif",
 }
 
+# Owner-only typefaces — not listed for regular users
+OWNER_FONTS = {
+    "Orbitron": "'Orbitron', system-ui, sans-serif",
+    "Cinzel Decorative": "'Cinzel Decorative', Georgia, serif",
+    "Press Start 2P": "'Press Start 2P', monospace",
+    "Syncopate": "'Syncopate', system-ui, sans-serif",
+    "Special Elite": "'Special Elite', Georgia, serif",
+    "Audiowide": "'Audiowide', system-ui, sans-serif",
+    "Monoton": "'Monoton', system-ui, sans-serif",
+    "Bungee Shade": "'Bungee Shade', system-ui, sans-serif",
+    "Silkscreen": "'Silkscreen', monospace",
+    "UnifrakturMaguntia": "'UnifrakturMaguntia', Georgia, serif",
+}
+
+# Owner-exclusive palettes (not grantable to public; only owner picker)
+OWNER_THEMES = {
+    "Obsidian Crown": {
+        "bg": "#050308", "panel": "rgba(18, 8, 28, 0.92)", "panel_solid": "#12081c",
+        "border": "rgba(250, 204, 21, 0.35)", "text": "#fef9c3", "muted": "#a8a29e",
+        "accent": "#facc15", "accent2": "#eab308", "accent_soft": "rgba(250,204,21,0.14)",
+        "font": "Cinzel Decorative",
+    },
+    "Neon Abyss": {
+        "bg": "#02010a", "panel": "rgba(8, 6, 30, 0.94)", "panel_solid": "#0a0820",
+        "border": "rgba(34, 211, 238, 0.45)", "text": "#a5f3fc", "muted": "#67e8f9",
+        "accent": "#22d3ee", "accent2": "#f0abfc", "accent_soft": "rgba(34,211,238,0.16)",
+        "font": "Orbitron",
+    },
+    "Voidscript": {
+        "bg": "#000000", "panel": "rgba(12, 12, 12, 0.95)", "panel_solid": "#0c0c0c",
+        "border": "rgba(74, 222, 128, 0.4)", "text": "#86efac", "muted": "#4ade80",
+        "accent": "#4ade80", "accent2": "#22c55e", "accent_soft": "rgba(74,222,128,0.14)",
+        "font": "Press Start 2P",
+    },
+    "Architect Gold": {
+        "bg": "#0c0904", "panel": "rgba(32, 24, 10, 0.9)", "panel_solid": "#1c1608",
+        "border": "rgba(251, 191, 36, 0.4)", "text": "#fde68a", "muted": "#d6c08a",
+        "accent": "#fbbf24", "accent2": "#f59e0b", "accent_soft": "rgba(251,191,36,0.15)",
+        "font": "Syncopate",
+    },
+    "Typewriter Residual": {
+        "bg": "#0a0a08", "panel": "rgba(28, 26, 20, 0.92)", "panel_solid": "#1a1814",
+        "border": "rgba(214, 211, 209, 0.28)", "text": "#e7e5e4", "muted": "#a8a29e",
+        "accent": "#d6d3d1", "accent2": "#a8a29e", "accent_soft": "rgba(214,211,209,0.12)",
+        "font": "Special Elite",
+    },
+    "Synthwave Owner": {
+        "bg": "#0b0214", "panel": "rgba(36, 10, 48, 0.9)", "panel_solid": "#200a2c",
+        "border": "rgba(244, 114, 182, 0.45)", "text": "#fce7f3", "muted": "#e879f9",
+        "accent": "#f472b6", "accent2": "#c084fc", "accent_soft": "rgba(244,114,182,0.16)",
+        "font": "Audiowide",
+    },
+    "Monolith": {
+        "bg": "#030303", "panel": "rgba(16, 16, 16, 0.96)", "panel_solid": "#101010",
+        "border": "rgba(255,255,255,0.2)", "text": "#ffffff", "muted": "#a1a1aa",
+        "accent": "#ffffff", "accent2": "#d4d4d8", "accent_soft": "rgba(255,255,255,0.08)",
+        "font": "Monoton",
+    },
+    "Carnival Shade": {
+        "bg": "#12040c", "panel": "rgba(40, 12, 28, 0.9)", "panel_solid": "#240c18",
+        "border": "rgba(251, 113, 133, 0.4)", "text": "#ffe4e6", "muted": "#fda4af",
+        "accent": "#fb7185", "accent2": "#fbbf24", "accent_soft": "rgba(251,113,133,0.15)",
+        "font": "Bungee Shade",
+    },
+    "Terminal Green": {
+        "bg": "#001400", "panel": "rgba(0, 24, 8, 0.94)", "panel_solid": "#001808",
+        "border": "rgba(34, 197, 94, 0.45)", "text": "#bbf7d0", "muted": "#4ade80",
+        "accent": "#22c55e", "accent2": "#16a34a", "accent_soft": "rgba(34,197,94,0.14)",
+        "font": "Silkscreen",
+    },
+    "Gothic Residual": {
+        "bg": "#08060a", "panel": "rgba(22, 16, 28, 0.94)", "panel_solid": "#140e1c",
+        "border": "rgba(196, 181, 253, 0.35)", "text": "#ede9fe", "muted": "#c4b5fd",
+        "accent": "#c4b5fd", "accent2": "#a78bfa", "accent_soft": "rgba(196,181,253,0.14)",
+        "font": "UnifrakturMaguntia",
+    },
+}
+
 
 # ============================================================
 # COLOUR PALETTES
@@ -715,23 +793,58 @@ def lab_is_unlocked() -> bool:
 
 
 def available_themes() -> list:
-    """Public themes + any ARG themes the user has unlocked."""
+    """Public themes + ARG unlocks + owner-only palettes for the architect."""
     unlocked = set(st.session_state.get("unlocked_themes") or [])
     names = list(THEMES.keys())
     for name in SECRET_THEMES:
         if name in unlocked:
             names.append(name)
+    try:
+        if is_owner(st.session_state.get("username") or ""):
+            names.extend(list(OWNER_THEMES.keys()))
+    except Exception:
+        pass
+    return names
+
+
+def available_fonts() -> list:
+    """Public fonts + owner-only display faces."""
+    names = list(FONTS.keys())
+    try:
+        if is_owner(st.session_state.get("username") or ""):
+            names.extend(list(OWNER_FONTS.keys()))
+    except Exception:
+        pass
     return names
 
 
 def theme_shell(theme_name: str) -> dict:
     if theme_name in THEMES:
-        return THEMES[theme_name]
+        return dict(THEMES[theme_name])
     if theme_name in SECRET_THEMES:
-        # strip meta key for CSS
-        d = {k: v for k, v in SECRET_THEMES[theme_name].items() if k != "unlock"}
+        d = {k: v for k, v in SECRET_THEMES[theme_name].items() if k not in ("unlock", "font")}
         return d
-    return THEMES["Caelestia"]
+    if theme_name in OWNER_THEMES:
+        d = {k: v for k, v in OWNER_THEMES[theme_name].items() if k not in ("unlock", "font")}
+        return d
+    return dict(THEMES["Caelestia"])
+
+
+def resolve_font_css(font_name: str, theme_name: str = "") -> str:
+    """CSS font-family stack. Owner themes can pin a unique face."""
+    if theme_name in OWNER_THEMES:
+        pinned = OWNER_THEMES[theme_name].get("font")
+        if pinned and pinned in OWNER_FONTS:
+            return OWNER_FONTS[pinned]
+        if pinned and pinned in FONTS:
+            return FONTS[pinned]
+    if font_name in OWNER_FONTS:
+        try:
+            if is_owner(st.session_state.get("username") or ""):
+                return OWNER_FONTS[font_name]
+        except Exception:
+            pass
+    return FONTS.get(font_name, FONTS["Inter"])
 
 
 def unlock_theme(theme_name: str, reason: str = "", apply: bool = False) -> bool:
@@ -750,11 +863,21 @@ def unlock_theme(theme_name: str, reason: str = "", apply: bool = False) -> bool
 
 def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool = False):
     """Solid Meridium shell (no glass / blur)."""
-    font = FONTS.get(font_name, FONTS["Inter"])
+    # Non-owners cannot keep owner-only themes/fonts
+    try:
+        if theme_name in OWNER_THEMES and not is_owner(st.session_state.get("username") or ""):
+            theme_name = "Caelestia"
+            st.session_state.theme = "Caelestia"
+        if font_name in OWNER_FONTS and not is_owner(st.session_state.get("username") or ""):
+            font_name = "Inter"
+            st.session_state.font = "Inter"
+    except Exception:
+        pass
+    font = resolve_font_css(font_name, theme_name)
     SHELL = theme_shell(theme_name)
     st.markdown(f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,600&family=Orbitron:wght@400;600;700&family=Cinzel+Decorative:wght@400;700&family=Press+Start+2P&family=Syncopate:wght@400;700&family=Special+Elite&family=Audiowide&family=Monoton&family=Bungee+Shade&family=Silkscreen&family=UnifrakturMaguntia&display=swap');
 
     html, body, [class*="css"] {{
         font-family: {font} !important;
@@ -1398,10 +1521,30 @@ _DEFAULT_SITE_EFFECTS = {
     "quiet_mode": False,
     "creator_watermark": True,
     "force_theme": "",
-    "announce_enabled": True,  # master switch for site-wide announcement
+    "announce_enabled": True,
     "announce_text": "",
-    "announce_style": "violet",  # violet | alert | residual | soft
+    "announce_style": "violet",
     "announce_id": "",
+    # Expanded effects
+    "glitch_text": False,
+    "chromatic": False,
+    "heavy_vignette": False,
+    "film_grain": False,
+    "pulse_border": False,
+    "sparkle_cursor": False,
+    "retro_terminal": False,
+    "blood_moon": False,
+    "ice_crystal": False,
+    "gold_foil": False,
+    "vertical_scan": False,
+    "panel_pulse": False,
+    "deep_focus": False,
+    "high_contrast": False,
+    "sepia_residual": False,
+    "mirror_world": False,
+    "slow_aurora": False,
+    "ember_glow": False,
+    "cyber_grid": False,
 }
 
 
@@ -1861,10 +2004,258 @@ def apply_site_effects_css() -> None:
         )
         html_parts.append('<div class="drae-watermark">Meridium · Drae</div>')
 
+
+    if fx.get("glitch_text"):
+        css_parts.append(
+            """
+            @keyframes draeGlitch {
+              0%,100% { transform: none; text-shadow: none; }
+              20% { transform: translate(-1px,1px); text-shadow: 2px 0 #f472b6, -2px 0 #22d3ee; }
+              40% { transform: translate(1px,-1px); text-shadow: -1px 0 #a78bfa; }
+              60% { transform: translate(1px,1px); }
+              80% { transform: translate(-1px,0); text-shadow: 1px 0 #22d3ee, -1px 0 #f472b6; }
+            }
+            h1, h2, h3, .drae-desk .title, [data-testid="stMarkdownContainer"] h1 {
+              animation: draeGlitch 2.8s steps(2) infinite !important;
+            }
+            """
+        )
+
+    if fx.get("chromatic"):
+        css_parts.append(
+            """
+            .stApp {
+              text-shadow: 1px 0 rgba(244,114,182,0.35), -1px 0 rgba(34,211,238,0.3) !important;
+            }
+            """
+        )
+
+    if fx.get("heavy_vignette"):
+        css_parts.append(
+            """
+            .stApp::after {
+              content: "";
+              pointer-events: none;
+              position: fixed; inset: 0; z-index: 9970;
+              background: radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.72) 100%);
+            }
+            """
+        )
+
+    if fx.get("film_grain"):
+        css_parts.append(
+            """
+            .stApp::before {
+              content: "";
+              pointer-events: none;
+              position: fixed; inset: 0; z-index: 9965;
+              opacity: 0.12;
+              background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+              animation: draeGrain 0.4s steps(2) infinite;
+            }
+            @keyframes draeGrain {
+              0% { transform: translate(0,0); }
+              100% { transform: translate(-2%, 1%); }
+            }
+            """
+        )
+
+    if fx.get("pulse_border"):
+        css_parts.append(
+            """
+            @keyframes draePulseBorder {
+              0%,100% { box-shadow: 0 0 0 1px rgba(167,139,250,0.25); }
+              50% { box-shadow: 0 0 24px 2px rgba(244,114,182,0.45); }
+            }
+            [data-testid="stVerticalBlockBorderWrapper"],
+            div[data-testid="stExpander"],
+            .stChatMessage {
+              animation: draePulseBorder 3.2s ease-in-out infinite !important;
+              border-radius: 14px !important;
+            }
+            """
+        )
+
+    if fx.get("sparkle_cursor"):
+        css_parts.append(
+            """
+            .stApp, .stApp * {
+              cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ctext y='18' font-size='14'%3E%E2%9C%A8%3C/text%3E%3C/svg%3E") 8 8, auto !important;
+            }
+            """
+        )
+
+    if fx.get("retro_terminal"):
+        css_parts.append(
+            """
+            .stApp {
+              font-family: ui-monospace, 'JetBrains Mono', monospace !important;
+              color: #86efac !important;
+              background: #001200 !important;
+            }
+            .stApp * { color: inherit; }
+            .stButton > button {
+              border: 1px solid #22c55e !important;
+              background: #001a00 !important;
+              color: #bbf7d0 !important;
+              border-radius: 0 !important;
+            }
+            """
+        )
+
+    if fx.get("blood_moon"):
+        css_parts.append(
+            """
+            .stApp, [data-testid="stAppViewContainer"] {
+              background:
+                radial-gradient(circle at 80% 10%, rgba(220,38,38,0.35), transparent 40%),
+                radial-gradient(circle at 20% 90%, rgba(127,29,29,0.25), transparent 45%),
+                #0a0404 !important;
+            }
+            h1, h2, h3 { color: #fecaca !important; text-shadow: 0 0 18px rgba(239,68,68,0.5) !important; }
+            """
+        )
+
+    if fx.get("ice_crystal"):
+        css_parts.append(
+            """
+            .stApp, [data-testid="stAppViewContainer"] {
+              background:
+                radial-gradient(circle at 30% 20%, rgba(125,211,252,0.2), transparent 40%),
+                radial-gradient(circle at 70% 80%, rgba(186,230,253,0.12), transparent 45%),
+                #040a12 !important;
+            }
+            h1, h2, h3 { color: #e0f2fe !important; text-shadow: 0 0 16px rgba(56,189,248,0.45) !important; }
+            .stButton > button {
+              border-color: rgba(125,211,252,0.45) !important;
+              box-shadow: 0 0 14px rgba(56,189,248,0.2) !important;
+            }
+            """
+        )
+
+    if fx.get("gold_foil"):
+        css_parts.append(
+            """
+            h1, h2, .drae-desk .title {
+              background: linear-gradient(100deg, #fef3c7, #f59e0b, #fde68a, #d97706, #fef3c7) !important;
+              background-size: 200% auto !important;
+              -webkit-background-clip: text !important;
+              background-clip: text !important;
+              -webkit-text-fill-color: transparent !important;
+              animation: draeRainbow 5s linear infinite !important;
+            }
+            """
+        )
+
+    if fx.get("vertical_scan"):
+        css_parts.append(
+            """
+            @keyframes draeVScan {
+              0% { transform: translateY(-100%); }
+              100% { transform: translateY(100vh); }
+            }
+            .stApp::after {
+              content: "";
+              pointer-events: none;
+              position: fixed; left: 0; right: 0; height: 28%;
+              z-index: 9972;
+              background: linear-gradient(to bottom, transparent, rgba(167,139,250,0.07), transparent);
+              animation: draeVScan 7s linear infinite;
+            }
+            """
+        )
+
+    if fx.get("panel_pulse"):
+        css_parts.append(
+            """
+            @keyframes draePanelPulse {
+              0%,100% { background-color: rgba(20,12,32,0.4); }
+              50% { background-color: rgba(40,20,60,0.55); }
+            }
+            [data-testid="stSidebar"], section.main {
+              animation: draePanelPulse 6s ease-in-out infinite !important;
+            }
+            """
+        )
+
+    if fx.get("deep_focus"):
+        css_parts.append(
+            """
+            section.main {
+              mask-image: radial-gradient(ellipse at center, black 45%, transparent 95%);
+              -webkit-mask-image: radial-gradient(ellipse at center, black 45%, transparent 95%);
+            }
+            """
+        )
+
+    if fx.get("high_contrast"):
+        css_parts.append(
+            """
+            .stApp { filter: contrast(1.25) saturate(1.15) !important; }
+            """
+        )
+
+    if fx.get("sepia_residual"):
+        css_parts.append(
+            """
+            .stApp { filter: sepia(0.35) contrast(1.05) !important; }
+            """
+        )
+
+    if fx.get("mirror_world"):
+        css_parts.append(
+            """
+            section.main > div { transform: scaleX(-1) !important; }
+            section.main > div * { transform: scaleX(-1) !important; }
+            """
+        )
+
+    if fx.get("slow_aurora"):
+        css_parts.append(
+            """
+            .stApp, [data-testid="stAppViewContainer"] {
+              background: linear-gradient(-45deg, #0a0618, #1a1030, #0c1828, #180820, #0a0618) !important;
+              background-size: 500% 500% !important;
+              animation: draeAurora 28s ease infinite !important;
+            }
+            """
+        )
+
+    if fx.get("ember_glow"):
+        css_parts.append(
+            """
+            .stApp, [data-testid="stAppViewContainer"] {
+              background:
+                radial-gradient(circle at 50% 120%, rgba(249,115,22,0.28), transparent 50%),
+                radial-gradient(circle at 20% 30%, rgba(239,68,68,0.12), transparent 40%),
+                #0c0604 !important;
+            }
+            .stButton > button {
+              box-shadow: 0 0 18px rgba(249,115,22,0.25) !important;
+              border-color: rgba(251,146,60,0.45) !important;
+            }
+            """
+        )
+
+    if fx.get("cyber_grid"):
+        css_parts.append(
+            """
+            .stApp {
+              background-image:
+                linear-gradient(rgba(34,211,238,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(34,211,238,0.05) 1px, transparent 1px) !important;
+              background-size: 40px 40px !important;
+              background-color: #04060e !important;
+            }
+            """
+        )
+
     force = (fx.get("force_theme") or "").strip()
-    if force and force in {**THEMES, **SECRET_THEMES}:
+    public_force = {**THEMES, **SECRET_THEMES}
+    if force and force in public_force:
         if not is_owner(st.session_state.get("username") or ""):
             st.session_state.theme = force
+    # Owner-only themes never force onto guests
 
     payload = ""
     if css_parts:
@@ -3910,7 +4301,7 @@ if st.session_state.popup:
     </div>
     """, unsafe_allow_html=True)
 
-    fonts = list(FONTS.keys())
+    fonts = available_fonts()
     fi = fonts.index(st.session_state.font) if st.session_state.font in fonts else 0
     ft = st.selectbox("Font", fonts, index=fi, key="pop_font")
     if ft != st.session_state.font:
@@ -8933,22 +9324,48 @@ if st.session_state.view == "owner":
         st.caption("These rewrite Meridium for **everyone** signed in. Flip switches → Apply.")
         fx = site_effects_load()
 
-        st.markdown("**Visual atmosphere**")
-        c1, c2 = st.columns(2)
+        st.markdown("**Core atmosphere**")
+        c1, c2, c3 = st.columns(3)
         with c1:
             rainbow = st.toggle("🌈 Rainbow chat", value=bool(fx.get("rainbow_chat")), key="fx_rainbow")
             aurora = st.toggle("🌌 Aurora shell", value=bool(fx.get("aurora_shell")), key="fx_aurora")
             neon = st.toggle("💜 Neon buttons", value=bool(fx.get("neon_buttons")), key="fx_neon")
             matrix = st.toggle("💚 Matrix rain", value=bool(fx.get("matrix_rain")), key="fx_matrix")
             scan = st.toggle("📺 CRT scanlines", value=bool(fx.get("scanlines")), key="fx_scan")
-        with c2:
             static = st.toggle("📼 Residual static", value=bool(fx.get("residual_static")), key="fx_static")
             bloom = st.toggle("✨ Soft bloom", value=bool(fx.get("soft_bloom")), key="fx_bloom")
+        with c2:
             quiet = st.toggle("🤫 Quiet mode", value=bool(fx.get("quiet_mode")), key="fx_quiet")
             heart = st.toggle("💗 Heart cursor", value=bool(fx.get("heart_cursor")), key="fx_heart")
             mark = st.toggle("♔ Creator watermark", value=bool(fx.get("creator_watermark")), key="fx_mark")
+            glitch = st.toggle("🗯 Glitch titles", value=bool(fx.get("glitch_text")), key="fx_glitch")
+            chromatic = st.toggle("🟣 Chromatic fringing", value=bool(fx.get("chromatic")), key="fx_chromatic")
+            vignette = st.toggle("🌑 Heavy vignette", value=bool(fx.get("heavy_vignette")), key="fx_vignette")
+            grain = st.toggle("🎞 Film grain", value=bool(fx.get("film_grain")), key="fx_grain")
+        with c3:
+            pulse_b = st.toggle("💓 Pulse borders", value=bool(fx.get("pulse_border")), key="fx_pulse_b")
+            sparkle = st.toggle("✨ Sparkle cursor", value=bool(fx.get("sparkle_cursor")), key="fx_sparkle")
+            retro = st.toggle("🖥 Retro terminal", value=bool(fx.get("retro_terminal")), key="fx_retro")
+            blood = st.toggle("🩸 Blood moon", value=bool(fx.get("blood_moon")), key="fx_blood")
+            ice = st.toggle("❄️ Ice crystal", value=bool(fx.get("ice_crystal")), key="fx_ice")
+            gold = st.toggle("🥇 Gold foil titles", value=bool(fx.get("gold_foil")), key="fx_gold")
+            vscan = st.toggle("📡 Vertical scan", value=bool(fx.get("vertical_scan")), key="fx_vscan")
 
-        theme_opts = ["(off)"] + list(THEMES.keys()) + list(SECRET_THEMES.keys())
+        st.markdown("**Advanced**")
+        a1, a2, a3 = st.columns(3)
+        with a1:
+            panel_p = st.toggle("📟 Panel pulse", value=bool(fx.get("panel_pulse")), key="fx_panel_p")
+            deep = st.toggle("🎯 Deep focus", value=bool(fx.get("deep_focus")), key="fx_deep")
+            hicon = st.toggle("⬛ High contrast", value=bool(fx.get("high_contrast")), key="fx_hicon")
+        with a2:
+            sepia = st.toggle("📜 Sepia residual", value=bool(fx.get("sepia_residual")), key="fx_sepia")
+            mirror = st.toggle("🪞 Mirror world", value=bool(fx.get("mirror_world")), key="fx_mirror")
+            slow_a = st.toggle("🌊 Slow aurora", value=bool(fx.get("slow_aurora")), key="fx_slow_a")
+        with a3:
+            ember = st.toggle("🔥 Ember glow", value=bool(fx.get("ember_glow")), key="fx_ember")
+            grid = st.toggle("▦ Cyber grid", value=bool(fx.get("cyber_grid")), key="fx_grid")
+
+        theme_opts = ["(off)"] + list(THEMES.keys()) + list(SECRET_THEMES.keys()) + (list(OWNER_THEMES.keys()) if is_owner(st.session_state.get("username") or "") else [])
         cur_force = fx.get("force_theme") or "(off)"
         if cur_force not in theme_opts:
             cur_force = "(off)"
@@ -8974,6 +9391,25 @@ if st.session_state.view == "owner":
                     "quiet_mode": bool(quiet),
                     "heart_cursor": bool(heart),
                     "creator_watermark": bool(mark),
+                    "glitch_text": bool(glitch),
+                    "chromatic": bool(chromatic),
+                    "heavy_vignette": bool(vignette),
+                    "film_grain": bool(grain),
+                    "pulse_border": bool(pulse_b),
+                    "sparkle_cursor": bool(sparkle),
+                    "retro_terminal": bool(retro),
+                    "blood_moon": bool(blood),
+                    "ice_crystal": bool(ice),
+                    "gold_foil": bool(gold),
+                    "vertical_scan": bool(vscan),
+                    "panel_pulse": bool(panel_p),
+                    "deep_focus": bool(deep),
+                    "high_contrast": bool(hicon),
+                    "sepia_residual": bool(sepia),
+                    "mirror_world": bool(mirror),
+                    "slow_aurora": bool(slow_a),
+                    "ember_glow": bool(ember),
+                    "cyber_grid": bool(grid),
                     "force_theme": "" if force_all == "(off)" else force_all,
                 })
                 site_effects_save(new_fx)
@@ -8985,7 +9421,11 @@ if st.session_state.view == "owner":
                 for k in (
                     "rainbow_chat", "aurora_shell", "neon_buttons", "matrix_rain",
                     "scanlines", "residual_static", "soft_bloom", "quiet_mode",
-                    "heart_cursor",
+                    "heart_cursor", "glitch_text", "chromatic", "heavy_vignette",
+                    "film_grain", "pulse_border", "sparkle_cursor", "retro_terminal",
+                    "blood_moon", "ice_crystal", "gold_foil", "vertical_scan",
+                    "panel_pulse", "deep_focus", "high_contrast", "sepia_residual",
+                    "mirror_world", "slow_aurora", "ember_glow", "cyber_grid",
                 ):
                     new_fx[k] = False
                 new_fx["force_theme"] = ""
@@ -9103,11 +9543,12 @@ if st.session_state.view == "owner":
             placeholder="exact name",
             value=st.session_state.get("owner_grant_user") or "",
         )
-        all_themes = list(THEMES.keys()) + list(SECRET_THEMES.keys())
+        all_themes = list(THEMES.keys()) + list(SECRET_THEMES.keys())  # owner themes are not grantable
         grant_theme = st.selectbox("Unlock theme", ["(none)"] + all_themes, key="owner_grant_theme")
         force_theme = st.checkbox("Force their active theme to this", key="owner_force_theme")
         grant_title = st.text_input("Custom title / badge", key="owner_grant_title", placeholder="e.g. Residual Witness")
-        g1, g2 = st.columns(2)
+        clear_title = st.checkbox("Remove title / badge from user", key="owner_clear_title")
+        g1, g2, g3 = st.columns(3)
         with g1:
             if st.button("Apply grant", key="owner_grant_btn", type="primary", use_container_width=True):
                 tname = (target or "").strip().lower()
@@ -9123,16 +9564,48 @@ if st.session_state.view == "owner":
                         entry["themes"] = themes
                         if force_theme:
                             entry["force_theme"] = grant_theme
-                    if (grant_title or "").strip():
+                    if clear_title:
+                        entry.pop("title", None)
+                    elif (grant_title or "").strip():
                         entry["title"] = grant_title.strip()[:48]
-                    grants[tname] = entry
+                    if not entry.get("themes") and not entry.get("force_theme") and not entry.get("title"):
+                        grants.pop(tname, None)
+                    else:
+                        grants[tname] = entry
                     owner_grants_save(grants)
                     if tname == (st.session_state.get("username") or "").strip().lower():
                         apply_owner_grants_for_user(tname)
+                        if clear_title:
+                            st.session_state.owner_title = ""
                         save_user_data()
                     st.success(f"Grant saved for **{tname}**.")
                     st.rerun()
         with g2:
+            if st.button("Remove title only", key="owner_title_remove", use_container_width=True):
+                tname = (target or "").strip().lower()
+                if not tname:
+                    st.error("Enter a username.")
+                else:
+                    grants = owner_grants_load()
+                    entry = dict(grants.get(tname) or {})
+                    if "title" in entry:
+                        entry.pop("title", None)
+                        if not entry.get("themes") and not entry.get("force_theme"):
+                            grants.pop(tname, None)
+                        else:
+                            grants[tname] = entry
+                        owner_grants_save(grants)
+                        if tname == (st.session_state.get("username") or "").strip().lower():
+                            st.session_state.owner_title = ""
+                            try:
+                                save_user_data()
+                            except Exception:
+                                pass
+                        st.success(f"Title removed for **{tname}**.")
+                    else:
+                        st.info("No title on file.")
+                    st.rerun()
+        with g3:
             if st.button("Revoke all for user", key="owner_grant_revoke", use_container_width=True):
                 tname = (target or "").strip().lower()
                 if not tname:
@@ -10110,4 +10583,3 @@ if st.session_state.view == "chat" and st.session_state.get("_last_speak"):
         st.components.v1.html(speak_html(spoken, autoplay=False), height=70)
 
 st.markdown("</div>", unsafe_allow_html=True)
-
