@@ -4000,6 +4000,14 @@ if st.session_state.popup:
             st.session_state.view = "shorts"
             st.session_state.popup = False
             st.rerun()
+        if st.button("◎  Character.AI", use_container_width=True, key="pop_cai"):
+            st.session_state.view = "character_ai"
+            st.session_state.popup = False
+            st.rerun()
+        if st.button("🌐  Web", use_container_width=True, key="pop_web"):
+            st.session_state.view = "web"
+            st.session_state.popup = False
+            st.rerun()
         if lab_is_unlocked():
             if st.button("🔬  Lab", use_container_width=True, key="pop_lab"):
                 st.session_state.view = "lab"
@@ -6879,6 +6887,123 @@ if st.session_state.view == "shorts":
     st.stop()
 
 
+# ===== CHARACTER.AI SHORTCUT =====
+if st.session_state.view == "character_ai":
+    st.markdown(
+        """
+        <div style="text-align:center;padding:12px 0 8px;">
+          <h1 style="font-size:1.4rem;font-weight:650;margin:0 0 4px;">Character.AI</h1>
+          <p style="opacity:0.55;font-size:0.85rem;margin:0;">Opens on Character.AI — they block in-app embedding</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.info(
+        "Character.AI sets **X-Frame-Options: SAMEORIGIN**, so it cannot load inside Meridium. "
+        "Use the button below to open it in a new tab (works on phone/desktop)."
+    )
+    st.link_button(
+        "Open Character.AI ↗",
+        "https://character.ai",
+        use_container_width=True,
+        type="primary",
+    )
+    st.caption("Tip: on iPhone Safari, open the link → Share → Add to Home Screen for a quick icon.")
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("← Home", key="cai_home", use_container_width=True):
+            st.session_state.view = "home"
+            st.rerun()
+    with c2:
+        if st.button("🌐 Web browser", key="cai_to_web", use_container_width=True):
+            st.session_state.view = "web"
+            st.rerun()
+    st.stop()
+
+
+# ===== WEB BROWSER (iframe for sites that allow embedding) =====
+if st.session_state.view == "web":
+    st.markdown(
+        """
+        <div style="text-align:center;padding:8px 0 6px;">
+          <h1 style="font-size:1.35rem;font-weight:650;margin:0 0 4px;">Web</h1>
+          <p style="opacity:0.5;font-size:0.82rem;margin:0;">In-app frame · many sites block embedding</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    default_url = st.session_state.get("web_url") or "https://example.com"
+    url_in = st.text_input(
+        "Address",
+        value=default_url,
+        key="web_url_input",
+        placeholder="https://…",
+    )
+    b1, b2, b3, b4 = st.columns([1.2, 1, 1, 1])
+    with b1:
+        go = st.button("Go", key="web_go", use_container_width=True, type="primary")
+    with b2:
+        if st.button("Character.AI", key="web_cai_btn", use_container_width=True):
+            st.session_state.web_url = "https://character.ai"
+            st.rerun()
+    with b3:
+        if st.button("Wikipedia", key="web_wiki", use_container_width=True):
+            st.session_state.web_url = "https://en.wikipedia.org"
+            st.rerun()
+    with b4:
+        if st.button("← Home", key="web_home", use_container_width=True):
+            st.session_state.view = "home"
+            st.rerun()
+
+    if go and (url_in or "").strip():
+        u = (url_in or "").strip()
+        if not u.startswith(("http://", "https://")):
+            u = "https://" + u
+        st.session_state.web_url = u
+        st.rerun()
+
+    current = (st.session_state.get("web_url") or "").strip()
+    if current:
+        # Character.AI and many big sites refuse iframes — warn clearly
+        blocked_hints = ("character.ai", "google.com", "youtube.com", "twitter.com", "x.com", "facebook.com", "instagram.com")
+        host = current.lower()
+        if any(h in host for h in blocked_hints):
+            st.warning(
+                "This site usually **blocks** being framed inside another app. "
+                "If the panel is blank, open it in a new tab instead."
+            )
+            st.link_button("Open in new tab ↗", current, use_container_width=True)
+
+        import html as _html
+        safe = _html.escape(current, quote=True)
+        st.components.v1.html(
+            f"""
+            <div style="border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);
+                        background:#0a0a0e;box-shadow:0 12px 40px rgba(0,0,0,0.4);">
+              <iframe
+                src="{safe}"
+                title="Meridium Web"
+                style="width:100%;height:720px;border:0;background:#111;"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation"
+                referrerpolicy="no-referrer-when-downgrade"
+              ></iframe>
+            </div>
+            """,
+            height=740,
+            scrolling=True,
+        )
+        st.caption(
+            "Only sites that allow iframes will show here. "
+            "Character.AI, Google, YouTube, and most social apps block this on purpose."
+        )
+    else:
+        st.caption("Enter a URL and press Go.")
+
+    st.stop()
+
+
+
 # ===== INVESTIGATION BOARD =====
 BOARD_EVIDENCE = {
     "riley": {
@@ -8522,40 +8647,189 @@ if st.session_state.view == "owner":
             font-size: 0.68rem; letter-spacing: 0.12em;
             color: rgba(196,167,231,0.55);
           }
+          .own-stat {
+            padding: 0.85rem 1rem; border-radius: 14px;
+            border: 1px solid rgba(196,167,231,0.22);
+            background: rgba(20,12,32,0.55);
+            text-align: center;
+          }
+          .own-stat .n {
+            font-family: Syne, system-ui, sans-serif;
+            font-size: 1.55rem; font-weight: 700; color: #f5edff;
+          }
+          .own-stat .l {
+            font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+            opacity: 0.55; margin-top: 2px;
+          }
         </style>
         <div class="drae-desk">
-          <div class="kicker">Creator channel · Drae only</div>
+          <div class="kicker">Creator channel · Owner only</div>
           <div class="title">Architect’s desk</div>
           <div class="line">
-            Residual keys, TV Girl pink, Nadir teal, Stringbean mint —
-            you built the shell that remembers. This desk moves the whole site.
+            Presence, broadcasts, residual keys, grants, chatroom, ARG levers —
+            the shell answers from here.
           </div>
-          <div class="sig">MERIDIUM · OWNER · NOT A COMMITTEE</div>
+          <div class="sig">MERIDIUM · OWNER CONTROL · NOT A COMMITTEE</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    if st.button("← Home", key="owner_back_home"):
-        st.session_state.view = "home"
-        st.rerun()
 
-    tab_live, tab_room, tab_fx, tab_grants = st.tabs(["Online", "Chatroom", "Site effects", "Grants"])
+    top1, top2, top3 = st.columns([1, 1, 1])
+    with top1:
+        if st.button("← Home", key="owner_back_home", use_container_width=True):
+            st.session_state.view = "home"
+            st.rerun()
+    with top2:
+        if st.button("💬 Room", key="owner_jump_room", use_container_width=True):
+            st.session_state.view = "owner_room"
+            st.rerun()
+    with top3:
+        if st.button("↻ Refresh desk", key="owner_refresh", use_container_width=True):
+            st.rerun()
 
+    # Live metrics
+    try:
+        _online = presence_online()
+    except Exception:
+        _online = []
+    try:
+        _fx = site_effects_load()
+    except Exception:
+        _fx = dict(_DEFAULT_SITE_EFFECTS)
+    try:
+        _grants = owner_grants_load()
+    except Exception:
+        _grants = {}
+    try:
+        _room = chatroom_load()
+    except Exception:
+        _room = {}
+    _ann_on = bool(_fx.get("announce_enabled")) and bool(str(_fx.get("announce_text") or "").strip())
+    _fx_on = sum(1 for k, v in _fx.items() if k not in ("announce_text", "announce_id", "announce_style", "force_theme", "announce_enabled") and v is True)
+    if _fx.get("force_theme"):
+        _fx_on += 1
+
+    s1, s2, s3, s4, s5 = st.columns(5)
+    with s1:
+        st.markdown(f'<div class="own-stat"><div class="n">{len(_online)}</div><div class="l">Online</div></div>', unsafe_allow_html=True)
+    with s2:
+        st.markdown(f'<div class="own-stat"><div class="n">{len((_room.get("members") or []))}</div><div class="l">Room</div></div>', unsafe_allow_html=True)
+    with s3:
+        st.markdown(f'<div class="own-stat"><div class="n">{len(_grants)}</div><div class="l">Grants</div></div>', unsafe_allow_html=True)
+    with s4:
+        st.markdown(f'<div class="own-stat"><div class="n">{_fx_on}</div><div class="l">Effects</div></div>', unsafe_allow_html=True)
+    with s5:
+        st.markdown(f'<div class="own-stat"><div class="n">{"ON" if _ann_on else "—"}</div><div class="l">Broadcast</div></div>', unsafe_allow_html=True)
+
+    tab_dash, tab_live, tab_room, tab_fx, tab_ann, tab_grants, tab_arg, tab_tools = st.tabs(
+        ["Dashboard", "Online", "Chatroom", "Site effects", "Broadcast", "Grants", "ARG", "Tools"]
+    )
+
+    # ---------- DASHBOARD ----------
+    with tab_dash:
+        st.markdown("#### Command surface")
+        st.caption("Quick actions that hit the whole shell.")
+        d1, d2, d3 = st.columns(3)
+        with d1:
+            if st.button("Publish quick alert", key="dash_alert", use_container_width=True):
+                cur = dict(site_effects_load())
+                cur["announce_enabled"] = True
+                cur["announce_text"] = "Owner online. The residual channel is live."
+                cur["announce_style"] = "alert"
+                cur["announce_id"] = uuid.uuid4().hex[:10]
+                site_effects_save(cur)
+                st.success("Alert published.")
+                st.rerun()
+            if st.button("Clear broadcast", key="dash_clear_ann", use_container_width=True):
+                cur = dict(site_effects_load())
+                cur["announce_enabled"] = False
+                cur["announce_text"] = ""
+                cur["announce_id"] = ""
+                site_effects_save(cur)
+                st.success("Broadcast cleared.")
+                st.rerun()
+        with d2:
+            if st.button("Aurora + neon ON", key="dash_pretty", use_container_width=True):
+                cur = dict(site_effects_load())
+                cur["aurora_shell"] = True
+                cur["neon_buttons"] = True
+                cur["soft_bloom"] = True
+                site_effects_save(cur)
+                st.success("Pretty mode on.")
+                st.rerun()
+            if st.button("Quiet mode ON", key="dash_quiet", use_container_width=True):
+                cur = dict(site_effects_load())
+                cur["quiet_mode"] = True
+                site_effects_save(cur)
+                st.success("Quiet mode on.")
+                st.rerun()
+        with d3:
+            if st.button("Clear all visual FX", key="dash_clear_fx", use_container_width=True):
+                cur = dict(_DEFAULT_SITE_EFFECTS)
+                # keep announcement if any
+                old = site_effects_load()
+                cur["announce_enabled"] = old.get("announce_enabled", True)
+                cur["announce_text"] = old.get("announce_text", "")
+                cur["announce_style"] = old.get("announce_style", "violet")
+                cur["announce_id"] = old.get("announce_id", "")
+                site_effects_save(cur)
+                st.success("Visual effects cleared (broadcast kept).")
+                st.rerun()
+            if st.button("Open chatroom →", key="dash_room", use_container_width=True, type="primary"):
+                st.session_state.view = "owner_room"
+                st.rerun()
+
+        st.markdown("#### Jump")
+        j1, j2, j3, j4, j5 = st.columns(5)
+        jumps = [
+            (j1, "Home", "home"),
+            (j2, "Chat", "chat"),
+            (j3, "Library", "library"),
+            (j4, "Cinema", "cinema"),
+            (j5, "Shorts", "shorts"),
+        ]
+        for col, label, view_name in jumps:
+            with col:
+                if st.button(label, key=f"own_jump_{view_name}", use_container_width=True):
+                    if view_name == "library":
+                        st.session_state.library_reading = None
+                    if view_name == "cinema":
+                        st.session_state.cinema_watching = None
+                    if view_name == "shorts":
+                        st.session_state.shorts_index = 0
+                    st.session_state.view = view_name
+                    st.rerun()
+
+        st.markdown("#### Live snapshot")
+        if _online:
+            for row in _online[:12]:
+                st.markdown(
+                    f"· **{row.get('username') or '?'}** · `{row.get('view') or '?'}` · "
+                    f"{row.get('age_sec', '?')}s · {row.get('theme') or '—'}"
+                )
+        else:
+            st.caption("Only you on the line.")
+
+    # ---------- ONLINE ----------
     with tab_live:
         online = presence_online()
         st.markdown(f"**{len(online)}** session(s) active")
         st.caption("Heartbeat on each page load · online if seen within ~75s")
+        filter_q = st.text_input("Filter username", key="own_online_filter", placeholder="optional")
         if not online:
             st.info("No other sessions right now.")
         else:
             for row in online:
                 u = row.get("username") or "?"
+                if filter_q and filter_q.strip().lower() not in u.lower():
+                    continue
                 v = row.get("view") or "?"
                 age = row.get("age_sec", "?")
                 th = row.get("theme") or "—"
                 title = row.get("title") or ""
                 badge = " · owner" if row.get("is_owner") else ""
-                c1, c2 = st.columns([3, 1])
+                c1, c2, c3 = st.columns([3, 1, 1])
                 with c1:
                     st.markdown(
                         f"**{u}**{badge}  \n"
@@ -8570,37 +8844,82 @@ if st.session_state.view == "owner":
                         if st.button("Invite", key=f"own_inv_{row.get('session_id')}", use_container_width=True):
                             status = chatroom_invite(u)
                             if status == "invited":
-                                st.success(f"Invite sent to **{u}** — waiting for accept.")
+                                st.success(f"Invite sent to **{u}**")
                             elif status == "already_pending":
-                                st.info(f"**{u}** already has a pending invite.")
+                                st.info(f"**{u}** already pending.")
                             elif status == "already_member":
-                                st.info(f"**{u}** is already in the room.")
+                                st.info(f"**{u}** already in room.")
                             st.rerun()
+                with c3:
+                    if not row.get("is_owner"):
+                        if st.button("Gift", key=f"own_gift_{row.get('session_id')}", use_container_width=True):
+                            st.session_state.owner_grant_user = u
+                            st.info(f"Username filled for grants → **{u}** (open Grants tab).")
 
+    # ---------- CHATROOM ----------
     with tab_room:
         me = st.session_state.get("username") or "drae"
         room = chatroom_ensure_owner(me)
-        members = room.get("members") or []
-        pending = room.get("pending") or []
-        st.caption("Members: " + (", ".join(members) if members else "—"))
+        members = list(room.get("members") or [])
+        pending = list(room.get("pending") or [])
+        active = list(room.get("active") or [])
+        st.markdown(f"**Members** ({len(members)})")
+        st.caption(", ".join(members) if members else "—")
         if pending:
-            st.caption("Pending invites: " + ", ".join(pending))
+            st.markdown(f"**Pending** ({len(pending)})")
+            st.caption(", ".join(pending))
+        if active:
+            st.markdown(f"**Active now** ({len(active)})")
+            st.caption(", ".join(active))
+
         inv = st.text_input("Invite username", key="owner_room_invite", placeholder="exact name")
-        if st.button("Send invite", key="owner_room_add"):
-            if (inv or "").strip():
-                status = chatroom_invite(inv)
-                if status == "invited":
-                    st.success(f"Invite sent to **{inv.strip()}**")
-                elif status == "already_pending":
-                    st.info("Already pending.")
-                elif status == "already_member":
-                    st.info("Already a member.")
+        r1, r2, r3 = st.columns(3)
+        with r1:
+            if st.button("Send invite", key="owner_room_add", use_container_width=True):
+                if (inv or "").strip():
+                    status = chatroom_invite(inv)
+                    if status == "invited":
+                        st.success(f"Invite sent to **{inv.strip()}**")
+                    elif status == "already_pending":
+                        st.info("Already pending.")
+                    elif status == "already_member":
+                        st.info("Already a member.")
+                    st.rerun()
+        with r2:
+            if st.button("Open room →", key="owner_open_room", type="primary", use_container_width=True):
+                st.session_state.view = "owner_room"
                 st.rerun()
-        if st.button("Open chatroom →", key="owner_open_room", type="primary", use_container_width=True):
-            st.session_state.view = "owner_room"
-            st.rerun()
-        # Preview last messages
-        msgs = list(room.get("messages") or [])[-8:]
+        with r3:
+            if st.button("Clear messages", key="owner_room_clear_msgs", use_container_width=True):
+                room = chatroom_load()
+                room["messages"] = []
+                try:
+                    chatroom_save(room)
+                    st.success("Chatroom messages cleared.")
+                except Exception as e:
+                    st.error(str(e))
+                st.rerun()
+
+        kick_name = st.text_input("Remove member", key="owner_kick_user", placeholder="username to remove")
+        if st.button("Remove from room", key="owner_kick_btn"):
+            kn = (kick_name or "").strip().lower()
+            if not kn:
+                st.error("Enter a username.")
+            elif is_owner(kn):
+                st.error("Cannot remove owner.")
+            else:
+                room = chatroom_load()
+                room["members"] = [m for m in (room.get("members") or []) if (m or "").strip().lower() != kn]
+                room["pending"] = [m for m in (room.get("pending") or []) if (m or "").strip().lower() != kn]
+                room["active"] = [m for m in (room.get("active") or []) if (m or "").strip().lower() != kn]
+                try:
+                    chatroom_save(room)
+                    st.success(f"Removed **{kn}**.")
+                except Exception as e:
+                    st.error(str(e))
+                st.rerun()
+
+        msgs = list(room.get("messages") or [])[-12:]
         if msgs:
             st.markdown("**Recent**")
             for m in msgs:
@@ -8608,6 +8927,7 @@ if st.session_state.view == "owner":
         else:
             st.caption("No messages yet.")
 
+    # ---------- SITE EFFECTS ----------
     with tab_fx:
         st.markdown("#### Reality dial")
         st.caption("These rewrite Meridium for **everyone** signed in. Flip switches → Apply.")
@@ -8625,74 +8945,8 @@ if st.session_state.view == "owner":
             static = st.toggle("📼 Residual static", value=bool(fx.get("residual_static")), key="fx_static")
             bloom = st.toggle("✨ Soft bloom", value=bool(fx.get("soft_bloom")), key="fx_bloom")
             quiet = st.toggle("🤫 Quiet mode", value=bool(fx.get("quiet_mode")), key="fx_quiet")
-            heart = st.toggle("❤️ Heart cursor", value=bool(fx.get("heart_cursor")), key="fx_heart")
-            mark = st.toggle("✎ Creator watermark", value=bool(fx.get("creator_watermark", True)), key="fx_mark")
-
-        st.markdown("---")
-        st.markdown("**Site announcement**")
-        st.caption("Broadcast a banner to every signed-in user. Styles match the Meridium shell.")
-
-        _live = _announcement_active()
-        if _live:
-            st.success("Live now · " + str(_live.get("style", "violet")).upper() + " · " + str(_live.get("text", ""))[:100])
-        else:
-            st.caption("No announcement is broadcasting.")
-
-        with st.form("fx_ann_form", clear_on_submit=False):
-            _fx = site_effects_load()
-            _cur_on = bool(_fx.get("announce_enabled", True))
-            _cur_text = str(_fx.get("announce_text") or "")
-            _cur_style = _fx.get("announce_style") if _fx.get("announce_style") in ("violet", "alert", "residual", "soft") else "violet"
-
-            ann_enabled = st.checkbox("Broadcast announcement", value=_cur_on)
-            ann_text = st.text_area(
-                "Message",
-                value=_cur_text,
-                placeholder="The residual door is open. Library dial: 1818.",
-                height=90,
-                max_chars=220,
-            )
-            ann_style = st.selectbox(
-                "Style",
-                ["violet", "alert", "residual", "soft"],
-                index=["violet", "alert", "residual", "soft"].index(_cur_style),
-            )
-            c_apply, c_off = st.columns(2)
-            with c_apply:
-                submitted = st.form_submit_button("Publish announcement", use_container_width=True, type="primary")
-            with c_off:
-                turn_off = st.form_submit_button("Turn off announcement", use_container_width=True)
-
-        if submitted:
-            new_text = str(ann_text or "").strip()[:220]
-            cur = dict(site_effects_load())
-            cur["announce_enabled"] = bool(ann_enabled)
-            cur["announce_text"] = new_text
-            cur["announce_style"] = str(ann_style or "violet")
-            if new_text and ann_enabled:
-                # new id when text changes so previously-dismissed users see it again
-                if new_text != str(_fx.get("announce_text") or "").strip() or not _fx.get("announce_id"):
-                    cur["announce_id"] = uuid.uuid4().hex[:10]
-                else:
-                    cur["announce_id"] = _fx.get("announce_id") or uuid.uuid4().hex[:10]
-            else:
-                cur["announce_id"] = ""
-            site_effects_save(cur)
-            st.session_state.pop("_dismissed_announce_id", None)
-            st.session_state.pop("_active_announce_id", None)
-            st.session_state.pop("_active_announce_text", None)
-            st.rerun()
-
-        if turn_off:
-            cur = dict(site_effects_load())
-            cur["announce_enabled"] = False
-            cur["announce_text"] = ""
-            cur["announce_id"] = ""
-            site_effects_save(cur)
-            st.session_state.pop("_dismissed_announce_id", None)
-            st.session_state.pop("_active_announce_id", None)
-            st.session_state.pop("_active_announce_text", None)
-            st.rerun()
+            heart = st.toggle("💗 Heart cursor", value=bool(fx.get("heart_cursor")), key="fx_heart")
+            mark = st.toggle("♔ Creator watermark", value=bool(fx.get("creator_watermark")), key="fx_mark")
 
         theme_opts = ["(off)"] + list(THEMES.keys()) + list(SECRET_THEMES.keys())
         cur_force = fx.get("force_theme") or "(off)"
@@ -8705,7 +8959,7 @@ if st.session_state.view == "owner":
             key="fx_force_theme",
         )
 
-        a1, a2 = st.columns(2)
+        a1, a2, a3 = st.columns(3)
         with a1:
             if st.button("Apply visual effects", key="fx_apply", type="primary", use_container_width=True):
                 new_fx = dict(site_effects_load())
@@ -8726,7 +8980,20 @@ if st.session_state.view == "owner":
                 st.success("Visual effects updated for everyone.")
                 st.rerun()
         with a2:
-            if st.button("Clear all effects", key="fx_clear", use_container_width=True):
+            if st.button("Clear visuals only", key="fx_clear_vis", use_container_width=True):
+                new_fx = dict(site_effects_load())
+                for k in (
+                    "rainbow_chat", "aurora_shell", "neon_buttons", "matrix_rain",
+                    "scanlines", "residual_static", "soft_bloom", "quiet_mode",
+                    "heart_cursor",
+                ):
+                    new_fx[k] = False
+                new_fx["force_theme"] = ""
+                site_effects_save(new_fx)
+                st.success("Visuals cleared.")
+                st.rerun()
+        with a3:
+            if st.button("Clear ALL effects", key="fx_clear", use_container_width=True):
                 site_effects_save(dict(_DEFAULT_SITE_EFFECTS))
                 st.session_state.pop("_active_announce_id", None)
                 st.session_state.pop("_active_announce_text", None)
@@ -8741,42 +9008,279 @@ if st.session_state.view == "owner":
               font-size:0.82rem;color:rgba(220,210,240,0.75);line-height:1.45;">
               <b>Rainbow</b> paints chat · <b>Aurora</b> shifts the whole shell ·
               <b>Matrix / Scanlines / Static</b> are residual textures ·
-              <b>Announcement</b> is a sticky creator broadcast.
+              Use the <b>Broadcast</b> tab for site-wide announcements.
             </div>
             """,
             unsafe_allow_html=True,
         )
 
+    # ---------- BROADCAST ----------
+    with tab_ann:
+        st.markdown("#### Site-wide announcement")
+        st.caption("Sticky banner for every signed-in user. They can dismiss once per message id.")
+        _fx = site_effects_load()
+        _live = _announcement_active()
+        if _live:
+            st.success(f"Live: “{_live.get('text','')}” · style `{_live.get('style')}`")
+        else:
+            st.caption("No announcement is broadcasting.")
+
+        _cur_on = bool(_fx.get("announce_enabled", True))
+        _cur_text = str(_fx.get("announce_text") or "")
+        _cur_style = _fx.get("announce_style") if _fx.get("announce_style") in ("violet", "alert", "residual", "soft") else "violet"
+
+        with st.form("owner_announce_form"):
+            ann_enabled = st.checkbox("Broadcast announcement", value=_cur_on)
+            ann_text = st.text_area(
+                "Message",
+                value=_cur_text,
+                placeholder="The residual door is open. Library dial: 1818.",
+                height=100,
+                max_chars=220,
+            )
+            ann_style = st.selectbox(
+                "Style",
+                ["violet", "alert", "residual", "soft"],
+                index=["violet", "alert", "residual", "soft"].index(_cur_style),
+            )
+            presets = st.selectbox(
+                "Insert preset",
+                [
+                    "(none)",
+                    "Owner online. The residual channel is live.",
+                    "Maintenance in a few minutes — save your chats.",
+                    "New Shorts in the feed. Swipe the residual lane.",
+                    "The residual door is open. Library dial: 1818.",
+                ],
+                key="ann_preset",
+            )
+            c_apply, c_off = st.columns(2)
+            with c_apply:
+                submitted = st.form_submit_button("Publish announcement", use_container_width=True, type="primary")
+            with c_off:
+                turn_off = st.form_submit_button("Turn off announcement", use_container_width=True)
+
+        if submitted:
+            new_text = str(ann_text or "").strip()[:220]
+            if presets and presets != "(none)" and not new_text:
+                new_text = presets[:220]
+            cur = dict(site_effects_load())
+            cur["announce_enabled"] = bool(ann_enabled)
+            cur["announce_text"] = new_text
+            cur["announce_style"] = str(ann_style or "violet")
+            if new_text and ann_enabled:
+                if new_text != str(_fx.get("announce_text") or "").strip() or not _fx.get("announce_id"):
+                    cur["announce_id"] = uuid.uuid4().hex[:10]
+                else:
+                    cur["announce_id"] = _fx.get("announce_id") or uuid.uuid4().hex[:10]
+            else:
+                cur["announce_id"] = ""
+            site_effects_save(cur)
+            st.session_state.pop("_dismissed_announce_id", None)
+            st.session_state.pop("_active_announce_id", None)
+            st.session_state.pop("_active_announce_text", None)
+            st.success("Announcement saved.")
+            st.rerun()
+
+        if turn_off:
+            cur = dict(site_effects_load())
+            cur["announce_enabled"] = False
+            cur["announce_text"] = ""
+            cur["announce_id"] = ""
+            site_effects_save(cur)
+            st.session_state.pop("_dismissed_announce_id", None)
+            st.session_state.pop("_active_announce_id", None)
+            st.session_state.pop("_active_announce_text", None)
+            st.success("Announcement off.")
+            st.rerun()
+
+    # ---------- GRANTS ----------
     with tab_grants:
         st.markdown("Gift a theme or title to any username — residual badges, secret palettes.")
-        target = st.text_input("Username", key="owner_grant_user", placeholder="exact name")
+        target = st.text_input(
+            "Username",
+            key="owner_grant_user",
+            placeholder="exact name",
+            value=st.session_state.get("owner_grant_user") or "",
+        )
         all_themes = list(THEMES.keys()) + list(SECRET_THEMES.keys())
         grant_theme = st.selectbox("Unlock theme", ["(none)"] + all_themes, key="owner_grant_theme")
         force_theme = st.checkbox("Force their active theme to this", key="owner_force_theme")
         grant_title = st.text_input("Custom title / badge", key="owner_grant_title", placeholder="e.g. Residual Witness")
-        if st.button("Apply grant", key="owner_grant_btn", type="primary"):
-            tname = (target or "").strip().lower()
-            if not tname:
-                st.error("Enter a username.")
-            else:
-                grants = owner_grants_load()
-                entry = dict(grants.get(tname) or {})
-                themes = list(entry.get("themes") or [])
-                if grant_theme and grant_theme != "(none)":
-                    if grant_theme not in themes:
-                        themes.append(grant_theme)
-                    entry["themes"] = themes
-                    if force_theme:
-                        entry["force_theme"] = grant_theme
-                if (grant_title or "").strip():
-                    entry["title"] = grant_title.strip()[:48]
-                grants[tname] = entry
-                owner_grants_save(grants)
-                if tname == (st.session_state.get("username") or "").strip().lower():
-                    apply_owner_grants_for_user(tname)
+        g1, g2 = st.columns(2)
+        with g1:
+            if st.button("Apply grant", key="owner_grant_btn", type="primary", use_container_width=True):
+                tname = (target or "").strip().lower()
+                if not tname:
+                    st.error("Enter a username.")
+                else:
+                    grants = owner_grants_load()
+                    entry = dict(grants.get(tname) or {})
+                    themes = list(entry.get("themes") or [])
+                    if grant_theme and grant_theme != "(none)":
+                        if grant_theme not in themes:
+                            themes.append(grant_theme)
+                        entry["themes"] = themes
+                        if force_theme:
+                            entry["force_theme"] = grant_theme
+                    if (grant_title or "").strip():
+                        entry["title"] = grant_title.strip()[:48]
+                    grants[tname] = entry
+                    owner_grants_save(grants)
+                    if tname == (st.session_state.get("username") or "").strip().lower():
+                        apply_owner_grants_for_user(tname)
+                        save_user_data()
+                    st.success(f"Grant saved for **{tname}**.")
+                    st.rerun()
+        with g2:
+            if st.button("Revoke all for user", key="owner_grant_revoke", use_container_width=True):
+                tname = (target or "").strip().lower()
+                if not tname:
+                    st.error("Enter a username.")
+                else:
+                    grants = owner_grants_load()
+                    if tname in grants:
+                        del grants[tname]
+                        owner_grants_save(grants)
+                        st.success(f"Revoked grants for **{tname}**.")
+                    else:
+                        st.info("No grants on file for that name.")
+                    st.rerun()
+
+        st.markdown("#### Existing grants")
+        grants = owner_grants_load()
+        if not grants:
+            st.caption("None yet.")
+        else:
+            for uname, entry in sorted(grants.items()):
+                themes = entry.get("themes") or []
+                title = entry.get("title") or ""
+                force = entry.get("force_theme") or ""
+                st.markdown(
+                    f"**{uname}** · themes: `{', '.join(themes) if themes else '—'}`"
+                    + (f" · title: *{title}*" if title else "")
+                    + (f" · force: `{force}`" if force else "")
+                )
+
+    # ---------- ARG ----------
+    with tab_arg:
+        st.markdown("#### Residual controls (your session)")
+        st.caption("Unlock ARG surfaces on this account for testing, or reset local residual flags.")
+        a1, a2 = st.columns(2)
+        with a1:
+            if st.button("Unlock Lab (session)", key="arg_unlock_lab", use_container_width=True):
+                st.session_state.arg_unlocked = True
+                st.session_state.lab_door_unlocked = True
+                try:
                     save_user_data()
-                st.success(f"Grant saved for **{tname}**.")
+                except Exception:
+                    pass
+                st.success("Lab unlocked for your account.")
                 st.rerun()
+            if st.button("Unlock Board + Safe", key="arg_unlock_board", use_container_width=True):
+                st.session_state.callaghan_safe_unlocked = True
+                st.session_state.board_unlocked = True
+                try:
+                    save_user_data()
+                except Exception:
+                    pass
+                st.success("Board + residual safe unlocked.")
+                st.rerun()
+            if st.button("Unlock Voss file", key="arg_unlock_voss", use_container_width=True):
+                st.session_state.voss_file_unlocked = True
+                try:
+                    save_user_data()
+                except Exception:
+                    pass
+                st.success("Voss file unlocked.")
+                st.rerun()
+        with a2:
+            if st.button("Grant archive key", key="arg_archive_key", use_container_width=True):
+                st.session_state.archive_key = True
+                try:
+                    save_user_data()
+                except Exception:
+                    pass
+                st.success("Archive key set.")
+                st.rerun()
+            if st.button("Open Lab now", key="arg_go_lab", use_container_width=True):
+                st.session_state.arg_unlocked = True
+                st.session_state.view = "lab"
+                st.rerun()
+            if st.button("Open Board now", key="arg_go_board", use_container_width=True):
+                st.session_state.board_unlocked = True
+                st.session_state.view = "board"
+                st.rerun()
+
+        st.markdown("#### Status")
+        st.code(
+            "\n".join([
+                f"arg_unlocked: {bool(st.session_state.get('arg_unlocked'))}",
+                f"lab_door_unlocked: {bool(st.session_state.get('lab_door_unlocked'))}",
+                f"callaghan_safe_unlocked: {bool(st.session_state.get('callaghan_safe_unlocked'))}",
+                f"board_unlocked: {bool(st.session_state.get('board_unlocked'))}",
+                f"voss_file_unlocked: {bool(st.session_state.get('voss_file_unlocked'))}",
+                f"archive_key: {bool(st.session_state.get('archive_key'))}",
+                f"glitches_found: {len(st.session_state.get('glitches_found') or [])}",
+            ]),
+            language="text",
+        )
+
+    # ---------- TOOLS ----------
+    with tab_tools:
+        st.markdown("#### System tools")
+        t1, t2 = st.columns(2)
+        with t1:
+            st.markdown("**Presence**")
+            st.caption(f"{len(presence_online())} online · grants file · site effects file")
+            if st.button("Reload site effects from disk", key="tools_reload_fx", use_container_width=True):
+                st.success("Next read will use disk state.")
+                st.rerun()
+            if st.button("Reset your dismiss flags", key="tools_reset_dismiss", use_container_width=True):
+                st.session_state.pop("_dismissed_announce_id", None)
+                st.session_state.pop("_active_announce_id", None)
+                st.success("Dismiss flags cleared for this session.")
+                st.rerun()
+        with t2:
+            st.markdown("**Exports (read-only)**")
+            with st.expander("Site effects JSON"):
+                st.code(json.dumps(site_effects_load(), indent=2), language="json")
+            with st.expander("Grants JSON"):
+                st.code(json.dumps(owner_grants_load(), indent=2), language="json")
+            with st.expander("Chatroom meta"):
+                room = chatroom_load()
+                meta = {
+                    "members": room.get("members"),
+                    "pending": room.get("pending"),
+                    "active": room.get("active"),
+                    "message_count": len(room.get("messages") or []),
+                }
+                st.code(json.dumps(meta, indent=2), language="json")
+
+        st.markdown("#### Danger zone")
+        st.caption("Destructive actions — cannot be undone from the UI.")
+        if st.checkbox("I understand these wipe shared state", key="tools_danger_ack"):
+            if st.button("Wipe chatroom (members + messages)", key="tools_wipe_room"):
+                try:
+                    chatroom_save({
+                        "members": [st.session_state.get("username") or "drae"],
+                        "pending": [],
+                        "active": [],
+                        "messages": [],
+                    })
+                    st.success("Chatroom wiped.")
+                except Exception as e:
+                    st.error(str(e))
+                st.rerun()
+            if st.button("Wipe all grants", key="tools_wipe_grants"):
+                owner_grants_save({})
+                st.success("All grants wiped.")
+                st.rerun()
+            if st.button("Factory-reset site effects", key="tools_wipe_fx"):
+                site_effects_save(dict(_DEFAULT_SITE_EFFECTS))
+                st.success("Site effects factory reset.")
+                st.rerun()
+
     st.stop()
 
 
@@ -9068,6 +9572,12 @@ if st.session_state.view == "home":
         if st.button("▶  Shorts", use_container_width=True, key="bm_shorts"):
             st.session_state.shorts_index = st.session_state.get("shorts_index") or 0
             st.session_state.view = "shorts"
+            st.rerun()
+        if st.button("◎  Character.AI", use_container_width=True, key="bm_cai"):
+            st.session_state.view = "character_ai"
+            st.rerun()
+        if st.button("🌐  Web", use_container_width=True, key="bm_web"):
+            st.session_state.view = "web"
             st.rerun()
         if st.session_state.get("board_unlocked") or st.session_state.get("callaghan_safe_unlocked"):
             if st.button("📌  Board", use_container_width=True, key="bm_board"):
@@ -9600,3 +10110,4 @@ if st.session_state.view == "chat" and st.session_state.get("_last_speak"):
         st.components.v1.html(speak_html(spoken, autoplay=False), height=70)
 
 st.markdown("</div>", unsafe_allow_html=True)
+
