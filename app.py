@@ -4380,200 +4380,243 @@ if st.session_state.popup:
     st.markdown(
         """
         <style>
-          /* Isolate menu button labels — prevent Lab/Nadir text bleed on hover */
-          div[data-testid="stVerticalBlock"] button[kind="secondary"] p,
           div[data-testid="stVerticalBlock"] button p {
             overflow: hidden !important;
             text-overflow: ellipsis !important;
             white-space: nowrap !important;
             max-width: 100% !important;
-            mix-blend-mode: normal !important;
           }
-          .bloom-shell, .bloom-shell * {
-            mix-blend-mode: normal !important;
+          .menu-hero {
+            padding: 1.1rem 1.2rem 1rem;
+            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: linear-gradient(155deg, rgba(28,22,40,0.95), rgba(12,10,18,0.98));
+            margin-bottom: 0.75rem;
+          }
+          .menu-hero .hi {
+            font-size: 1.25rem; font-weight: 650; letter-spacing: -0.02em; margin: 0 0 0.25rem;
+          }
+          .menu-hero .lo {
+            opacity: 0.6; font-size: 0.88rem; margin: 0;
           }
         </style>
         """,
         unsafe_allow_html=True,
     )
-    st.markdown(f"""
-    <div class="bloom-shell bloom-active">
-      <div class="bloom-title">{"Welcome home, " + st.session_state.username if is_owner(st.session_state.username) else "Hello, " + st.session_state.username}</div>
-      <div class="bloom-sub">{"Owner menu · your Meridium" if is_owner(st.session_state.username) else "Night Bloom · fonts · models · navigation"}</div>
-      <div class="bloom-divider"></div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    fonts = available_fonts()
-    fi = fonts.index(st.session_state.font) if st.session_state.font in fonts else 0
-    ft = st.selectbox("Font", fonts, index=fi, key="pop_font")
-    if ft != st.session_state.font:
-        st.session_state.font = ft
-        save_user_data()
-        st.rerun()
-
-    themes = available_themes()
-    if "theme" not in st.session_state:
-        st.session_state.theme = "Caelestia"
-    # If current theme is secret but missing from list, re-add to unlocked
-    if st.session_state.theme not in themes:
-        if st.session_state.theme in SECRET_THEMES:
-            u = list(st.session_state.get("unlocked_themes") or [])
-            if st.session_state.theme not in u:
-                u.append(st.session_state.theme)
-                st.session_state.unlocked_themes = u
-            themes = available_themes()
-        else:
-            st.session_state.theme = "Caelestia"
-    ti = themes.index(st.session_state.theme) if st.session_state.theme in themes else 0
-    th = st.selectbox("Colour palette", themes, index=ti, key="pop_theme")
-    if th != st.session_state.theme:
-        st.session_state.theme = th
-        save_user_data()
-        st.rerun()
-    unlocked_now = list(st.session_state.get("unlocked_themes") or [])
-    if unlocked_now:
-        st.caption("Unlocked secrets: " + ", ".join(unlocked_now))
-    locked_left = [n for n in SECRET_THEMES if n not in unlocked_now]
-    if locked_left:
-        st.caption(f"🔒 {len(locked_left)} secret theme(s) still locked — explore Meridium")
-
-    w1, w2 = st.columns(2)
-    with w1:
-        st.session_state.show_widgets = st.checkbox("Time widgets", value=st.session_state.show_widgets, key="pop_time")
-        st.session_state.use_wiki_toggle = st.checkbox("Wikipedia", value=st.session_state.use_wiki_toggle, key="pop_wiki")
-    with w2:
-        st.session_state.show_spotify = st.checkbox("Spotify", value=st.session_state.show_spotify, key="pop_sp")
-        st.session_state.use_web_toggle = st.checkbox("Web search", value=st.session_state.use_web_toggle, key="pop_web")
-
-    st.markdown('<div class="bloom-divider"></div>', unsafe_allow_html=True)
-
-    st.session_state.provider = st.selectbox(
-        "Provider", ["groq", "grok", "openrouter"],
-        index=["groq", "grok", "openrouter"].index(st.session_state.provider)
-        if st.session_state.provider in ["groq", "grok", "openrouter"] else 0,
-        key="pop_prov",
-    )
-    if st.session_state.provider == "groq":
-        opts = list(GROQ_MODELS.keys())
-    elif st.session_state.provider == "grok":
-        opts = ["Grok 4.5", "Grok 4.3"]
-    else:
-        opts = ["meta-llama/llama-3.3-70b-instruct:free", "qwen/qwen3-32b:free"]
-    mi = opts.index(st.session_state.model_name) if st.session_state.model_name in opts else 0
-    st.session_state.model_name = st.selectbox("Model", opts, index=mi, key="pop_model")
-    st.session_state.api_key_val = st.text_input(
-        "API Key (optional)", type="password",
-        value=st.session_state.api_key_val, key="pop_key",
+    _uname = st.session_state.get("username") or "friend"
+    _own = is_owner(_uname)
+    st.markdown(
+        f"""
+        <div class="menu-hero">
+          <div class="hi">{"Welcome home, " + _uname if _own else "Hello, " + _uname}</div>
+          <div class="lo">{"Owner menu · Meridium" if _own else "Menu · navigate · look · model"}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-    st.markdown('<div class="bloom-divider"></div>', unsafe_allow_html=True)
+    m_nav, m_look, m_model, m_more = st.tabs(["Go", "Look", "Model", "More"])
 
-    r1, r2 = st.columns(2)
-    with r1:
-        if st.button("⌂  Home", use_container_width=True, key="pop_home"):
-            st.session_state.view = "home"
-            st.session_state.popup = False
-            st.rerun()
-        if st.button("💬  Chat", use_container_width=True, key="pop_chat"):
-            st.session_state.view = "chat"
-            st.session_state.popup = False
-            st.rerun()
-        if st.button("＋  New chat", use_container_width=True, key="pop_new"):
-            create_new_chat()
-            st.session_state.view = "chat"
-            st.session_state.popup = False
-            st.rerun()
-        if st.button("🎬  Cinema", use_container_width=True, key="pop_cinema"):
-            st.session_state.cinema_watching = None
-            st.session_state.view = "cinema"
-            st.session_state.popup = False
-            st.rerun()
-        if st.button("▶  Shorts", use_container_width=True, key="pop_shorts"):
-            st.session_state.shorts_index = st.session_state.get("shorts_index") or 0
-            st.session_state.view = "shorts"
-            st.session_state.popup = False
-            st.rerun()
-        if lab_is_unlocked():
-            if st.button("🔬  Lab", use_container_width=True, key="pop_lab"):
-                st.session_state.view = "lab"
+    with m_nav:
+        st.caption("Where do you want to go?")
+        g1, g2 = st.columns(2)
+        with g1:
+            if st.button("⌂  Home", use_container_width=True, key="pop_home"):
+                st.session_state.view = "home"
                 st.session_state.popup = False
                 st.rerun()
-    with r2:
-        if st.button("◎  Listen", use_container_width=True, key="pop_listen"):
-            st.session_state.view = "listen"
-            st.session_state.popup = False
-            st.rerun()
-        if st.button("♫  Music", use_container_width=True, key="pop_music"):
-            st.session_state.view = "music"
-            st.session_state.popup = False
-            st.rerun()
-        if st.button("📚  Library", use_container_width=True, key="pop_library"):
-            st.session_state.library_reading = None
-            st.session_state.view = "library"
-            st.session_state.popup = False
-            st.rerun()
+            if st.button("💬  Chat", use_container_width=True, key="pop_chat", type="primary"):
+                st.session_state.view = "chat"
+                st.session_state.popup = False
+                st.rerun()
+            if st.button("＋  New chat", use_container_width=True, key="pop_new"):
+                create_new_chat()
+                st.session_state.view = "chat"
+                st.session_state.popup = False
+                st.rerun()
+            if st.button("📚  Library", use_container_width=True, key="pop_library"):
+                st.session_state.library_reading = None
+                st.session_state.view = "library"
+                st.session_state.popup = False
+                st.rerun()
+        with g2:
+            if st.button("♫  Music", use_container_width=True, key="pop_music"):
+                st.session_state.view = "music"
+                st.session_state.popup = False
+                st.rerun()
+            if st.button("◎  Listen", use_container_width=True, key="pop_listen"):
+                st.session_state.view = "listen"
+                st.session_state.popup = False
+                st.rerun()
+            if st.button("🎬  Cinema", use_container_width=True, key="pop_cinema"):
+                st.session_state.cinema_watching = None
+                st.session_state.view = "cinema"
+                st.session_state.popup = False
+                st.rerun()
+            if st.button("▶  Shorts", use_container_width=True, key="pop_shorts"):
+                st.session_state.shorts_index = st.session_state.get("shorts_index") or 0
+                st.session_state.view = "shorts"
+                st.session_state.popup = False
+                st.rerun()
+
+        # Conditional ARG / owner — compact row
+        extra = []
+        if lab_is_unlocked():
+            extra.append(("🔬  Lab", "lab", "pop_lab"))
+        if st.session_state.get("board_unlocked") or st.session_state.get("callaghan_safe_unlocked"):
+            extra.append(("📌  Board", "board", "pop_board"))
+        if st.session_state.get("voss_file_unlocked"):
+            extra.append(("📁  Voss", "voss_file", "pop_voss"))
+        if _own:
+            extra.append(("👑  Owner", "owner", "pop_owner"))
+        elif chatroom_user_allowed(_uname):
+            extra.append(("💬  Room", "owner_room", "pop_room"))
+        if extra:
+            st.caption("Unlocked")
+            cols = st.columns(min(len(extra), 4))
+            for i, (label, view_name, key) in enumerate(extra):
+                with cols[i % len(cols)]:
+                    if st.button(label, use_container_width=True, key=key):
+                        if view_name == "board":
+                            st.session_state.board_evidence_open = None
+                        if view_name == "voss_file":
+                            st.session_state.voss_cutscene_stage = 0
+                        st.session_state.view = view_name
+                        st.session_state.popup = False
+                        st.rerun()
+
+        st.markdown("---")
         if st.button("✕  Close menu", use_container_width=True, key="pop_close"):
             st.session_state.popup = False
             st.rerun()
+
+    with m_look:
+        fonts = available_fonts()
+        fi = fonts.index(st.session_state.font) if st.session_state.font in fonts else 0
+        ft = st.selectbox("Font", fonts, index=fi, key="pop_font")
+        if ft != st.session_state.font:
+            st.session_state.font = ft
+            save_user_data()
+            st.rerun()
+
+        themes = available_themes()
+        if "theme" not in st.session_state:
+            st.session_state.theme = "Caelestia"
+        if st.session_state.theme not in themes:
+            if st.session_state.theme in SECRET_THEMES or st.session_state.theme in OWNER_THEMES:
+                u = list(st.session_state.get("unlocked_themes") or [])
+                if st.session_state.theme not in u:
+                    u.append(st.session_state.theme)
+                    st.session_state.unlocked_themes = u
+                themes = available_themes()
+            else:
+                st.session_state.theme = "Caelestia"
+        ti = themes.index(st.session_state.theme) if st.session_state.theme in themes else 0
+        th = st.selectbox("Colour palette", themes, index=ti, key="pop_theme")
+        if th != st.session_state.theme:
+            st.session_state.theme = th
+            save_user_data()
+            st.rerun()
+        unlocked_now = list(st.session_state.get("unlocked_themes") or [])
+        if unlocked_now:
+            st.caption("Unlocked: " + ", ".join(unlocked_now[:8]) + ("…" if len(unlocked_now) > 8 else ""))
+        locked_left = [n for n in SECRET_THEMES if n not in unlocked_now]
+        if locked_left:
+            st.caption(f"🔒 {len(locked_left)} secret theme(s) still locked")
+
+        w1, w2 = st.columns(2)
+        with w1:
+            st.session_state.show_widgets = st.checkbox("Time widgets", value=st.session_state.show_widgets, key="pop_time")
+            st.session_state.use_wiki_toggle = st.checkbox("Wikipedia", value=st.session_state.use_wiki_toggle, key="pop_wiki")
+        with w2:
+            st.session_state.show_spotify = st.checkbox("Spotify", value=st.session_state.show_spotify, key="pop_sp")
+            st.session_state.use_web_toggle = st.checkbox("Web search", value=st.session_state.use_web_toggle, key="pop_web")
+
+    with m_model:
+        st.session_state.provider = st.selectbox(
+            "Provider", ["groq", "grok", "openrouter"],
+            index=["groq", "grok", "openrouter"].index(st.session_state.provider)
+            if st.session_state.provider in ["groq", "grok", "openrouter"] else 0,
+            key="pop_prov",
+        )
+        if st.session_state.provider == "groq":
+            opts = list(GROQ_MODELS.keys())
+        elif st.session_state.provider == "grok":
+            opts = ["Grok 4.5", "Grok 4.3"]
+        else:
+            opts = ["meta-llama/llama-3.3-70b-instruct:free", "qwen/qwen3-32b:free"]
+        mi = opts.index(st.session_state.model_name) if st.session_state.model_name in opts else 0
+        st.session_state.model_name = st.selectbox("Model", opts, index=mi, key="pop_model")
+        st.session_state.api_key_val = st.text_input(
+            "API Key (optional)", type="password",
+            value=st.session_state.api_key_val, key="pop_key",
+        )
+        if st.button("Save model settings", key="pop_save_model", use_container_width=True):
+            save_user_data()
+            st.success("Saved.")
+
+    with m_more:
+        st.caption("Account & data")
         if st.button("↩  Switch user", use_container_width=True, key="pop_signout"):
             reset_user_session(keep_auth=False)
-            st.session_state.show_intro = False
-            st.session_state.popup = False
             st.rerun()
 
-    
-    st.markdown("**Backup**")
-    export_payload = {
-        "username": st.session_state.get("username"),
-        "chats": st.session_state.get("chats", {}),
-        "meridium_playlist": st.session_state.get("meridium_playlist") or [],
-        "theme": st.session_state.get("theme"),
-        "font": st.session_state.get("font"),
-        "exported_at": datetime.now(ZoneInfo("Europe/London")).isoformat(),
-    }
-    st.download_button(
-        "⬇ Export chats (JSON)",
-        data=json.dumps(export_payload, ensure_ascii=False, indent=2),
-        file_name=f"meridium_{st.session_state.get('username','user')}_backup.json",
-        mime="application/json",
-        use_container_width=True,
-        key="export_chats",
-    )
-    up = st.file_uploader("Import backup JSON", type=["json"], key="import_chats")
-    if up is not None:
+        # Backup export/import if present in old menu - keep lightweight
         try:
-            data = json.loads(up.read().decode("utf-8"))
-            if isinstance(data.get("chats"), dict) and data["chats"]:
-                st.session_state.chats = data["chats"]
-                st.session_state.current_chat_id = next(iter(st.session_state.chats))
-            if isinstance(data.get("meridium_playlist"), list):
-                st.session_state.meridium_playlist = data["meridium_playlist"]
-            if data.get("theme") in THEMES or data.get("theme") in SECRET_THEMES:
-                st.session_state.theme = data["theme"]
-            if data.get("font") in FONTS:
-                st.session_state.font = data["font"]
-            save_user_data()
-            st.success("Backup imported.")
-            st.rerun()
-        except Exception as e:
-            st.error(f"Import failed: {e}")
-
-    st.markdown("**Recent chats**")
-    for cid, data in sorted(st.session_state.chats.items(), key=lambda x: x[1].get("created", ""), reverse=True)[:10]:
-        c_a, c_b = st.columns([4, 1])
-        with c_a:
-            if st.button(data.get("title", "Untitled"), key=f"pop_c_{cid}", use_container_width=True):
-                st.session_state.current_chat_id = cid
-                st.session_state.view = "chat"
-                st.session_state.popup = False
+            payload = {
+                "username": st.session_state.get("username"),
+                "chats": st.session_state.get("chats") or {},
+                "theme": st.session_state.get("theme"),
+                "font": st.session_state.get("font"),
+                "meridium_playlist": st.session_state.get("meridium_playlist"),
+            }
+            import json as _json
+            st.download_button(
+                "Download backup",
+                data=_json.dumps(payload, indent=2),
+                file_name="meridium_backup.json",
+                mime="application/json",
+                use_container_width=True,
+                key="pop_backup_dl",
+            )
+        except Exception:
+            pass
+        up = st.file_uploader("Import backup", type=["json"], key="pop_backup_up")
+        if up is not None:
+            try:
+                import json as _json
+                data = _json.loads(up.getvalue().decode("utf-8"))
+                if isinstance(data.get("chats"), dict):
+                    st.session_state.chats = data["chats"]
+                if data.get("meridium_playlist"):
+                    st.session_state.meridium_playlist = data["meridium_playlist"]
+                if data.get("theme") in THEMES or data.get("theme") in SECRET_THEMES or data.get("theme") in OWNER_THEMES:
+                    st.session_state.theme = data["theme"]
+                if data.get("font") in FONTS or data.get("font") in OWNER_FONTS:
+                    st.session_state.font = data["font"]
                 save_user_data()
+                st.success("Backup imported.")
                 st.rerun()
-        with c_b:
-            if st.button("🗑", key=f"pop_d_{cid}", help="Delete chat"):
-                delete_chat(cid)
-                st.rerun()
+            except Exception as e:
+                st.error(f"Import failed: {e}")
+
+        st.markdown("**Recent chats**")
+        for cid, data in sorted(st.session_state.chats.items(), key=lambda x: x[1].get("created", ""), reverse=True)[:8]:
+            c_a, c_b = st.columns([4, 1])
+            with c_a:
+                if st.button(data.get("title", "Untitled"), key=f"pop_c_{cid}", use_container_width=True):
+                    st.session_state.current_chat_id = cid
+                    st.session_state.view = "chat"
+                    st.session_state.popup = False
+                    save_user_data()
+                    st.rerun()
+            with c_b:
+                if st.button("🗑", key=f"pop_d_{cid}", help="Delete chat"):
+                    delete_chat(cid)
+                    st.rerun()
+
     st.stop()
+
 
 # Dead link egg
 if st.session_state.view == "dead_link":
@@ -10001,59 +10044,22 @@ if st.session_state.view == "home":
     # ---------- BOOKMARK RAIL ----------
     with rail:
         st.markdown(
-            '<div class="bookmark-rail"><div class="panel-label">Navigate</div>',
+            '<div class="bookmark-rail"><div class="panel-label">Quick</div>',
             unsafe_allow_html=True,
         )
         if st.button("💬  Chat", use_container_width=True, key="bm_chat", type="primary"):
             st.session_state.view = "chat"
             st.rerun()
-        if st.button("＋  New chat", use_container_width=True, key="bm_new"):
+        if st.button("＋  New", use_container_width=True, key="bm_new"):
             create_new_chat()
             st.session_state.view = "chat"
             st.rerun()
-        if st.button("♫  Music", use_container_width=True, key="bm_music"):
-            st.session_state.view = "music"
-            st.rerun()
-        if st.button("◎  Listen", use_container_width=True, key="bm_listen"):
-            st.session_state.view = "listen"
-            st.rerun()
-        if st.button("📚  Library", use_container_width=True, key="bm_library"):
-            st.session_state.library_reading = None
-            st.session_state.library_page = 0
-            st.session_state.view = "library"
-            st.rerun()
-        if st.button("🎬  Cinema", use_container_width=True, key="bm_cinema"):
-            st.session_state.cinema_watching = None
-            st.session_state.view = "cinema"
-            st.rerun()
-        if st.button("▶  Shorts", use_container_width=True, key="bm_shorts"):
-            st.session_state.shorts_index = st.session_state.get("shorts_index") or 0
-            st.session_state.view = "shorts"
-            st.rerun()
-        if st.session_state.get("board_unlocked") or st.session_state.get("callaghan_safe_unlocked"):
-            if st.button("📌  Board", use_container_width=True, key="bm_board"):
-                st.session_state.board_evidence_open = None
-                st.session_state.view = "board"
-                st.rerun()
-        if lab_is_unlocked():
-            if st.button("🔬  Lab", use_container_width=True, key="bm_lab"):
-                st.session_state.view = "lab"
-                st.rerun()
-        if st.session_state.get("voss_file_unlocked"):
-            if st.button("📁  Voss file", use_container_width=True, key="bm_voss"):
-                st.session_state.voss_cutscene_stage = 0
-                st.session_state.view = "voss_file"
-                st.rerun()
         if st.button("☰  Menu", use_container_width=True, key="bm_menu"):
             st.session_state.popup = True
             st.rerun()
         if is_owner(st.session_state.get("username") or ""):
             if st.button("👑  Owner", use_container_width=True, key="bm_owner"):
                 st.session_state.view = "owner"
-                st.rerun()
-        elif chatroom_user_allowed(st.session_state.get("username") or ""):
-            if st.button("💬  Room", use_container_width=True, key="bm_room_user"):
-                st.session_state.view = "owner_room"
                 st.rerun()
 
         st.markdown('<div class="ridge" style="margin:12px 0 8px;"></div>', unsafe_allow_html=True)
