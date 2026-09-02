@@ -1,3 +1,4 @@
+
 import streamlit as st
 import os
 import re
@@ -2904,7 +2905,7 @@ def save_user_data():
         "stabilize_at": st.session_state.get("stabilize_at"),
         "qotd_opens": int(st.session_state.get("qotd_opens") or 0),
         "provider": st.session_state.get("provider", "groq"),
-        "model_name": st.session_state.get("model_name", "Smart · Llama 3.3 70B"),
+        "model_name": st.session_state.get("model_name", "Smart · GPT-OSS 120B"),
         "show_widgets": bool(st.session_state.get("show_widgets", True)),
         "show_spotify": bool(st.session_state.get("show_spotify", False)),
         "use_wiki_toggle": bool(st.session_state.get("use_wiki_toggle", True)),
@@ -2962,7 +2963,7 @@ def load_user_data(username: str) -> bool:
         st.session_state.stabilize_at = data.get("stabilize_at")
         st.session_state.qotd_opens = int(data.get("qotd_opens") or 0)
         st.session_state.provider = data.get("provider", "groq")
-        st.session_state.model_name = data.get("model_name", "Smart · Llama 3.3 70B")
+        st.session_state.model_name = data.get("model_name", "Smart · GPT-OSS 120B")
         st.session_state.show_widgets = data.get("show_widgets", True)
         st.session_state.show_spotify = data.get("show_spotify", False)
         st.session_state.use_wiki_toggle = data.get("use_wiki_toggle", True)
@@ -3123,7 +3124,7 @@ defaults = {
     "use_wiki_toggle": True,
     "use_web_toggle": True,
     "provider": "groq",
-    "model_name": "Smart · Llama 3.3 70B",
+    "model_name": "Smart · GPT-OSS 120B",
     "api_key_val": "",
     "arg_unlocked": False,
     "anomaly_warned": False,
@@ -3335,10 +3336,11 @@ def speak_html(text: str, autoplay: bool = True) -> str:
     """
 
 GROQ_MODELS = {
-    "Smart · Llama 3.3 70B": "llama-3.3-70b-versatile",
-    "Fast · Llama 3.1 8B": "llama-3.1-8b-instant",
-    "Qwen3 32B": "qwen/qwen3-32b",
-    "Llama 3.1 70B": "llama-3.1-70b-versatile",
+    # Post Aug 2026 deprecation map (llama-3.3-70b-versatile / llama-3.1-8b-instant retired for free/dev)
+    "Smart · GPT-OSS 120B": "openai/gpt-oss-120b",
+    "Fast · GPT-OSS 20B": "openai/gpt-oss-20b",
+    "Qwen3.6 27B": "qwen/qwen3.6-27b",
+    "Compound": "groq/compound",
 }
 
 def make_client(provider: str, api_key: str = None):
@@ -3373,7 +3375,20 @@ def run_chat(messages, provider, model_name, api_key):
 
     def resolve_model(name):
         if provider == "groq":
-            m = GROQ_MODELS.get(name, "llama-3.3-70b-versatile")
+            # migrate retired display names / ids
+            legacy = {
+                "Smart · Llama 3.3 70B": "openai/gpt-oss-120b",
+                "Fast · Llama 3.1 8B": "openai/gpt-oss-20b",
+                "Qwen3 32B": "qwen/qwen3.6-27b",
+                "Llama 3.1 70B": "openai/gpt-oss-120b",
+                "llama-3.3-70b-versatile": "openai/gpt-oss-120b",
+                "llama-3.1-8b-instant": "openai/gpt-oss-20b",
+                "llama-3.1-70b-versatile": "openai/gpt-oss-120b",
+                "qwen/qwen3-32b": "qwen/qwen3.6-27b",
+            }
+            if name in legacy:
+                return legacy[name]
+            m = GROQ_MODELS.get(name, "openai/gpt-oss-120b")
             if name in GROQ_MODELS.values():
                 m = name
             return m
@@ -3386,9 +3401,10 @@ def run_chat(messages, provider, model_name, api_key):
     fallbacks = []
     if provider == "groq":
         fallbacks = [
-            "llama-3.1-8b-instant",
-            "llama-3.3-70b-versatile",
-            "qwen/qwen3-32b",
+            "openai/gpt-oss-20b",
+            "openai/gpt-oss-120b",
+            "qwen/qwen3.6-27b",
+            "groq/compound-mini",
         ]
         fallbacks = [m for m in fallbacks if m != primary]
     elif provider == "openrouter":
@@ -3425,10 +3441,11 @@ def run_chat(messages, provider, model_name, api_key):
             return content
         except Exception as e:
             last_err = e
-            if _is_rate_limit_error(e):
-                # try next fallback
+            err_s = str(e).lower()
+            if _is_rate_limit_error(e) or "model_not_found" in err_s or "does not exist" in err_s or "404" in err_s:
+                # rate limit or retired model id — try next fallback
                 continue
-            # non-rate-limit error: stop
+            # non-recoverable error: stop
             return f"⚠️ Something went wrong: {e}"
 
     # All models rate-limited
@@ -3639,7 +3656,7 @@ def estimate_lyrics_ai(track_name: str, artist: str) -> str:
         )
         if not client:
             return ""
-        model = "llama-3.1-8b-instant"
+        model = "openai/gpt-oss-20b"
         try:
             if st.session_state.get("provider") == "groq" and isinstance(GROQ_MODELS, dict):
                 mn = st.session_state.get("model_name")
@@ -10635,31 +10652,104 @@ if st.session_state.view == "home":
         </div>
         """, unsafe_allow_html=True)
 
-        # Quote of the hour
+        # Quote of the hour — Codex signal card
         qotd, qotd_author = quote_of_the_day()
+        import html as _html_q
+        _q_safe = _html_q.escape(qotd)
+        _a_safe = _html_q.escape(qotd_author)
         st.markdown(
-            """
-        <div class="qotd-one">
+            f"""
+        <style>
+          .codex-qotd {{
+            position: relative;
+            border-radius: 20px;
+            padding: 1.35rem 1.4rem 1.15rem;
+            margin: 0.35rem 0 0.85rem;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.10);
+            background:
+              radial-gradient(ellipse at 0% 0%, rgba(196,167,231,0.14), transparent 55%),
+              radial-gradient(ellipse at 100% 100%, rgba(94,234,212,0.08), transparent 50%),
+              linear-gradient(155deg, rgba(22,18,32,0.72), rgba(10,10,16,0.78));
+            backdrop-filter: blur(22px) saturate(1.35);
+            -webkit-backdrop-filter: blur(22px) saturate(1.35);
+            box-shadow:
+              0 1px 0 rgba(255,255,255,0.06) inset,
+              0 18px 44px rgba(0,0,0,0.28);
+            animation: codexRise 0.65s cubic-bezier(0.22,1,0.36,1) 0.12s both;
+          }}
+          .codex-qotd::before {{
+            content: "";
+            position: absolute; left: 0; right: 0; top: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(196,167,231,0.7), rgba(94,234,212,0.5), transparent);
+            animation: codexScanX 5s ease-in-out infinite;
+          }}
+          .codex-qotd .k {{
+            font-family: ui-monospace, monospace;
+            font-size: 0.62rem;
+            letter-spacing: 0.24em;
+            text-transform: uppercase;
+            color: rgba(196,167,231,0.75);
+            margin-bottom: 0.75rem;
+            display: flex; align-items: center; gap: 0.45rem;
+          }}
+          .codex-qotd .k i {{
+            width: 6px; height: 6px; border-radius: 50%;
+            background: #c4a7e7;
+            box-shadow: 0 0 10px #c4a7e7;
+            display: inline-block;
+            animation: codexPulseDot 2.2s ease-in-out infinite;
+          }}
+          .codex-qotd .q {{
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-style: italic;
+            font-size: clamp(1.15rem, 2.6vw, 1.4rem);
+            line-height: 1.45;
+            color: rgba(250,247,255,0.95);
+            margin: 0 0 0.85rem;
+            letter-spacing: 0.01em;
+          }}
+          .codex-qotd .meta {{
+            display: flex; flex-wrap: wrap; align-items: center;
+            justify-content: space-between; gap: 0.5rem;
+          }}
+          .codex-qotd .by {{
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: rgba(196,167,231,0.9);
+            letter-spacing: 0.02em;
+          }}
+          .codex-qotd .when {{
+            font-family: ui-monospace, monospace;
+            font-size: 0.68rem;
+            letter-spacing: 0.08em;
+            color: rgba(160,160,180,0.7);
+          }}
+        </style>
+        <div class="codex-qotd">
+          <div class="k"><i></i> Signal of the hour</div>
+          <div class="q">“{_q_safe}”</div>
+          <div class="meta">
+            <div class="by">— {_a_safe}</div>
+            <div class="when">{date_str} · {time_str} · rotates hourly</div>
+          </div>
+        </div>
             """,
             unsafe_allow_html=True,
         )
-        quote_label = (
-            "QUOTE OF THE HOUR\n\n"
-            + "“" + qotd + "”\n"
-            + "— " + qotd_author + "\n\n"
-            + date_str + "  ·  " + time_str
-            + "\n(new quote each hour)"
-        )
-        if st.button(quote_label, use_container_width=True, key="qotd_note"):
-            msg = register_qotd_open()
-            if msg:
-                st.session_state["_egg_flash"] = msg
-                if "Third knock" in msg:
-                    unlock_theme("Soft Static", "third knock on the quote")
-            unlock_theme("M-119 Amber", "you found the sealed note")
-            st.session_state.view = "note"
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
+        q1, q2 = st.columns([1, 1])
+        with q1:
+            if st.button("Open sealed note", use_container_width=True, key="qotd_note"):
+                msg = register_qotd_open()
+                if msg:
+                    st.session_state["_egg_flash"] = msg
+                    if "Third knock" in msg:
+                        unlock_theme("Soft Static", "third knock on the quote")
+                unlock_theme("M-119 Amber", "you found the sealed note")
+                st.session_state.view = "note"
+                st.rerun()
+        with q2:
+            st.caption("Tap the note to leave a fingerprint on the residual log.")
 
         # ARG anomaly content (only when active)
         if lab_is_unlocked() and glitches_unlocked() and not anomalies_complete():
