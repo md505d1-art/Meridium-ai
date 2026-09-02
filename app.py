@@ -880,7 +880,7 @@ def unlock_theme(theme_name: str, reason: str = "", apply: bool = False) -> bool
 
 
 def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool = False):
-    """Meridium — studio-grade glass shell. Frosted panels, cinematic motion, calm density."""
+    """Meridium Codex — total visual rewrite. Kinetic glass, signal fields, unique motion language."""
     try:
         unlocked = set(st.session_state.get("unlocked_themes") or [])
         is_own = is_owner(st.session_state.get("username") or "")
@@ -895,23 +895,37 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
     font = resolve_font_css(font_name, theme_name)
     SHELL = theme_shell(theme_name)
 
-    accent = SHELL["accent"]
-    accent2 = SHELL.get("accent2", accent)
+    A = SHELL["accent"]
+    A2 = SHELL.get("accent2", A)
     soft = SHELL.get("accent_soft", "rgba(196,167,231,0.16)")
     border = SHELL.get("border", "rgba(255,255,255,0.12)")
     text = SHELL["text"]
     muted = SHELL["muted"]
     bg = SHELL["bg"]
-    panel_glass = SHELL.get("panel") or "rgba(24, 24, 32, 0.72)"
-    panel_solid = SHELL.get("panel_solid") or bg
+    glass = SHELL.get("panel") or "rgba(22,22,30,0.68)"
+    solid = SHELL.get("panel_solid") or bg
 
     st.markdown(f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,600&family=Orbitron:wght@400;600;700&family=Cinzel+Decorative:wght@400;700&family=Press+Start+2P&family=Syncopate:wght@400;700&family=Special+Elite&family=Audiowide&family=Monoton&family=Bungee+Shade&family=Silkscreen&family=UnifrakturMaguntia&family=Syne:wght@600;700&family=Cormorant+Garamond:ital,wght@0,500;1,500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,600&family=Orbitron:wght@400;600;700&family=Cinzel+Decorative:wght@400;700&family=Press+Start+2P&family=Syncopate:wght@400;700&family=Special+Elite&family=Audiowide&family=Monoton&family=Bungee+Shade&family=Silkscreen&family=UnifrakturMaguntia&family=Syne:wght@600;700;800&family=Cormorant+Garamond:ital,wght@0,500;1,500;1,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
 
-    /* ═══════════════════════════════════════════════════════════
-       FOUNDATION
-       ═══════════════════════════════════════════════════════════ */
+    /* ════════════════════════════════════════════════════════════
+       CODEX FOUNDATION — unique geometry + kinetic field
+       ════════════════════════════════════════════════════════════ */
+    :root {{
+      --mer-a: {A};
+      --mer-a2: {A2};
+      --mer-soft: {soft};
+      --mer-border: {border};
+      --mer-text: {text};
+      --mer-muted: {muted};
+      --mer-bg: {bg};
+      --mer-glass: {glass};
+      --mer-solid: {solid};
+      --mer-ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --mer-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+    }}
+
     html, body, [class*="css"] {{
         font-family: {font} !important;
         font-size: 15px;
@@ -922,350 +936,426 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
 
     .stApp {{
         background:
-            radial-gradient(1100px 560px at 10% -6%, {soft}, transparent 58%),
-            radial-gradient(860px 480px at 94% 6%, {soft}, transparent 54%),
-            radial-gradient(640px 380px at 50% 108%, {soft}, transparent 50%),
-            {bg} !important;
+            radial-gradient(ellipse 900px 520px at 8% -4%, {soft}, transparent 60%),
+            radial-gradient(ellipse 700px 440px at 96% 4%, {soft}, transparent 55%),
+            radial-gradient(ellipse 500px 300px at 50% 100%, {soft}, transparent 50%),
+            linear-gradient(180deg, {bg} 0%, {bg} 100%) !important;
         color: {text};
-        transition: background 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+        overflow-x: hidden;
+    }}
+
+    /* Animated signal mesh behind content */
+    .stApp::before {{
+        content: "";
+        pointer-events: none;
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        opacity: 0.045;
+        background-image:
+            linear-gradient({A}33 1px, transparent 1px),
+            linear-gradient(90deg, {A}33 1px, transparent 1px);
+        background-size: 48px 48px;
+        animation: codexGridDrift 28s linear infinite;
+        mask-image: radial-gradient(ellipse at center, black 30%, transparent 85%);
+        -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 85%);
+    }}
+
+    /* Floating orb field */
+    .stApp::after {{
+        content: "";
+        pointer-events: none;
+        position: fixed;
+        width: 420px; height: 420px;
+        border-radius: 50%;
+        top: -120px; right: -100px;
+        z-index: 0;
+        background: radial-gradient(circle, {soft}, transparent 68%);
+        animation: codexOrbFloat 14s ease-in-out infinite;
+        filter: blur(2px);
     }}
 
     #MainMenu, footer, header, .stDeployButton, section[data-testid="stSidebar"],
     [data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stDecoration"],
     [data-testid="stStatusWidget"], [data-testid="stAppDeployButton"] {{
-        display: none !important;
-        visibility: hidden !important;
-        height: 0 !important;
-        opacity: 0 !important;
-        pointer-events: none !important;
+        display: none !important; visibility: hidden !important;
+        height: 0 !important; opacity: 0 !important; pointer-events: none !important;
     }}
 
     .block-container {{
-        padding-top: 1.1rem !important;
-        padding-bottom: 6.1rem !important;
-        max-width: 980px !important;
-        animation: merIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+        position: relative;
+        z-index: 1;
+        padding-top: 1.05rem !important;
+        padding-bottom: 6.2rem !important;
+        max-width: 1000px !important;
+        animation: codexBoot 0.7s var(--mer-ease) both;
     }}
 
-    /* ═══════════════════════════════════════════════════════════
-       TYPE
-       ═══════════════════════════════════════════════════════════ */
+    /* ════════════════════════════════════════════════════════════
+       TYPE — sharper editorial scale
+       ════════════════════════════════════════════════════════════ */
     h1, h2, h3, h4 {{
-        letter-spacing: -0.034em !important;
-        font-weight: 650 !important;
-        line-height: 1.22 !important;
+        letter-spacing: -0.04em !important;
+        font-weight: 700 !important;
+        line-height: 1.18 !important;
         color: {text} !important;
     }}
-    p, li, label, .stMarkdown {{ line-height: 1.58 !important; }}
-    .stMarkdown, .stMarkdown p, h1, h2, h3, h4 {{ color: {text} !important; }}
+    p, li, label, .stMarkdown {{ line-height: 1.6 !important; }}
+    .stMarkdown, .stMarkdown p {{ color: {text} !important; }}
     label, [data-testid="stWidgetLabel"] p, .stCaption, .muted {{
         color: {muted} !important;
     }}
 
-    /* ═══════════════════════════════════════════════════════════
-       GLASS SYSTEM
-       ═══════════════════════════════════════════════════════════ */
+    /* ════════════════════════════════════════════════════════════
+       SURFACE SYSTEM — cut glass + beveled frames
+       ════════════════════════════════════════════════════════════ */
     .panel, .waybar, .bookmark-rail, .hist, .bloom-shell, .card,
-    .own-stat, .own-card {{
-        background: {panel_glass} !important;
+    .own-stat, .own-card, .codex-tile {{
+        background: linear-gradient(155deg, {glass}, rgba(0,0,0,0.15)) !important;
         border: 1px solid {border} !important;
-        border-radius: 18px !important;
+        border-radius: 20px !important;
         box-shadow:
-            0 1px 0 rgba(255,255,255,0.06) inset,
-            0 18px 48px rgba(0,0,0,0.28),
-            0 6px 16px rgba(0,0,0,0.16) !important;
-        backdrop-filter: blur(22px) saturate(1.35) !important;
-        -webkit-backdrop-filter: blur(22px) saturate(1.35) !important;
+            0 1px 0 rgba(255,255,255,0.08) inset,
+            0 0 0 1px rgba(0,0,0,0.2) inset,
+            0 22px 50px rgba(0,0,0,0.32),
+            0 8px 18px rgba(0,0,0,0.18) !important;
+        backdrop-filter: blur(26px) saturate(1.45) !important;
+        -webkit-backdrop-filter: blur(26px) saturate(1.45) !important;
+        position: relative;
     }}
 
     .panel {{
-        padding: 1.3rem 1.4rem 1.15rem !important;
-        margin-bottom: 1rem;
-        position: relative;
+        padding: 1.35rem 1.45rem 1.2rem !important;
+        margin-bottom: 1.05rem;
         overflow: hidden;
-        animation: merRise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+        animation: codexRise 0.65s var(--mer-ease) both;
         transition:
-            border-color 0.25s ease,
-            box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
-            transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+            transform 0.35s var(--mer-ease),
+            border-color 0.3s ease,
+            box-shadow 0.35s ease;
     }}
     .panel::before {{
         content: "";
         position: absolute;
-        inset: 0 0 auto 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), {accent}66, transparent);
-        opacity: 0.7;
-        pointer-events: none;
+        left: 12%; right: 12%; top: 0;
+        height: 2px;
+        border-radius: 2px;
+        background: linear-gradient(90deg, transparent, {A}, {A2}, transparent);
+        opacity: 0.75;
+        animation: codexScanX 5.5s ease-in-out infinite;
     }}
     .panel::after {{
         content: "";
         position: absolute;
-        top: -40%;
-        left: -20%;
-        width: 60%;
-        height: 80%;
-        background: radial-gradient(ellipse, rgba(255,255,255,0.05), transparent 70%);
+        inset: 0;
+        background: linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.045) 50%, transparent 60%);
+        background-size: 220% 100%;
+        animation: codexSheen 7s ease-in-out infinite;
         pointer-events: none;
-        animation: merSheen 8s ease-in-out infinite;
     }}
     .panel:hover {{
-        border-color: {accent}55 !important;
-        transform: translateY(-2px);
+        transform: translateY(-3px) scale(1.005);
+        border-color: {A}66 !important;
         box-shadow:
-            0 1px 0 rgba(255,255,255,0.08) inset,
-            0 24px 56px rgba(0,0,0,0.34),
-            0 0 0 1px {soft} !important;
+            0 1px 0 rgba(255,255,255,0.1) inset,
+            0 28px 60px rgba(0,0,0,0.38),
+            0 0 40px {soft} !important;
     }}
 
     .panel-label {{
-        font-size: 0.63rem !important;
-        letter-spacing: 0.2em !important;
+        font-family: ui-monospace, "JetBrains Mono", monospace !important;
+        font-size: 0.62rem !important;
+        letter-spacing: 0.24em !important;
         text-transform: uppercase !important;
         color: {muted} !important;
-        margin-bottom: 0.55rem !important;
+        margin-bottom: 0.6rem !important;
         font-weight: 600 !important;
-        opacity: 0.9;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }}
+    .panel-label::before {{
+        content: "";
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        background: {A};
+        box-shadow: 0 0 10px {A};
+        animation: codexPulseDot 2.2s ease-in-out infinite;
+        flex-shrink: 0;
     }}
 
     .ridge {{
         height: 1px !important;
         border: 0 !important;
-        margin: 0.95rem 0 !important;
-        background: linear-gradient(90deg, transparent, {accent}, {accent2}, transparent) !important;
-        opacity: 0.5;
-        animation: merRidge 4.5s ease-in-out infinite;
+        margin: 1rem 0 !important;
+        background: linear-gradient(90deg, transparent, {A}, {A2}, transparent) !important;
+        opacity: 0.55;
+        animation: codexRidge 3.8s ease-in-out infinite;
+        position: relative;
     }}
 
-    /* ═══════════════════════════════════════════════════════════
-       HERO / HOME
-       ═══════════════════════════════════════════════════════════ */
+    /* ════════════════════════════════════════════════════════════
+       HERO / STATUS
+       ════════════════════════════════════════════════════════════ */
     .hero {{
-        font-size: clamp(1.55rem, 3.5vw, 2rem);
-        font-weight: 650;
-        letter-spacing: -0.036em;
-        margin: 0 0 0.4rem;
+        font-size: clamp(1.65rem, 3.8vw, 2.15rem);
+        font-weight: 750;
+        letter-spacing: -0.042em;
+        margin: 0 0 0.45rem;
         color: {text};
-        animation: merText 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+        animation: codexTypeIn 0.8s var(--mer-ease) both;
+        line-height: 1.15;
     }}
     .hero span {{
-        background: linear-gradient(120deg, {accent}, {accent2});
+        background: linear-gradient(110deg, {A}, {A2}, {A});
+        background-size: 200% auto;
         -webkit-background-clip: text;
         background-clip: text;
         -webkit-text-fill-color: transparent;
+        animation: codexGradientShift 4s linear infinite;
     }}
     .sub {{
         color: {muted};
-        margin-bottom: 0.8rem;
-        font-size: 0.94rem;
-        line-height: 1.52;
-        animation: merText 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.07s both;
+        margin-bottom: 0.85rem;
+        font-size: 0.95rem;
+        line-height: 1.55;
+        animation: codexTypeIn 0.8s var(--mer-ease) 0.1s both;
     }}
     .home-status {{
         display: flex;
         flex-wrap: wrap;
-        gap: 0.45rem;
-        margin-top: 0.3rem;
-        animation: merText 0.65s ease 0.12s both;
+        gap: 0.5rem;
+        margin-top: 0.35rem;
+        animation: codexTypeIn 0.75s var(--mer-ease) 0.18s both;
     }}
     .pill, .home-pill {{
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        padding: 0.3rem 0.78rem;
+        padding: 0.32rem 0.85rem;
         border-radius: 999px;
         background: {soft} !important;
         border: 1px solid {border};
-        color: {accent} !important;
+        color: {A} !important;
         font-size: 0.72rem;
-        font-weight: 560;
-        letter-spacing: 0.03em;
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.22s ease;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        transition: all 0.28s var(--mer-spring);
+        animation: codexPop 0.5s var(--mer-spring) both;
     }}
+    .pill:nth-child(1) {{ animation-delay: 0.2s; }}
+    .pill:nth-child(2) {{ animation-delay: 0.28s; }}
+    .pill:nth-child(3) {{ animation-delay: 0.36s; }}
+    .pill:nth-child(4) {{ animation-delay: 0.44s; }}
     .pill:hover, .home-pill:hover {{
-        transform: translateY(-2px) scale(1.02);
-        border-color: {accent}77;
-        box-shadow: 0 6px 18px {soft};
+        transform: translateY(-3px) scale(1.06);
+        border-color: {A};
+        box-shadow: 0 8px 22px {soft}, 0 0 20px {soft};
     }}
 
-    /* ═══════════════════════════════════════════════════════════
-       WAYBAR
-       ═══════════════════════════════════════════════════════════ */
+    /* ════════════════════════════════════════════════════════════
+       WAYBAR / RAIL
+       ════════════════════════════════════════════════════════════ */
     .waybar {{
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 11px 17px;
-        margin-bottom: 14px;
-        animation: merRise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 12px; padding: 12px 18px; margin-bottom: 14px;
+        animation: codexRise 0.55s var(--mer-ease) both;
     }}
     .waybar-left, .waybar-right {{
         display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
     }}
     .logo-btn {{
-        width: 36px; height: 36px;
-        border-radius: 12px;
-        background: linear-gradient(135deg, {accent}, {accent2});
+        width: 38px; height: 38px; border-radius: 12px;
+        background: linear-gradient(135deg, {A}, {A2});
         display: flex; align-items: center; justify-content: center;
-        color: #0a0a0e;
-        font-weight: 700;
-        font-size: 0.95rem;
-        box-shadow: 0 0 24px {soft}, 0 4px 14px rgba(0,0,0,0.25);
-        animation: merGlow 3.4s ease-in-out infinite;
+        color: #0a0a0e; font-weight: 800; font-size: 1rem;
+        box-shadow: 0 0 28px {soft};
+        animation: codexLogoSpin 8s linear infinite, codexGlow 2.8s ease-in-out infinite;
+        position: relative;
     }}
-    .brand {{ font-weight: 650; letter-spacing: -0.02em; }}
+    .logo-btn::after {{
+        content: "";
+        position: absolute; inset: -4px;
+        border-radius: 14px;
+        border: 1px solid {A}44;
+        animation: codexRing 2.8s ease-in-out infinite;
+    }}
+    .brand {{ font-weight: 700; letter-spacing: -0.025em; }}
     .chip {{
-        background: {soft} !important;
-        color: {accent} !important;
-        border: 1px solid {border} !important;
-        border-radius: 999px;
-        padding: 4px 12px;
-        font-size: 0.72rem;
-        font-weight: 550;
+        background: {soft} !important; color: {A} !important;
+        border: 1px solid {border} !important; border-radius: 999px;
+        padding: 4px 12px; font-size: 0.72rem; font-weight: 600;
         backdrop-filter: blur(10px);
     }}
-    .clock {{ font-weight: 600; font-variant-numeric: tabular-nums; }}
+    .clock {{ font-weight: 650; font-variant-numeric: tabular-nums; }}
 
-    /* ═══════════════════════════════════════════════════════════
-       BOOKMARK RAIL
-       ═══════════════════════════════════════════════════════════ */
     .bookmark-rail {{
-        padding: 16px 12px 14px !important;
+        padding: 18px 13px 15px !important;
         margin-bottom: 14px;
-        position: sticky;
-        top: 0.5rem;
-        animation: merRail 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+        position: sticky; top: 0.5rem;
+        animation: codexRailIn 0.7s var(--mer-ease) both;
+        overflow: hidden;
+    }}
+    .bookmark-rail::before {{
+        content: "";
+        position: absolute;
+        left: 0; top: 0; bottom: 0;
+        width: 3px;
+        background: linear-gradient(180deg, {A}, {A2}, transparent);
+        animation: codexRailBar 3s ease-in-out infinite;
+        border-radius: 0 2px 2px 0;
     }}
     .bookmark-rail .panel-label {{
-        margin-bottom: 12px !important;
-        padding: 0 6px;
-        letter-spacing: 0.18em !important;
+        margin-bottom: 14px !important;
+        padding: 0 8px;
     }}
     .bookmark-rail div[data-testid="stButton"] button {{
         text-align: left !important;
         justify-content: flex-start !important;
-        padding-left: 13px !important;
+        padding-left: 14px !important;
         font-size: 0.88rem !important;
-        min-height: 42px !important;
-        border-radius: 13px !important;
-        margin-bottom: 5px !important;
-        background: rgba(255,255,255,0.03) !important;
-        transition:
-            transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
-            border-color 0.2s ease,
-            background 0.2s ease,
-            box-shadow 0.25s ease !important;
+        min-height: 44px !important;
+        border-radius: 14px !important;
+        margin-bottom: 6px !important;
+        background: rgba(255,255,255,0.025) !important;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s var(--mer-ease) !important;
+    }}
+    .bookmark-rail div[data-testid="stButton"] button::before {{
+        content: "";
+        position: absolute;
+        left: 0; top: 0; bottom: 0;
+        width: 0;
+        background: {soft};
+        transition: width 0.3s var(--mer-ease);
+        z-index: 0;
     }}
     .bookmark-rail div[data-testid="stButton"] button:hover {{
-        transform: translateX(6px);
-        border-color: {accent} !important;
-        background: {soft} !important;
-        box-shadow: 0 8px 22px {soft} !important;
+        transform: translateX(8px) !important;
+        border-color: {A} !important;
+        color: {A} !important;
+        box-shadow: 0 10px 28px {soft} !important;
+    }}
+    .bookmark-rail div[data-testid="stButton"] button:hover::before {{
+        width: 100%;
     }}
 
-    /* ═══════════════════════════════════════════════════════════
-       CARDS
-       ═══════════════════════════════════════════════════════════ */
+    /* ════════════════════════════════════════════════════════════
+       CARDS / BUTTONS / INPUTS
+       ════════════════════════════════════════════════════════════ */
     .card {{
-        padding: 16px;
-        transition:
-            border-color 0.22s ease,
-            transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
-            box-shadow 0.28s ease;
+        padding: 17px;
+        transition: all 0.35s var(--mer-ease);
+        animation: codexRise 0.6s var(--mer-ease) both;
     }}
     .card:hover {{
-        transform: translateY(-4px);
-        border-color: {accent} !important;
-        box-shadow: 0 20px 48px rgba(0,0,0,0.32), 0 0 0 1px {soft} !important;
+        transform: translateY(-5px) rotate(-0.3deg);
+        border-color: {A} !important;
+        box-shadow: 0 24px 52px rgba(0,0,0,0.35), 0 0 32px {soft} !important;
     }}
 
-    /* ═══════════════════════════════════════════════════════════
-       BUTTONS
-       ═══════════════════════════════════════════════════════════ */
     .stButton > button {{
-        background: {panel_glass} !important;
+        background: linear-gradient(160deg, {glass}, rgba(0,0,0,0.12)) !important;
         color: {text} !important;
         border: 1px solid {border} !important;
-        border-radius: 13px !important;
-        font-weight: 550 !important;
-        min-height: 42px !important;
+        border-radius: 14px !important;
+        font-weight: 600 !important;
+        min-height: 44px !important;
         letter-spacing: -0.01em;
-        backdrop-filter: blur(14px) saturate(1.2) !important;
-        -webkit-backdrop-filter: blur(14px) saturate(1.2) !important;
-        transition:
-            transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
-            border-color 0.2s ease,
-            background 0.2s ease,
-            box-shadow 0.25s ease,
-            color 0.15s ease !important;
+        backdrop-filter: blur(16px) saturate(1.3) !important;
+        -webkit-backdrop-filter: blur(16px) saturate(1.3) !important;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.28s var(--mer-spring) !important;
+    }}
+    .stButton > button::after {{
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(120deg, transparent, rgba(255,255,255,0.08), transparent);
+        transform: translateX(-120%);
+        transition: transform 0.5s ease;
     }}
     .stButton > button:hover {{
-        border-color: {accent} !important;
+        border-color: {A} !important;
         background: {soft} !important;
-        color: {accent} !important;
-        transform: translateY(-2px);
-        box-shadow: 0 10px 26px {soft} !important;
+        color: {A} !important;
+        transform: translateY(-3px) scale(1.015);
+        box-shadow: 0 14px 32px {soft} !important;
+    }}
+    .stButton > button:hover::after {{
+        transform: translateX(120%);
     }}
     .stButton > button:active {{
-        transform: translateY(0) scale(0.98);
+        transform: translateY(0) scale(0.97);
     }}
     .stButton > button[kind="primary"],
     button[data-testid="baseButton-primary"] {{
-        background: linear-gradient(145deg, {soft}, rgba(0,0,0,0.1)) !important;
-        border: 1px solid {accent} !important;
-        color: {accent} !important;
-        box-shadow: 0 8px 24px {soft} !important;
-        font-weight: 600 !important;
+        background: linear-gradient(135deg, {soft}, rgba(0,0,0,0.15)) !important;
+        border: 1px solid {A} !important;
+        color: {A} !important;
+        box-shadow: 0 0 0 0 {soft}, 0 10px 28px {soft} !important;
+        animation: codexPrimaryPulse 3.2s ease-in-out infinite;
+        font-weight: 650 !important;
     }}
     .stButton > button[kind="primary"]:hover,
     button[data-testid="baseButton-primary"]:hover {{
-        box-shadow: 0 12px 32px {soft} !important;
-        filter: brightness(1.07);
+        filter: brightness(1.1);
+        box-shadow: 0 0 24px {soft}, 0 14px 36px {soft} !important;
     }}
 
-    /* ═══════════════════════════════════════════════════════════
-       INPUTS
-       ═══════════════════════════════════════════════════════════ */
     .stTextInput input,
     .stTextArea textarea,
     .stSelectbox > div > div,
     [data-baseweb="select"] > div {{
-        background: {panel_glass} !important;
+        background: {glass} !important;
         color: {text} !important;
         border: 1px solid {border} !important;
-        border-radius: 13px !important;
-        backdrop-filter: blur(12px) !important;
-        -webkit-backdrop-filter: blur(12px) !important;
-        transition: border-color 0.2s ease, box-shadow 0.22s ease !important;
+        border-radius: 14px !important;
+        backdrop-filter: blur(14px) !important;
+        -webkit-backdrop-filter: blur(14px) !important;
+        transition: all 0.25s ease !important;
     }}
     .stTextInput input:focus,
     .stTextArea textarea:focus {{
-        border-color: {accent} !important;
-        box-shadow: 0 0 0 3px {soft} !important;
+        border-color: {A} !important;
+        box-shadow: 0 0 0 3px {soft}, 0 0 24px {soft} !important;
         outline: none !important;
+        animation: codexFocusFlash 0.4s ease;
     }}
     .stCheckbox label p {{ color: {text} !important; }}
 
-    /* ═══════════════════════════════════════════════════════════
-       CHAT
-       ═══════════════════════════════════════════════════════════ */
+    /* ════════════════════════════════════════════════════════════
+       CHAT — kinetic messages
+       ════════════════════════════════════════════════════════════ */
     [data-testid="stChatMessage"],
     .stChatMessage {{
-        background: {panel_glass} !important;
+        background: linear-gradient(160deg, {glass}, rgba(0,0,0,0.1)) !important;
         border: 1px solid {border} !important;
-        border-radius: 18px !important;
-        padding: 0.5rem 0.3rem !important;
-        backdrop-filter: blur(18px) saturate(1.25) !important;
-        -webkit-backdrop-filter: blur(18px) saturate(1.25) !important;
-        animation: merMsg 0.38s cubic-bezier(0.22, 1, 0.36, 1) both !important;
-        transition: border-color 0.22s ease, box-shadow 0.28s ease !important;
+        border-radius: 20px !important;
+        padding: 0.55rem 0.35rem !important;
+        backdrop-filter: blur(20px) saturate(1.35) !important;
+        -webkit-backdrop-filter: blur(20px) saturate(1.35) !important;
+        animation: codexMsgIn 0.45s var(--mer-spring) both !important;
+        transition: all 0.3s ease !important;
+        overflow: hidden;
+    }}
+    [data-testid="stChatMessage"]::before {{
+        content: "";
+        position: absolute;
+        left: 0; top: 15%; bottom: 15%;
+        width: 3px;
+        border-radius: 2px;
+        background: linear-gradient(180deg, {A}, {A2});
+        opacity: 0.5;
     }}
     [data-testid="stChatMessage"]:hover {{
-        border-color: {accent}40 !important;
-        box-shadow: 0 12px 32px rgba(0,0,0,0.22) !important;
+        border-color: {A}50 !important;
+        transform: translateX(3px);
+        box-shadow: 0 14px 36px rgba(0,0,0,0.25), 0 0 20px {soft} !important;
     }}
     [data-testid="stChatMessageAvatarUser"],
     [data-testid="stChatMessageAvatarAssistant"],
@@ -1277,19 +1367,21 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
         box-shadow: none !important;
     }}
     [data-testid="stChatInput"] {{
-        background: {panel_glass} !important;
+        background: {glass} !important;
         border: 1px solid {border} !important;
-        border-radius: 24px !important;
-        box-shadow: 0 12px 36px rgba(0,0,0,0.3) !important;
-        padding: 6px 12px !important;
+        border-radius: 26px !important;
+        box-shadow: 0 16px 40px rgba(0,0,0,0.32), 0 0 0 1px rgba(255,255,255,0.04) inset !important;
+        padding: 7px 14px !important;
         overflow: hidden !important;
-        backdrop-filter: blur(24px) saturate(1.4) !important;
-        -webkit-backdrop-filter: blur(24px) saturate(1.4) !important;
-        transition: border-color 0.22s ease, box-shadow 0.28s ease !important;
+        backdrop-filter: blur(28px) saturate(1.5) !important;
+        -webkit-backdrop-filter: blur(28px) saturate(1.5) !important;
+        transition: all 0.3s var(--mer-ease) !important;
+        animation: codexComposerIn 0.6s var(--mer-ease) both;
     }}
     [data-testid="stChatInput"]:focus-within {{
-        border-color: {accent} !important;
-        box-shadow: 0 0 0 3px {soft}, 0 14px 40px rgba(0,0,0,0.32) !important;
+        border-color: {A} !important;
+        box-shadow: 0 0 0 3px {soft}, 0 18px 48px rgba(0,0,0,0.35), 0 0 40px {soft} !important;
+        transform: translateY(-2px);
     }}
     [data-testid="stChatInput"] > div,
     [data-testid="stChatInput"] > div > div,
@@ -1304,83 +1396,86 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
         color: {text} !important;
         border: none !important;
         outline: none !important;
-        caret-color: {accent} !important;
+        caret-color: {A} !important;
     }}
     [data-testid="stChatInput"] textarea::placeholder {{ color: {muted} !important; }}
     [data-testid="stChatInput"] button {{
         background: transparent !important;
         border: none !important;
-        color: {accent} !important;
+        color: {A} !important;
+        transition: transform 0.2s var(--mer-spring) !important;
+    }}
+    [data-testid="stChatInput"] button:hover {{
+        transform: scale(1.15) rotate(-8deg);
     }}
 
-    /* ═══════════════════════════════════════════════════════════
-       ALERTS / BLOOM
-       ═══════════════════════════════════════════════════════════ */
+    /* ════════════════════════════════════════════════════════════
+       ALERTS / BLOOM / QOTD
+       ════════════════════════════════════════════════════════════ */
     [data-testid="stAlert"] {{
-        background: {panel_glass} !important;
+        background: {glass} !important;
         color: {text} !important;
         border: 1px solid {border} !important;
-        border-radius: 14px !important;
-        backdrop-filter: blur(16px) !important;
-        animation: merRise 0.4s ease both;
+        border-radius: 16px !important;
+        backdrop-filter: blur(18px) !important;
+        animation: codexShakeIn 0.5s var(--mer-spring) both;
     }}
 
     .bloom-shell {{
         max-width: 480px;
-        margin: 10px auto 24px;
-        padding: 32px 26px 24px;
-        animation: merRise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+        margin: 12px auto 26px;
+        padding: 34px 28px 26px;
+        animation: codexRise 0.55s var(--mer-ease) both;
     }}
     .bloom-title {{
-        font-size: 1.8rem;
-        font-weight: 650;
-        text-align: center;
-        color: {text};
-        margin: 0 0 6px;
-        letter-spacing: -0.03em;
+        font-size: 1.85rem; font-weight: 750; text-align: center;
+        color: {text}; margin: 0 0 8px; letter-spacing: -0.035em;
+        animation: codexTypeIn 0.7s var(--mer-ease) both;
     }}
     .bloom-sub {{
-        text-align: center;
-        color: {muted};
-        font-size: 0.86rem;
-        margin-bottom: 18px;
+        text-align: center; color: {muted}; font-size: 0.88rem; margin-bottom: 20px;
+        animation: codexTypeIn 0.7s var(--mer-ease) 0.1s both;
     }}
     .bloom-divider {{
-        height: 1px;
-        margin: 14px 0;
-        background: linear-gradient(90deg, transparent, {accent}, transparent);
-        opacity: 0.5;
+        height: 1px; margin: 14px 0;
+        background: linear-gradient(90deg, transparent, {A}, transparent);
+        opacity: 0.55;
+        animation: codexRidge 3s ease-in-out infinite;
     }}
 
-    /* ═══════════════════════════════════════════════════════════
-       QOTD
-       ═══════════════════════════════════════════════════════════ */
     .qotd-one button {{
-        background: {panel_glass} !important;
+        background: linear-gradient(160deg, {glass}, rgba(0,0,0,0.1)) !important;
         border: 1px solid {border} !important;
-        border-radius: 18px !important;
-        box-shadow: 0 12px 36px rgba(0,0,0,0.22) !important;
+        border-radius: 20px !important;
+        box-shadow: 0 16px 40px rgba(0,0,0,0.24) !important;
         text-align: left !important;
         white-space: pre-wrap !important;
         color: inherit !important;
-        padding: 16px 18px !important;
+        padding: 18px 20px !important;
         height: auto !important;
         min-height: 0 !important;
         justify-content: flex-start !important;
-        line-height: 1.5 !important;
-        backdrop-filter: blur(18px) saturate(1.3) !important;
-        -webkit-backdrop-filter: blur(18px) saturate(1.3) !important;
-        transition:
-            border-color 0.22s ease,
-            background 0.22s ease,
-            transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
-            box-shadow 0.28s ease !important;
+        line-height: 1.52 !important;
+        backdrop-filter: blur(22px) saturate(1.4) !important;
+        -webkit-backdrop-filter: blur(22px) saturate(1.4) !important;
+        transition: all 0.35s var(--mer-ease) !important;
+        animation: codexRise 0.6s var(--mer-ease) 0.15s both;
+        position: relative;
+        overflow: hidden;
+    }}
+    .qotd-one button::before {{
+        content: "";
+        position: absolute;
+        left: 0; top: 0; bottom: 0;
+        width: 3px;
+        background: linear-gradient(180deg, {A}, {A2});
+        opacity: 0.7;
     }}
     .qotd-one button:hover {{
-        border-color: {accent} !important;
+        border-color: {A} !important;
         background: {soft} !important;
-        transform: translateY(-3px);
-        box-shadow: 0 18px 44px rgba(0,0,0,0.3), 0 0 0 1px {soft} !important;
+        transform: translateY(-4px) scale(1.01);
+        box-shadow: 0 22px 50px rgba(0,0,0,0.32), 0 0 36px {soft} !important;
     }}
     .qotd-one button p {{
         text-align: left !important;
@@ -1388,240 +1483,335 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
         margin: 0 !important;
     }}
 
-    .hist {{ padding: 12px 14px; margin-bottom: 8px; }}
+    .hist {{ padding: 13px 15px; margin-bottom: 8px; }}
 
-    /* ═══════════════════════════════════════════════════════════
+    /* ════════════════════════════════════════════════════════════
        ORB / TYPING
-       ═══════════════════════════════════════════════════════════ */
+       ════════════════════════════════════════════════════════════ */
     .orb {{
-        width: 96px; height: 96px;
-        margin: 22px auto;
+        width: 100px; height: 100px;
+        margin: 24px auto;
         border-radius: 50%;
-        background: radial-gradient(circle at 32% 28%, {accent}, {accent2} 65%, transparent);
-        box-shadow:
-            0 0 48px {soft},
-            0 0 96px {soft},
-            inset 0 0 24px rgba(255,255,255,0.12);
-        animation: merOrb 3s ease-in-out infinite;
+        background: radial-gradient(circle at 30% 28%, {A}, {A2} 55%, transparent 72%);
+        box-shadow: 0 0 50px {soft}, 0 0 100px {soft};
+        animation: codexOrb 2.6s ease-in-out infinite, codexOrbSpin 12s linear infinite;
+        position: relative;
+    }}
+    .orb::before {{
+        content: "";
+        position: absolute; inset: -8px;
+        border-radius: 50%;
+        border: 1px dashed {A}55;
+        animation: codexOrbSpin 8s linear infinite reverse;
+    }}
+    .orb::after {{
+        content: "";
+        position: absolute; inset: -16px;
+        border-radius: 50%;
+        border: 1px solid {A}22;
+        animation: codexRing 2.6s ease-in-out infinite;
     }}
 
-    .typing-wrap {{ display: inline-flex; gap: 7px; padding: 6px 4px; }}
+    .typing-wrap {{ display: inline-flex; gap: 8px; padding: 8px 4px; }}
     .typing-wrap .dot {{
-        width: 8px; height: 8px;
+        width: 9px; height: 9px;
         border-radius: 50%;
-        background: {accent};
-        animation: merBounce 1.2s ease-in-out infinite;
+        background: {A};
+        animation: codexBounce 1.15s ease-in-out infinite;
+        box-shadow: 0 0 12px {A};
     }}
-    .typing-wrap .dot:nth-child(2) {{ animation-delay: 0.16s; }}
-    .typing-wrap .dot:nth-child(3) {{ animation-delay: 0.32s; }}
+    .typing-wrap .dot:nth-child(2) {{ animation-delay: 0.15s; }}
+    .typing-wrap .dot:nth-child(3) {{ animation-delay: 0.3s; }}
 
-    /* ═══════════════════════════════════════════════════════════
-       OWNER DESK (global)
-       ═══════════════════════════════════════════════════════════ */
+    /* ════════════════════════════════════════════════════════════
+       OWNER DESK — command theater
+       ════════════════════════════════════════════════════════════ */
     .drae-desk {{
         position: relative;
-        padding: 1.55rem 1.5rem 1.3rem !important;
-        border-radius: 22px !important;
+        padding: 1.65rem 1.55rem 1.35rem !important;
+        border-radius: 24px !important;
         overflow: hidden;
-        border: 1px solid rgba(196,167,231,0.38) !important;
+        border: 1px solid rgba(196,167,231,0.4) !important;
         background:
-            radial-gradient(ellipse at 0% 0%, rgba(244,114,182,0.18), transparent 48%),
-            radial-gradient(ellipse at 100% 0%, rgba(167,139,250,0.22), transparent 52%),
-            radial-gradient(ellipse at 50% 110%, rgba(45,212,191,0.08), transparent 42%),
-            linear-gradient(165deg, rgba(20,12,30,0.88) 0%, rgba(10,8,16,0.92) 100%) !important;
+            radial-gradient(ellipse at 0% 0%, rgba(244,114,182,0.2), transparent 50%),
+            radial-gradient(ellipse at 100% 0%, rgba(167,139,250,0.24), transparent 52%),
+            radial-gradient(ellipse at 50% 120%, rgba(45,212,191,0.1), transparent 45%),
+            linear-gradient(165deg, rgba(18,10,28,0.85) 0%, rgba(8,6,14,0.9) 100%) !important;
         box-shadow:
-            0 1px 0 rgba(255,255,255,0.07) inset,
-            0 28px 64px rgba(0,0,0,0.42) !important;
-        backdrop-filter: blur(28px) saturate(1.4) !important;
-        -webkit-backdrop-filter: blur(28px) saturate(1.4) !important;
-        margin-bottom: 1rem !important;
-        animation: merRise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+            0 1px 0 rgba(255,255,255,0.08) inset,
+            0 32px 70px rgba(0,0,0,0.48) !important;
+        backdrop-filter: blur(32px) saturate(1.5) !important;
+        -webkit-backdrop-filter: blur(32px) saturate(1.5) !important;
+        margin-bottom: 1.1rem !important;
+        animation: codexRise 0.65s var(--mer-ease) both;
     }}
     .drae-desk::before {{
         content: "";
         position: absolute;
-        inset: 0 0 auto 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(196,167,231,0.55), rgba(244,114,182,0.4), transparent);
+        left: 0; right: 0; top: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #c4a7e7, #f472b6, #a78bfa, transparent);
+        animation: codexScanX 4s ease-in-out infinite;
+    }}
+    .drae-desk::after {{
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.04) 48%, transparent 65%);
+        background-size: 200% 100%;
+        animation: codexSheen 6s ease-in-out infinite;
         pointer-events: none;
     }}
     .drae-desk .kicker {{
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-family: ui-monospace, monospace;
         font-size: 0.62rem;
-        letter-spacing: 0.28em;
+        letter-spacing: 0.3em;
         color: #c4a7e7;
         text-transform: uppercase;
-        margin-bottom: 0.45rem;
-        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-weight: 650;
+        animation: codexTypeIn 0.6s var(--mer-ease) both;
     }}
     .drae-desk .title {{
         font-family: Syne, system-ui, sans-serif;
-        font-weight: 700;
-        font-size: clamp(1.55rem, 4vw, 2rem);
+        font-weight: 800;
+        font-size: clamp(1.65rem, 4.2vw, 2.15rem);
         color: #faf5ff;
-        letter-spacing: -0.025em;
-        margin: 0 0 0.4rem;
-        line-height: 1.15;
+        letter-spacing: -0.03em;
+        margin: 0 0 0.45rem;
+        line-height: 1.12;
+        animation: codexTypeIn 0.7s var(--mer-ease) 0.08s both;
     }}
     .drae-desk .line {{
         font-family: "Cormorant Garamond", Georgia, serif;
         font-style: italic;
-        font-size: 1.08rem;
-        color: rgba(230,220,250,0.78);
-        line-height: 1.42;
-        max-width: 38rem;
+        font-size: 1.1rem;
+        color: rgba(230,220,250,0.8);
+        line-height: 1.45;
+        max-width: 40rem;
+        animation: codexTypeIn 0.7s var(--mer-ease) 0.16s both;
     }}
     .drae-desk .sig {{
-        margin-top: 0.8rem;
+        margin-top: 0.9rem;
         font-family: ui-monospace, monospace;
-        font-size: 0.66rem;
-        letter-spacing: 0.14em;
-        color: rgba(196,167,231,0.5);
+        font-size: 0.64rem;
+        letter-spacing: 0.16em;
+        color: rgba(196,167,231,0.48);
         text-transform: uppercase;
+        animation: codexTypeIn 0.6s var(--mer-ease) 0.24s both;
     }}
 
     .own-stat {{
-        padding: 1rem 0.9rem !important;
-        border-radius: 16px !important;
+        padding: 1.1rem 0.95rem !important;
+        border-radius: 18px !important;
         text-align: center;
-        transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.25s ease;
-        animation: merRise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+        transition: all 0.35s var(--mer-spring);
+        animation: codexPop 0.55s var(--mer-spring) both;
+        overflow: hidden;
     }}
     .own-stat:hover {{
-        transform: translateY(-3px);
-        border-color: rgba(196,167,231,0.45) !important;
-        box-shadow: 0 14px 36px rgba(0,0,0,0.28), 0 0 0 1px rgba(167,139,250,0.12) !important;
+        transform: translateY(-5px) scale(1.03);
+        border-color: rgba(196,167,231,0.5) !important;
+        box-shadow: 0 18px 40px rgba(0,0,0,0.3), 0 0 28px rgba(167,139,250,0.15) !important;
     }}
     .own-stat .n {{
         font-family: Syne, system-ui, sans-serif;
-        font-size: 1.6rem;
-        font-weight: 700;
+        font-size: 1.7rem;
+        font-weight: 800;
         color: #f5edff;
-        letter-spacing: -0.02em;
-        line-height: 1.1;
+        letter-spacing: -0.03em;
+        line-height: 1.05;
+        background: linear-gradient(120deg, #faf5ff, #c4a7e7);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
     }}
     .own-stat .l {{
-        font-size: 0.68rem;
-        letter-spacing: 0.12em;
+        font-size: 0.66rem;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
         opacity: 0.55;
-        margin-top: 4px;
+        margin-top: 5px;
         color: #c4b5fd;
-        font-weight: 560;
+        font-weight: 600;
+    }}
+    .own-section-label {{
+        font-family: ui-monospace, monospace;
+        font-size: 0.62rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: rgba(196,167,231,0.72);
+        margin: 1.15rem 0 0.6rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }}
+    .own-section-label::before {{
+        content: "";
+        width: 8px; height: 8px;
+        border: 1.5px solid #c4a7e7;
+        border-radius: 2px;
+        transform: rotate(45deg);
+        animation: codexDiamond 3s ease-in-out infinite;
+        flex-shrink: 0;
     }}
 
-    /* Owner tabs cleaner */
     [data-testid="stTabs"] [data-baseweb="tab-list"] {{
         gap: 6px !important;
         background: transparent !important;
         border-bottom: 1px solid {border} !important;
-        padding-bottom: 6px !important;
-        margin-bottom: 0.75rem !important;
+        padding-bottom: 8px !important;
+        margin-bottom: 0.85rem !important;
     }}
     [data-testid="stTabs"] [data-baseweb="tab"] {{
-        border-radius: 10px !important;
-        padding: 0.45rem 0.9rem !important;
+        border-radius: 12px !important;
+        padding: 0.5rem 1rem !important;
         font-size: 0.84rem !important;
-        font-weight: 550 !important;
+        font-weight: 600 !important;
         color: {muted} !important;
         background: transparent !important;
         border: 1px solid transparent !important;
-        transition: all 0.2s ease !important;
+        transition: all 0.25s var(--mer-ease) !important;
     }}
     [data-testid="stTabs"] [data-baseweb="tab"]:hover {{
         color: {text} !important;
         background: {soft} !important;
+        transform: translateY(-2px);
     }}
     [data-testid="stTabs"] [aria-selected="true"] {{
-        color: {accent} !important;
+        color: {A} !important;
         background: {soft} !important;
-        border-color: {accent}44 !important;
+        border-color: {A}55 !important;
+        box-shadow: 0 0 20px {soft};
     }}
 
-    /* Music now-playing */
-    .mer-now-playing, .mer-now-playing strong, .mer-now-playing span {{
-        color: #4ade80 !important;
-    }}
-    .mer-now-playing .mer-now-sub {{
-        color: #86efac !important;
-        opacity: 0.9;
-        font-size: 0.82rem;
-    }}
-    .mer-now-playing .mer-now-badge {{
-        color: #86efac !important;
-        opacity: 0.95;
-        font-size: 0.75rem;
-        font-weight: 500;
-        margin-left: 6px;
-    }}
+    .mer-now-playing, .mer-now-playing strong, .mer-now-playing span {{ color: #4ade80 !important; }}
+    .mer-now-playing .mer-now-sub {{ color: #86efac !important; opacity: 0.9; font-size: 0.82rem; }}
+    .mer-now-playing .mer-now-badge {{ color: #86efac !important; font-size: 0.75rem; font-weight: 500; margin-left: 6px; }}
 
-    /* ═══════════════════════════════════════════════════════════
-       KEYFRAMES
-       ═══════════════════════════════════════════════════════════ */
-    @keyframes merIn {{
-        from {{ opacity: 0; transform: translateY(10px); }}
-        to   {{ opacity: 1; transform: translateY(0); }}
+    /* ════════════════════════════════════════════════════════════
+       KEYFRAMES — dense motion library
+       ════════════════════════════════════════════════════════════ */
+    @keyframes codexBoot {{
+        from {{ opacity: 0; transform: translateY(16px) scale(0.99); filter: blur(4px); }}
+        to   {{ opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }}
     }}
-    @keyframes merRise {{
-        from {{ opacity: 0; transform: translateY(18px) scale(0.985); }}
+    @keyframes codexRise {{
+        from {{ opacity: 0; transform: translateY(22px) scale(0.96); }}
         to   {{ opacity: 1; transform: translateY(0) scale(1); }}
     }}
-    @keyframes merText {{
-        from {{ opacity: 0; transform: translateY(12px); }}
+    @keyframes codexTypeIn {{
+        from {{ opacity: 0; transform: translateY(14px); filter: blur(6px); }}
+        to   {{ opacity: 1; transform: translateY(0); filter: blur(0); }}
+    }}
+    @keyframes codexRailIn {{
+        from {{ opacity: 0; transform: translateX(-28px) scale(0.97); }}
+        to   {{ opacity: 1; transform: translateX(0) scale(1); }}
+    }}
+    @keyframes codexMsgIn {{
+        from {{ opacity: 0; transform: translateY(16px) scale(0.96) rotate(-0.5deg); }}
+        to   {{ opacity: 1; transform: translateY(0) scale(1) rotate(0); }}
+    }}
+    @keyframes codexPop {{
+        from {{ opacity: 0; transform: scale(0.85); }}
+        to   {{ opacity: 1; transform: scale(1); }}
+    }}
+    @keyframes codexComposerIn {{
+        from {{ opacity: 0; transform: translateY(20px); }}
         to   {{ opacity: 1; transform: translateY(0); }}
     }}
-    @keyframes merRail {{
-        from {{ opacity: 0; transform: translateX(-20px); }}
-        to   {{ opacity: 1; transform: translateX(0); }}
+    @keyframes codexShakeIn {{
+        0% {{ opacity: 0; transform: translateX(-8px); }}
+        40% {{ transform: translateX(4px); }}
+        70% {{ transform: translateX(-2px); }}
+        100% {{ opacity: 1; transform: translateX(0); }}
     }}
-    @keyframes merMsg {{
-        from {{ opacity: 0; transform: translateY(12px) scale(0.98); }}
-        to   {{ opacity: 1; transform: translateY(0) scale(1); }}
+    @keyframes codexFocusFlash {{
+        0% {{ box-shadow: 0 0 0 0 {soft}; }}
+        50% {{ box-shadow: 0 0 0 6px {soft}; }}
+        100% {{ box-shadow: 0 0 0 3px {soft}; }}
     }}
-    @keyframes merRidge {{
-        0%, 100% {{ opacity: 0.28; }}
-        50% {{ opacity: 0.72; }}
+    @keyframes codexScanX {{
+        0%, 100% {{ opacity: 0.35; transform: scaleX(0.6); }}
+        50% {{ opacity: 1; transform: scaleX(1); }}
     }}
-    @keyframes merGlow {{
-        0%, 100% {{ box-shadow: 0 0 20px {soft}, 0 4px 12px rgba(0,0,0,0.25); }}
-        50% {{ box-shadow: 0 0 32px {soft}, 0 4px 18px rgba(0,0,0,0.3); }}
+    @keyframes codexSheen {{
+        0% {{ background-position: 120% 0; }}
+        100% {{ background-position: -20% 0; }}
     }}
-    @keyframes merOrb {{
-        0%, 100% {{ transform: scale(1); filter: brightness(1); }}
-        50% {{ transform: scale(1.07); filter: brightness(1.1); }}
+    @keyframes codexRidge {{
+        0%, 100% {{ opacity: 0.25; filter: brightness(0.9); }}
+        50% {{ opacity: 0.85; filter: brightness(1.3); }}
     }}
-    @keyframes merBounce {{
+    @keyframes codexPulseDot {{
+        0%, 100% {{ opacity: 0.5; transform: scale(1); box-shadow: 0 0 6px {A}; }}
+        50% {{ opacity: 1; transform: scale(1.35); box-shadow: 0 0 16px {A}; }}
+    }}
+    @keyframes codexGlow {{
+        0%, 100% {{ box-shadow: 0 0 22px {soft}; }}
+        50% {{ box-shadow: 0 0 40px {soft}, 0 0 60px {soft}; }}
+    }}
+    @keyframes codexRing {{
+        0%, 100% {{ opacity: 0.3; transform: scale(1); }}
+        50% {{ opacity: 0.8; transform: scale(1.08); }}
+    }}
+    @keyframes codexLogoSpin {{
+        from {{ filter: hue-rotate(0deg); }}
+        to {{ filter: hue-rotate(20deg); }}
+    }}
+    @keyframes codexOrb {{
+        0%, 100% {{ transform: scale(1); }}
+        50% {{ transform: scale(1.08); }}
+    }}
+    @keyframes codexOrbSpin {{
+        from {{ transform: rotate(0deg); }}
+        to {{ transform: rotate(360deg); }}
+    }}
+    @keyframes codexOrbFloat {{
+        0%, 100% {{ transform: translate(0, 0); }}
+        50% {{ transform: translate(-40px, 30px); }}
+    }}
+    @keyframes codexBounce {{
         0%, 60%, 100% {{ transform: translateY(0); opacity: 0.35; }}
-        30% {{ transform: translateY(-9px); opacity: 1; }}
+        30% {{ transform: translateY(-10px); opacity: 1; }}
     }}
-    @keyframes merSheen {{
-        0%, 100% {{ opacity: 0.3; transform: translateX(0) translateY(0); }}
-        50% {{ opacity: 0.55; transform: translateX(12%) translateY(6%); }}
+    @keyframes codexGradientShift {{
+        0% {{ background-position: 0% center; }}
+        100% {{ background-position: 200% center; }}
     }}
-    @keyframes merFloat {{
+    @keyframes codexPrimaryPulse {{
+        0%, 100% {{ box-shadow: 0 0 0 0 {soft}, 0 10px 28px {soft}; }}
+        50% {{ box-shadow: 0 0 0 6px transparent, 0 12px 32px {soft}; }}
+    }}
+    @keyframes codexRailBar {{
+        0%, 100% {{ opacity: 0.4; }}
+        50% {{ opacity: 1; }}
+    }}
+    @keyframes codexGridDrift {{
+        from {{ background-position: 0 0; }}
+        to {{ background-position: 48px 48px; }}
+    }}
+    @keyframes codexDiamond {{
+        0%, 100% {{ transform: rotate(45deg) scale(1); opacity: 0.6; }}
+        50% {{ transform: rotate(45deg) scale(1.25); opacity: 1; }}
+    }}
+    @keyframes codexFloat {{
         0%, 100% {{ transform: translateY(0); }}
-        50% {{ transform: translateY(-6px); }}
+        50% {{ transform: translateY(-7px); }}
     }}
 
-    .panel:nth-child(1) {{ animation-delay: 0.02s; }}
-    .panel:nth-child(2) {{ animation-delay: 0.08s; }}
-    .panel:nth-child(3) {{ animation-delay: 0.14s; }}
-    .panel:nth-child(4) {{ animation-delay: 0.2s; }}
-    .own-stat:nth-child(1) {{ animation-delay: 0.05s; }}
-    .own-stat:nth-child(2) {{ animation-delay: 0.1s; }}
-    .own-stat:nth-child(3) {{ animation-delay: 0.15s; }}
-    .own-stat:nth-child(4) {{ animation-delay: 0.2s; }}
-    .own-stat:nth-child(5) {{ animation-delay: 0.25s; }}
+    .panel:nth-child(1) {{ animation-delay: 0.03s; }}
+    .panel:nth-child(2) {{ animation-delay: 0.1s; }}
+    .panel:nth-child(3) {{ animation-delay: 0.17s; }}
+    .panel:nth-child(4) {{ animation-delay: 0.24s; }}
+    .own-stat:nth-child(1) {{ animation-delay: 0.08s; }}
+    .own-stat:nth-child(2) {{ animation-delay: 0.14s; }}
+    .own-stat:nth-child(3) {{ animation-delay: 0.2s; }}
+    .own-stat:nth-child(4) {{ animation-delay: 0.26s; }}
+    .own-stat:nth-child(5) {{ animation-delay: 0.32s; }}
 
-    * {{
-        scrollbar-width: thin;
-        scrollbar-color: {accent}55 transparent;
-    }}
-    ::selection {{
-        background: {accent}50;
-        color: {text};
-    }}
-
+    * {{ scrollbar-width: thin; scrollbar-color: {A}55 transparent; }}
+    ::selection {{ background: {A}55; color: {text}; }}
     iframe {{ background: transparent !important; border: none !important; }}
 
     @media (prefers-reduced-motion: reduce) {{
@@ -1631,17 +1821,17 @@ def inject_css(font_name: str, theme_name: str = "Caelestia", popup_open: bool =
             transition-duration: 0.01ms !important;
         }}
     }}
-
     @media (max-width: 720px) {{
         .block-container {{
-            padding-top: 0.85rem !important;
-            padding-left: 0.8rem !important;
-            padding-right: 0.8rem !important;
+            padding-top: 0.8rem !important;
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
         }}
-        .hero {{ font-size: 1.4rem; }}
+        .hero {{ font-size: 1.45rem; }}
         .bookmark-rail {{ position: relative; top: 0; }}
-        .drae-desk {{ padding: 1.2rem 1.1rem 1.05rem !important; }}
-        .own-stat .n {{ font-size: 1.3rem; }}
+        .drae-desk {{ padding: 1.25rem 1.1rem !important; }}
+        .own-stat .n {{ font-size: 1.35rem; }}
+        .stApp::before {{ opacity: 0.03; }}
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -10106,20 +10296,28 @@ if st.session_state.view == "owner_room":
           }}
           .room-hero {{
             position: relative;
-            padding: 1.4rem 1.4rem 1.2rem;
-            border-radius: 22px;
+            padding: 1.5rem 1.45rem 1.25rem;
+            border-radius: 24px;
             overflow: hidden;
-            border: 1px solid rgba(167,139,250,0.38);
+            border: 1px solid rgba(167,139,250,0.4);
             background:
-              radial-gradient(ellipse at 0% 0%, rgba(167,139,250,0.22), transparent 52%),
-              radial-gradient(ellipse at 100% 100%, rgba(244,114,182,0.14), transparent 48%),
-              linear-gradient(145deg, rgba(18,12,28,0.82) 0%, rgba(10,8,18,0.88) 100%);
+              radial-gradient(ellipse at 0% 0%, rgba(167,139,250,0.25), transparent 52%),
+              radial-gradient(ellipse at 100% 100%, rgba(244,114,182,0.16), transparent 48%),
+              linear-gradient(145deg, rgba(16,10,26,0.84) 0%, rgba(8,6,16,0.9) 100%);
             box-shadow:
-              0 1px 0 rgba(255,255,255,0.07) inset,
-              0 22px 56px rgba(0,0,0,0.42);
-            backdrop-filter: blur(26px) saturate(1.35);
-            -webkit-backdrop-filter: blur(26px) saturate(1.35);
-            animation: merRise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+              0 1px 0 rgba(255,255,255,0.08) inset,
+              0 26px 60px rgba(0,0,0,0.45);
+            backdrop-filter: blur(28px) saturate(1.45);
+            -webkit-backdrop-filter: blur(28px) saturate(1.45);
+            animation: codexRise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+          }}
+          .room-hero::after {{
+            content: "";
+            position: absolute;
+            left: 0; right: 0; top: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #a78bfa, #f472b6, transparent);
+            animation: codexScanX 4.5s ease-in-out infinite;
           }}
           .room-hero::before {{
             content: "";
@@ -10225,8 +10423,8 @@ if st.session_state.view == "owner_room":
         </style>
         <div class="room-shell">
           <div class="room-hero">
-            <div class="room-kicker">Creator channel · ephemeral</div>
-            <div class="room-title">Observation desk</div>
+            <div class="room-kicker">Codex channel · ephemeral</div>
+            <div class="room-title">Signal desk</div>
             <div class="room-sub">
               Live · moderated · messages vanish when everyone leaves
             </div>
@@ -10355,7 +10553,7 @@ if st.session_state.view == "home":
     # ---------- BOOKMARK RAIL ----------
     with rail:
         st.markdown(
-            '<div class="bookmark-rail"><div class="panel-label">Quick</div>',
+            '<div class="bookmark-rail"><div class="panel-label">Navigate</div>',
             unsafe_allow_html=True,
         )
         if st.button("💬  Chat", use_container_width=True, key="bm_chat", type="primary"):
@@ -10421,8 +10619,8 @@ if st.session_state.view == "home":
         if _title_bit:
             _sub = f"{_title_bit} · {_sub}"
         st.markdown(f"""
-        <div class="panel" style="animation-delay:0.04s">
-          <div class="panel-label">Meridium · shell</div>
+        <div class="panel" style="animation-delay:0.05s">
+          <div class="panel-label">Meridium Codex · online</div>
           <div class="hero">
             {greet_line(st.session_state.username)}
           </div>
