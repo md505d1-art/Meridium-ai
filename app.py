@@ -1,4 +1,3 @@
-
 import streamlit as st
 import os
 import re
@@ -395,6 +394,20 @@ SECRET_THEMES = {
         "border": "rgba(45, 212, 191, 0.28)", "text": "#e6fffa", "muted": "#6a9a90",
         "accent": "#2dd4bf", "accent2": "#0f766e", "accent_soft": "rgba(45, 212, 191, 0.16)",
         "unlock": "nadir",
+    },
+    # Drift Counter exclusive — copper dusk / archival bronze
+    "Copper Vespers": {
+        "bg": "#0c0806", "panel": "rgba(36, 22, 14, 0.88)", "panel_solid": "#1c120c",
+        "border": "rgba(251, 146, 60, 0.32)", "text": "#ffedd5", "muted": "#c4a484",
+        "accent": "#fb923c", "accent2": "#e11d48", "accent_soft": "rgba(251, 146, 60, 0.16)",
+        "unlock": "drift",
+    },
+    # Drift Counter exclusive — deep indigo rain / wet glass
+    "Indigo Rain": {
+        "bg": "#060712", "panel": "rgba(14, 18, 40, 0.88)", "panel_solid": "#0c1020",
+        "border": "rgba(129, 140, 248, 0.35)", "text": "#e0e7ff", "muted": "#94a3b8",
+        "accent": "#818cf8", "accent2": "#38bdf8", "accent_soft": "rgba(129, 140, 248, 0.16)",
+        "unlock": "drift",
     },
 
 }
@@ -2987,21 +3000,21 @@ QUESTS = {
 
 # Catalog: each item is unique in role — cosmetics, lore keys, latent modules
 BAZAAR_ITEMS = {
-    "theme_pixel_bloom": {
-        "name": "Pixel Bloom palette",
+    "theme_copper_vespers": {
+        "name": "Copper Vespers",
         "cat": "Palette",
-        "cost": 30,
-        "desc": "Unlock the Pixel Bloom secret theme (soft terminal cyan).",
+        "cost": 32,
+        "desc": "Drift-exclusive dusk palette — copper light over archive bronze.",
         "kind": "theme",
-        "theme": "Pixel Bloom",
+        "theme": "Copper Vespers",
     },
-    "theme_tv_girl": {
-        "name": "TV Girl palette",
+    "theme_indigo_rain": {
+        "name": "Indigo Rain",
         "cat": "Palette",
-        "cost": 30,
-        "desc": "Pink/blue residual palette — forever will be allowed.",
+        "cost": 32,
+        "desc": "Drift-exclusive wet-glass indigo with cool sky accents.",
         "kind": "theme",
-        "theme": "TV Girl",
+        "theme": "Indigo Rain",
     },
     "font_space": {
         "name": "Space Grotesk specimen",
@@ -5487,6 +5500,10 @@ if st.session_state.popup:
             if st.button("📚  Library", use_container_width=True, key="pop_library"):
                 st.session_state.library_reading = None
                 st.session_state.view = "library"
+                st.session_state.popup = False
+                st.rerun()
+            if st.button("◈  Drift Counter", use_container_width=True, key="pop_drift"):
+                st.session_state.view = "drift"
                 st.session_state.popup = False
                 st.rerun()
         with g2:
@@ -11251,6 +11268,24 @@ if st.session_state.view == "owner_room":
 if st.session_state.get("view") in ("character_ai", "web"):
     st.session_state.view = "home"
 
+
+# ===== DRIFT COUNTER (full page) =====
+if st.session_state.view == "drift":
+    top_a, top_b = st.columns([1, 1])
+    with top_a:
+        if st.button("← Home", key="drift_back_home", use_container_width=True):
+            st.session_state.view = "home"
+            st.rerun()
+    with top_b:
+        if st.button("☰ Menu", key="drift_to_menu", use_container_width=True):
+            st.session_state.popup = True
+            st.rerun()
+    try:
+        render_bazaar_tab()
+    except Exception as _e:
+        st.warning(f"Drift Counter unavailable: {_e}")
+    st.stop()
+
 if st.session_state.view == "home":
     rail, body = st.columns([1.15, 3.35], gap="medium")
 
@@ -11269,6 +11304,9 @@ if st.session_state.view == "home":
             st.rerun()
         if st.button("☰  Menu", use_container_width=True, key="bm_menu"):
             st.session_state.popup = True
+            st.rerun()
+        if st.button("◈  Drift Counter", use_container_width=True, key="bm_drift"):
+            st.session_state.view = "drift"
             st.rerun()
         if is_owner(st.session_state.get("username") or ""):
             if st.button("👑  Owner", use_container_width=True, key="bm_owner"):
@@ -11345,7 +11383,31 @@ if st.session_state.view == "home":
             st.caption(f"London {time_str} · shell clock locked to Europe/London")
 
 
-        # Quote of the hour — Codex signal card
+        # Quote of the hour — clickable card via query param (no extra button)
+        try:
+            if st.query_params.get("sealed") == "1":
+                try:
+                    del st.query_params["sealed"]
+                except Exception:
+                    try:
+                        st.query_params.clear()
+                    except Exception:
+                        pass
+                msg = register_qotd_open()
+                if msg:
+                    st.session_state["_egg_flash"] = msg
+                    if "Third knock" in str(msg):
+                        unlock_theme("Soft Static", "third knock on the quote")
+                unlock_theme("M-119 Amber", "you found the sealed note")
+                try:
+                    complete_quest("sealed_note", silent=True)
+                except Exception:
+                    pass
+                st.session_state.view = "note"
+                st.rerun()
+        except Exception:
+            pass
+
         qotd, qotd_author = quote_of_the_day()
         import html as _html_q
         _q_safe = _html_q.escape(qotd)
@@ -11353,11 +11415,12 @@ if st.session_state.view == "home":
         st.markdown(
             f"""
         <style>
+          a.codex-qotd-link {{ text-decoration: none !important; color: inherit !important; display: block; }}
           .codex-qotd {{
             position: relative;
             border-radius: 20px;
             padding: 1.35rem 1.4rem 1.15rem;
-            margin: 0.35rem 0 0.35rem;
+            margin: 0.35rem 0 0.85rem;
             overflow: hidden;
             border: 1px solid rgba(255,255,255,0.10);
             background:
@@ -11426,104 +11489,19 @@ if st.session_state.view == "home":
             letter-spacing: 0.08em;
             color: rgba(160,160,180,0.7);
           }}
-          /* Fully collapse the Streamlit trigger — card is the only visible control */
-          .qotd-hit {{
-            height: 0 !important;
-            min-height: 0 !important;
-            max-height: 0 !important;
-            overflow: hidden !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            opacity: 0 !important;
-            pointer-events: none !important;
-          }}
-          .qotd-hit div[data-testid="stButton"],
-          .qotd-hit div[data-testid="stButton"] button {{
-            height: 0 !important;
-            min-height: 0 !important;
-            max-height: 0 !important;
-            width: 0 !important;
-            opacity: 0 !important;
-            overflow: hidden !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            border: 0 !important;
-            position: absolute !important;
-            left: -9999px !important;
-          }}
         </style>
-        <div class="codex-qotd" id="codex-qotd-card" title="Open sealed note" role="button" tabindex="0">
-          <div class="k"><i></i> Signal of the hour</div>
-          <div class="q">“{_q_safe}”</div>
-          <div class="meta">
-            <div class="by">— {_a_safe}</div>
-            <div class="when">{date_str} · {time_str} · rotates hourly</div>
+        <a class="codex-qotd-link" href="?sealed=1" target="_self">
+          <div class="codex-qotd" id="codex-qotd-card" role="button" tabindex="0">
+            <div class="k"><i></i> Signal of the hour</div>
+            <div class="q">“{_q_safe}”</div>
+            <div class="meta">
+              <div class="by">— {_a_safe}</div>
+              <div class="when">{date_str} · {time_str} · rotates hourly</div>
+            </div>
           </div>
-        </div>
+        </a>
             """,
             unsafe_allow_html=True,
-        )
-        st.markdown(
-            """
-            <style>
-              /* Nuke any leftover sealed-note controls under the signal card */
-              .qotd-hit, .qotd-hit * {
-                height: 0 !important; max-height: 0 !important; min-height: 0 !important;
-                overflow: hidden !important; opacity: 0 !important;
-                margin: 0 !important; padding: 0 !important; border: 0 !important;
-                pointer-events: none !important; position: absolute !important;
-                left: -9999px !important; width: 0 !important;
-              }
-            </style>
-            <div class="qotd-hit">
-            """,
-            unsafe_allow_html=True,
-        )
-        if st.button("qotd_open_sealed", key="qotd_note", use_container_width=True):
-            msg = register_qotd_open()
-            if msg:
-                st.session_state["_egg_flash"] = msg
-                if "Third knock" in msg:
-                    unlock_theme("Soft Static", "third knock on the quote")
-            unlock_theme("M-119 Amber", "you found the sealed note")
-            try:
-                complete_quest("sealed_note", silent=True)
-            except Exception:
-                pass
-            st.session_state.view = "note"
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-        st.components.v1.html(
-            """
-            <script>
-            (function(){
-              function wire(){
-                try {
-                  var doc = window.parent.document;
-                  var card = doc.getElementById('codex-qotd-card');
-                  if (!card) return;
-                  if (card.dataset.wired === '1') return;
-                  card.dataset.wired = '1';
-                  function fire(){
-                    var buttons = doc.querySelectorAll('button');
-                    for (var i=0;i<buttons.length;i++){
-                      var t = (buttons[i].innerText || buttons[i].textContent || '').trim();
-                      if (t === 'qotd_open_sealed') { buttons[i].click(); return; }
-                    }
-                  }
-                  card.addEventListener('click', fire);
-                  card.addEventListener('keydown', function(e){
-                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); }
-                  });
-                } catch(e){}
-              }
-              wire();
-              setTimeout(wire, 300);
-              setTimeout(wire, 900);
-            })();
-            </script>
-            """,
-            height=0,
         )
 
         # ARG anomaly content (only when active)
