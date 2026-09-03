@@ -1,4 +1,3 @@
-
 import streamlit as st
 import os
 import re
@@ -2871,6 +2870,287 @@ def apply_site_effects_css() -> None:
 
 
 
+
+# ============================================================
+# RESIDUUM · QUESTS · BAZAAR
+# ============================================================
+# Currency earned by distinct shell actions (not grind loops).
+# Spend in the Menu → Bazaar on cosmetics, lore, and latent features.
+
+QUESTS = {
+    "first_words": {
+        "title": "First words",
+        "desc": "Send your first chat message to Meridium.",
+        "reward": 8,
+    },
+    "sealed_note": {
+        "title": "Sealed fingerprint",
+        "desc": "Open the scientist's sealed note from the hourly signal.",
+        "reward": 12,
+    },
+    "lab_threshold": {
+        "title": "Threshold",
+        "desc": "Enter the observation lab for the first time.",
+        "reward": 20,
+    },
+    "board_complete": {
+        "title": "Seven pins",
+        "desc": "Review all seven investigation board evidence files.",
+        "reward": 35,
+    },
+    "voss_markers": {
+        "title": "Three markers",
+        "desc": "Secure all three Voss anomaly markers.",
+        "reward": 40,
+    },
+    "library_88": {
+        "title": "Winter print",
+        "desc": "Read Frankenstein to page 88 while on Voss Residual.",
+        "reward": 18,
+    },
+    "stabilize": {
+        "title": "Stabilize",
+        "desc": "Speak the stabilize command to the shell.",
+        "reward": 25,
+    },
+    "spotify_link": {
+        "title": "Living signal",
+        "desc": "Connect Spotify so the shell can hear a device.",
+        "reward": 10,
+    },
+}
+
+# Catalog: each item is unique in role — cosmetics, lore keys, latent modules
+BAZAAR_ITEMS = {
+    "theme_pixel_bloom": {
+        "name": "Pixel Bloom palette",
+        "cat": "Palette",
+        "cost": 30,
+        "desc": "Unlock the Pixel Bloom secret theme (soft terminal cyan).",
+        "kind": "theme",
+        "theme": "Pixel Bloom",
+    },
+    "theme_tv_girl": {
+        "name": "TV Girl palette",
+        "cat": "Palette",
+        "cost": 30,
+        "desc": "Pink/blue residual palette — forever will be allowed.",
+        "kind": "theme",
+        "theme": "TV Girl",
+    },
+    "font_newsreader": {
+        "name": "Newsreader face",
+        "cat": "Type",
+        "cost": 15,
+        "desc": "Editorial serif for long reading sessions.",
+        "kind": "font",
+        "font": "Newsreader",
+    },
+    "font_jetbrains": {
+        "name": "JetBrains Mono",
+        "cat": "Type",
+        "cost": 15,
+        "desc": "Monospace specimen for terminal-minded operators.",
+        "kind": "font",
+        "font": "JetBrains Mono",
+    },
+    "lore_santos": {
+        "name": "Santos residual dossier",
+        "cat": "Lore",
+        "cost": 45,
+        "desc": "Unseals Jaime Santos residual pages (mobile-friendly — no Konami required).",
+        "kind": "flag",
+        "flag": "jaime_dossier_unlocked",
+    },
+    "lore_callaghan_margin": {
+        "name": "Callaghan margin slip",
+        "cat": "Lore",
+        "cost": 28,
+        "desc": "A margin note that surfaces a soft hint toward the residual dial.",
+        "kind": "flag",
+        "flag": "callaghan_margin_owned",
+    },
+    "feat_chat_aura": {
+        "name": "Chat aura",
+        "cat": "Module",
+        "cost": 22,
+        "desc": "Soft accent rim on chat bubbles — a quiet status signal.",
+        "kind": "flag",
+        "flag": "feat_chat_aura",
+    },
+    "feat_home_orb": {
+        "name": "Home orb",
+        "cat": "Module",
+        "cost": 18,
+        "desc": "Animated residual orb on the home panel.",
+        "kind": "flag",
+        "flag": "feat_home_orb",
+    },
+    "feat_double_clock": {
+        "name": "Split chronometer",
+        "cat": "Module",
+        "cost": 16,
+        "desc": "Show London + local offset caption on Home.",
+        "kind": "flag",
+        "flag": "feat_double_clock",
+    },
+    "key_coastal": {
+        "name": "Coastal intake pass",
+        "cat": "Key",
+        "cost": 55,
+        "desc": "One-time key: opens the Jaime residual channel from Menu without desktop Konami.",
+        "kind": "flag",
+        "flag": "jaime_channel_key",
+    },
+}
+
+
+def _ensure_economy():
+    if "residuum" not in st.session_state:
+        st.session_state.residuum = 0
+    if "quests_done" not in st.session_state or not isinstance(st.session_state.quests_done, list):
+        st.session_state.quests_done = list(st.session_state.get("quests_done") or [])
+    if "inventory" not in st.session_state or not isinstance(st.session_state.inventory, list):
+        st.session_state.inventory = list(st.session_state.get("inventory") or [])
+
+
+def complete_quest(quest_id: str, silent: bool = False) -> bool:
+    """Award residuum once per quest id. Returns True if newly completed."""
+    _ensure_economy()
+    q = QUESTS.get(quest_id)
+    if not q:
+        return False
+    done = list(st.session_state.quests_done or [])
+    if quest_id in done:
+        return False
+    done.append(quest_id)
+    st.session_state.quests_done = done
+    st.session_state.residuum = int(st.session_state.residuum or 0) + int(q.get("reward") or 0)
+    if not silent:
+        st.session_state["_egg_flash"] = (
+            f"Quest complete: **{q['title']}** · +{q['reward']} Residuum"
+        )
+    try:
+        save_user_data()
+    except Exception:
+        pass
+    return True
+
+
+def buy_bazaar_item(item_id: str) -> str:
+    """Attempt purchase. Returns status string."""
+    _ensure_economy()
+    item = BAZAAR_ITEMS.get(item_id)
+    if not item:
+        return "missing"
+    inv = list(st.session_state.inventory or [])
+    if item_id in inv:
+        return "owned"
+    cost = int(item.get("cost") or 0)
+    bal = int(st.session_state.residuum or 0)
+    if bal < cost:
+        return "broke"
+    st.session_state.residuum = bal - cost
+    inv.append(item_id)
+    st.session_state.inventory = inv
+    kind = item.get("kind")
+    if kind == "theme" and item.get("theme"):
+        try:
+            unlock_theme(item["theme"], "bazaar purchase", apply=False)
+        except Exception:
+            u = list(st.session_state.get("unlocked_themes") or [])
+            if item["theme"] not in u:
+                u.append(item["theme"])
+                st.session_state.unlocked_themes = u
+    if kind == "font" and item.get("font"):
+        # Grant by applying immediately; user can change later in Look
+        st.session_state.font = item["font"]
+    if kind == "flag" and item.get("flag"):
+        st.session_state[item["flag"]] = True
+    try:
+        save_user_data()
+    except Exception:
+        pass
+    return "ok"
+
+
+def render_bazaar_tab():
+    """Menu tab: balance, quest log, shop grid."""
+    _ensure_economy()
+    bal = int(st.session_state.residuum or 0)
+    st.markdown(
+        f"""
+        <div style="
+          padding:0.9rem 1rem;border-radius:16px;margin-bottom:0.75rem;
+          border:1px solid rgba(196,167,231,0.28);
+          background:linear-gradient(155deg,rgba(28,18,40,0.75),rgba(12,10,18,0.85));
+        ">
+          <div style="font-family:ui-monospace,monospace;font-size:0.62rem;letter-spacing:0.2em;color:#c4a7e7;margin-bottom:0.35rem">BAZAAR · RESIDUUM</div>
+          <div style="font-size:1.6rem;font-weight:750;letter-spacing:-0.03em;color:#f5edff">{bal}</div>
+          <div style="opacity:0.65;font-size:0.82rem;margin-top:0.15rem">Earned by distinct actions · spent on unique shell goods</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    t_shop, t_quests, t_inv = st.tabs(["Shop", "Quests", "Inventory"])
+    done = set(st.session_state.quests_done or [])
+    inv = set(st.session_state.inventory or [])
+    with t_shop:
+        cats = []
+        for it in BAZAAR_ITEMS.values():
+            if it["cat"] not in cats:
+                cats.append(it["cat"])
+        for cat in cats:
+            st.markdown(f"**{cat}**")
+            for iid, it in BAZAAR_ITEMS.items():
+                if it["cat"] != cat:
+                    continue
+                owned = iid in inv
+                c1, c2 = st.columns([3.4, 1.2])
+                with c1:
+                    st.markdown(
+                        f"**{it['name']}** · `{it['cost']}◆`  \n"
+                        f"<span style='opacity:0.72;font-size:0.84rem'>{it['desc']}</span>",
+                        unsafe_allow_html=True,
+                    )
+                with c2:
+                    if owned:
+                        st.caption("Owned")
+                    else:
+                        if st.button("Buy", key=f"baz_buy_{iid}", use_container_width=True):
+                            status = buy_bazaar_item(iid)
+                            if status == "ok":
+                                st.success(f"Purchased {it['name']}")
+                                st.rerun()
+                            elif status == "broke":
+                                st.warning("Not enough Residuum.")
+                            elif status == "owned":
+                                st.info("Already owned.")
+            st.markdown("")
+    with t_quests:
+        for qid, q in QUESTS.items():
+            mark = "✓" if qid in done else "·"
+            st.markdown(
+                f"{mark} **{q['title']}** · +{q['reward']}◆  \n"
+                f"<span style='opacity:0.7;font-size:0.84rem'>{q['desc']}</span>",
+                unsafe_allow_html=True,
+            )
+    with t_inv:
+        if not inv:
+            st.caption("Empty pockets. Complete quests, then spend Residuum.")
+        else:
+            for iid in st.session_state.inventory:
+                it = BAZAAR_ITEMS.get(iid) or {"name": iid, "desc": ""}
+                st.markdown(f"**{it.get('name', iid)}**  \n<span style='opacity:0.7'>{it.get('desc','')}</span>", unsafe_allow_html=True)
+        # Coastal / Jaime access from inventory
+        if st.session_state.get("jaime_channel_key") or st.session_state.get("jaime_dossier_unlocked"):
+            if st.button("Open Jaime residual channel", use_container_width=True, key="baz_open_jaime"):
+                st.session_state.view = "jaime_residual"
+                st.session_state.popup = False
+                st.rerun()
+
+
+
 def save_user_data():
     name = (st.session_state.get("username") or "").strip()
     if not name:
@@ -2927,6 +3207,15 @@ def save_user_data():
         "board_entered_once": bool(st.session_state.get("board_entered_once")),
         "lab_door_unlocked": bool(st.session_state.get("lab_door_unlocked")),
         "nadir_files_opened": list(st.session_state.get("nadir_files_opened") or []),
+        "residuum": int(st.session_state.get("residuum") or 0),
+        "quests_done": list(st.session_state.get("quests_done") or []),
+        "inventory": list(st.session_state.get("inventory") or []),
+        "jaime_dossier_unlocked": bool(st.session_state.get("jaime_dossier_unlocked")),
+        "jaime_channel_key": bool(st.session_state.get("jaime_channel_key")),
+        "callaghan_margin_owned": bool(st.session_state.get("callaghan_margin_owned")),
+        "feat_chat_aura": bool(st.session_state.get("feat_chat_aura")),
+        "feat_home_orb": bool(st.session_state.get("feat_home_orb")),
+        "feat_double_clock": bool(st.session_state.get("feat_double_clock")),
         "saved_at": datetime.now().isoformat(),
     }
     raw = json.dumps(payload, ensure_ascii=False, indent=2)
@@ -2990,6 +3279,15 @@ def load_user_data(username: str) -> bool:
         st.session_state.board_entered_once = bool(data.get("board_entered_once"))
         st.session_state.lab_door_unlocked = bool(data.get("lab_door_unlocked"))
         st.session_state.nadir_files_opened = list(data.get("nadir_files_opened") or [])
+        st.session_state.residuum = int(data.get("residuum") or 0)
+        st.session_state.quests_done = list(data.get("quests_done") or [])
+        st.session_state.inventory = list(data.get("inventory") or [])
+        st.session_state.jaime_dossier_unlocked = bool(data.get("jaime_dossier_unlocked"))
+        st.session_state.jaime_channel_key = bool(data.get("jaime_channel_key"))
+        st.session_state.callaghan_margin_owned = bool(data.get("callaghan_margin_owned"))
+        st.session_state.feat_chat_aura = bool(data.get("feat_chat_aura"))
+        st.session_state.feat_home_orb = bool(data.get("feat_home_orb"))
+        st.session_state.feat_double_clock = bool(data.get("feat_double_clock"))
         chats = data.get("chats") or {}
         if isinstance(chats, dict) and chats:
             st.session_state.chats = chats
@@ -3144,6 +3442,10 @@ defaults = {
     "eq_enabled": True,
     "stabilize_at": None,
     "qotd_opens": 0,
+    "residuum": 0,
+    "quests_done": [],
+    "inventory": [],
+
     "lab_found": [],
     "_currently_in_lab": False,
     "_lab_session_visit": False,
@@ -4933,7 +5235,7 @@ if st.session_state.popup:
         unsafe_allow_html=True,
     )
 
-    m_nav, m_look, m_model, m_more = st.tabs(["Go", "Look", "Model", "More"])
+    m_nav, m_look, m_model, m_bazaar, m_more = st.tabs(["Go", "Look", "Model", "Bazaar", "More"])
 
     with m_nav:
         st.caption("Where do you want to go?")
@@ -5072,6 +5374,12 @@ if st.session_state.popup:
         if st.button("Save model settings", key="pop_save_model", use_container_width=True):
             save_user_data()
             st.success("Saved.")
+
+    with m_bazaar:
+        try:
+            render_bazaar_tab()
+        except Exception as _baz_err:
+            st.warning(f"Bazaar unavailable: {_baz_err}")
 
     with m_more:
         st.caption("Account & data")
@@ -5407,9 +5715,100 @@ if st.session_state.view == "lab":
 
 if st.session_state.view == "note":
     render_note()
+    # Mobile-friendly path to Jaime (Konami is desktop-only in note_view)
+    st.markdown("---")
+    with st.expander("Residual contact (touch devices)", expanded=False):
+        st.caption(
+            "Desktop note_view listens for the Konami sequence. "
+            "On phones, use the phrase pad below — or buy the Coastal intake pass / Santos dossier in **Menu → Bazaar**."
+        )
+        phrase = st.text_input(
+            "Phrase",
+            key="jaime_mobile_phrase",
+            placeholder="hello jaime / open pixel / coastal intake",
+            label_visibility="collapsed",
+        )
+        if st.button("Transmit phrase", key="jaime_mobile_send", use_container_width=True):
+            p = (phrase or "").strip().lower()
+            if p in {
+                "hello jaime", "hello, jaime", "open jaime", "open pixel",
+                "coastal intake", "jaime santos", "show jaime",
+            } or st.session_state.get("jaime_channel_key") or st.session_state.get("jaime_dossier_unlocked"):
+                st.session_state.jaime_dossier_unlocked = True
+                st.session_state.view = "jaime_residual"
+                st.rerun()
+            else:
+                st.markdown(
+                    "<p style='color:#a08090;font-size:0.88rem'>The channel does not answer that phrase.</p>",
+                    unsafe_allow_html=True,
+                )
+
+if st.session_state.view == "jaime_residual":
+    if not (
+        st.session_state.get("jaime_dossier_unlocked")
+        or st.session_state.get("jaime_channel_key")
+        or st.session_state.get("arg_unlocked")
+    ):
+        st.session_state.view = "home"
+        st.rerun()
+    st.markdown(
+        """
+        <style>
+          .jaime-hero {
+            padding: 1.4rem 1.3rem 1.15rem; border-radius: 20px; margin-bottom: 1rem;
+            border: 1px solid rgba(94,234,212,0.28);
+            background:
+              radial-gradient(ellipse at 10% 0%, rgba(94,234,212,0.12), transparent 50%),
+              linear-gradient(160deg, rgba(8,20,18,0.9), rgba(6,10,12,0.95));
+            animation: codexRise 0.55s cubic-bezier(0.22,1,0.36,1) both;
+          }
+          .jaime-hero .k {
+            font-family: ui-monospace, monospace; font-size: 0.62rem;
+            letter-spacing: 0.22em; color: #5eead4; text-transform: uppercase;
+            margin-bottom: 0.45rem;
+          }
+          .jaime-hero h1 {
+            font-size: 1.55rem; font-weight: 700; letter-spacing: -0.03em;
+            color: #ecfdf5; margin: 0 0 0.4rem;
+          }
+          .jaime-hero p { color: rgba(200,230,220,0.78); line-height: 1.55; margin: 0; font-size: 0.95rem; }
+        </style>
+        <div class="jaime-hero">
+          <div class="k">Residual channel · Santos</div>
+          <h1>Jaime Santos</h1>
+          <p>
+            The Division sold the name PIXEL. Residual still keeps Jaime.
+            This channel does not require a keyboard sequence — only proof
+            you found a way in (phrase, dossier, or coastal pass).
+          </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        """
+**File posture.** Natural carrier. Walked away from a leak that cooked the volunteers.  
+Committees called that *success*. Floor staff called it worse.
+
+**Eleven days.** Jaime and Riley shared a corridor. After residual reclassification, Jaime’s sessions showed elevated static on the glass — spectrum lines that only appear when someone is dying slowly enough to notice, or when someone refuses to forget a name.
+
+**Last voluntary line on file.**  
+*“Not you.”* — when asked who built the shell.
+        """
+    )
+    b1, b2 = st.columns(2)
+    with b1:
+        if st.button("← Sealed note", use_container_width=True, key="jaime_to_note"):
+            st.session_state.view = "note"
+            st.rerun()
+    with b2:
+        if st.button("⌂ Home", use_container_width=True, key="jaime_to_home"):
+            st.session_state.view = "home"
+            st.rerun()
+    st.stop()
 
 # ===== DESIGN 1 WAYBAR + NAV (hidden in lab) =====
-if st.session_state.view not in ("lab", "note", "voss_file", "lyrics_full", "callaghan_safe", "board", "nadir", "nadir_transition", "nadir_door"):
+if st.session_state.view not in ("lab", "note", "voss_file", "lyrics_full", "callaghan_safe", "board", "nadir", "nadir_transition", "nadir_door", "jaime_residual"):
     st.markdown(f"""
 <div class="waybar">
   <div class="waybar-left">
@@ -9076,6 +9475,10 @@ if st.session_state.view == "board":
                     save_user_data()
                 except Exception:
                     pass
+            try:
+                complete_quest("board_complete")
+            except Exception:
+                pass
             st.success("You didn’t find a palette… but a **key**.")
             st.markdown(
                 """
@@ -10648,9 +11051,15 @@ if st.session_state.view == "home":
             <span class="pill">{st.session_state.provider}</span>
             <span class="pill">{_wiki_pill}</span>
             <span class="pill">{_web_pill}</span>
+            <span class="pill">◆ {int(st.session_state.get("residuum") or 0)}</span>
           </div>
         </div>
         """, unsafe_allow_html=True)
+        if st.session_state.get("feat_home_orb"):
+            st.markdown('<div class="orb" title="Residual orb"></div>', unsafe_allow_html=True)
+        if st.session_state.get("feat_double_clock"):
+            st.caption(f"London {time_str} · shell clock locked to Europe/London")
+
 
         # Quote of the hour — Codex signal card
         qotd, qotd_author = quote_of_the_day()
@@ -10664,7 +11073,7 @@ if st.session_state.view == "home":
             position: relative;
             border-radius: 20px;
             padding: 1.35rem 1.4rem 1.15rem;
-            margin: 0.35rem 0 0.85rem;
+            margin: 0.35rem 0 0.35rem;
             overflow: hidden;
             border: 1px solid rgba(255,255,255,0.10);
             background:
@@ -10677,7 +11086,15 @@ if st.session_state.view == "home":
               0 1px 0 rgba(255,255,255,0.06) inset,
               0 18px 44px rgba(0,0,0,0.28);
             animation: codexRise 0.65s cubic-bezier(0.22,1,0.36,1) 0.12s both;
+            cursor: pointer;
+            transition: transform 0.28s cubic-bezier(0.22,1,0.36,1), border-color 0.25s ease, box-shadow 0.3s ease;
           }}
+          .codex-qotd:hover {{
+            transform: translateY(-3px) scale(1.01);
+            border-color: rgba(196,167,231,0.45);
+            box-shadow: 0 22px 52px rgba(0,0,0,0.34), 0 0 32px rgba(196,167,231,0.12);
+          }}
+          .codex-qotd:active {{ transform: translateY(-1px) scale(0.995); }}
           .codex-qotd::before {{
             content: "";
             position: absolute; left: 0; right: 0; top: 0; height: 2px;
@@ -10725,31 +11142,99 @@ if st.session_state.view == "home":
             letter-spacing: 0.08em;
             color: rgba(160,160,180,0.7);
           }}
+          .codex-qotd .hint {{
+            margin-top: 0.75rem;
+            font-family: ui-monospace, monospace;
+            font-size: 0.62rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: rgba(196,167,231,0.45);
+          }}
+          /* Fully collapse the Streamlit trigger — card is the only visible control */
+          .qotd-hit {{
+            height: 0 !important;
+            min-height: 0 !important;
+            max-height: 0 !important;
+            overflow: hidden !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+          }}
+          .qotd-hit div[data-testid="stButton"],
+          .qotd-hit div[data-testid="stButton"] button {{
+            height: 0 !important;
+            min-height: 0 !important;
+            max-height: 0 !important;
+            width: 0 !important;
+            opacity: 0 !important;
+            overflow: hidden !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: 0 !important;
+            position: absolute !important;
+            left: -9999px !important;
+          }}
         </style>
-        <div class="codex-qotd">
+        <div class="codex-qotd" id="codex-qotd-card" title="Open sealed note" role="button" tabindex="0">
           <div class="k"><i></i> Signal of the hour</div>
           <div class="q">“{_q_safe}”</div>
           <div class="meta">
             <div class="by">— {_a_safe}</div>
             <div class="when">{date_str} · {time_str} · rotates hourly</div>
           </div>
+          <div class="hint">Tap to open the sealed note</div>
         </div>
             """,
             unsafe_allow_html=True,
         )
-        q1, q2 = st.columns([1, 1])
-        with q1:
-            if st.button("Open sealed note", use_container_width=True, key="qotd_note"):
-                msg = register_qotd_open()
-                if msg:
-                    st.session_state["_egg_flash"] = msg
-                    if "Third knock" in msg:
-                        unlock_theme("Soft Static", "third knock on the quote")
-                unlock_theme("M-119 Amber", "you found the sealed note")
-                st.session_state.view = "note"
-                st.rerun()
-        with q2:
-            st.caption("Tap the note to leave a fingerprint on the residual log.")
+        st.markdown('<div class="qotd-hit">', unsafe_allow_html=True)
+        if st.button("qotd_open_sealed", key="qotd_note", use_container_width=True):
+            msg = register_qotd_open()
+            if msg:
+                st.session_state["_egg_flash"] = msg
+                if "Third knock" in msg:
+                    unlock_theme("Soft Static", "third knock on the quote")
+            unlock_theme("M-119 Amber", "you found the sealed note")
+            try:
+                complete_quest("sealed_note", silent=True)
+            except Exception:
+                pass
+            st.session_state.view = "note"
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.components.v1.html(
+            """
+            <script>
+            (function(){
+              function wire(){
+                try {
+                  var doc = window.parent.document;
+                  var card = doc.getElementById('codex-qotd-card');
+                  if (!card) return;
+                  if (card.dataset.wired === '1') return;
+                  card.dataset.wired = '1';
+                  function fire(){
+                    var buttons = doc.querySelectorAll('button');
+                    for (var i=0;i<buttons.length;i++){
+                      var t = (buttons[i].innerText || buttons[i].textContent || '').trim();
+                      if (t === 'qotd_open_sealed') { buttons[i].click(); return; }
+                    }
+                  }
+                  card.addEventListener('click', fire);
+                  card.addEventListener('keydown', function(e){
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); }
+                  });
+                } catch(e){}
+              }
+              wire();
+              setTimeout(wire, 300);
+              setTimeout(wire, 900);
+            })();
+            </script>
+            """,
+            height=0,
+        )
 
         # ARG anomaly content (only when active)
         if lab_is_unlocked() and glitches_unlocked() and not anomalies_complete():
@@ -10912,6 +11397,10 @@ if prompt := st.chat_input("Ask Meridium anything…"):
     st.session_state.chats[st.session_state.current_chat_id] = current
     if len([m for m in current["messages"] if m["role"] == "user"]) == 1:
         update_chat_title(st.session_state.current_chat_id, prompt)
+        try:
+            complete_quest("first_words")
+        except Exception:
+            pass
     save_user_data()
     with st.chat_message("user"):
         st.markdown(prompt)
@@ -10988,6 +11477,23 @@ if prompt := st.chat_input("Ask Meridium anything…"):
         save_user_data()
         st.rerun()
 
+    # Mobile / phrase path to Jaime residual (no Konami)
+    if prompt.strip().lower() in {
+        "hello jaime", "open jaime", "open pixel", "coastal intake", "jaime santos",
+    }:
+        st.session_state.jaime_dossier_unlocked = True
+        soft = (
+            "The residual channel accepts the phrase. "
+            "Opening **Jaime Santos** — no keyboard sequence required."
+        )
+        with st.chat_message("assistant"):
+            st.markdown(soft)
+        current["messages"].append({"role": "assistant", "content": soft})
+        st.session_state.chats[st.session_state.current_chat_id] = current
+        save_user_data()
+        st.session_state.view = "jaime_residual"
+        st.rerun()
+
     # ARG — Stringbean soft door (Owl House egg)
     if prompt.strip().lower() == "hello stringbean":
         unlock_theme("Stringbean Soft", "the little snake answered")
@@ -11061,6 +11567,10 @@ if prompt := st.chat_input("Ask Meridium anything…"):
                 save_user_data()
             except Exception:
                 pass
+            try:
+                complete_quest("lab_threshold")
+            except Exception:
+                pass
             st.session_state.view = "lab"
             current["messages"].append({"role": "assistant", "content": reply})
             st.session_state.chats[st.session_state.current_chat_id] = current
@@ -11071,6 +11581,10 @@ if prompt := st.chat_input("Ask Meridium anything…"):
             if not st.session_state.get("stabilize_at"):
                 st.session_state.stabilize_at = datetime.now(ZoneInfo("Europe/London")).isoformat()
             unlock_theme("Stabilized Meridium", "the shell accepted the command")
+            try:
+                complete_quest("stabilize")
+            except Exception:
+                pass
         with st.chat_message("assistant"):
             st.markdown(reply)
         current["messages"].append({"role": "assistant", "content": reply})
