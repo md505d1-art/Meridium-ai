@@ -1,3 +1,4 @@
+
 import streamlit as st
 import os
 import re
@@ -1943,11 +1944,12 @@ def owner_grants_save(data: dict) -> None:
 
 
 def apply_owner_grants_for_user(username: str) -> None:
-    """Pull any owner-granted theme/title into this session."""
+    """Pull any owner-granted theme/title/residuum into this session."""
     name = (username or "").strip().lower()
     if not name:
         return
-    grants = owner_grants_load().get(name) or {}
+    all_grants = owner_grants_load()
+    grants = all_grants.get(name) or {}
     if not isinstance(grants, dict):
         return
     title = grants.get("title")
@@ -1965,6 +1967,69 @@ def apply_owner_grants_for_user(username: str) -> None:
         if not st.session_state.get("_owner_force_theme_applied"):
             st.session_state.theme = grants["force_theme"]
             st.session_state._owner_force_theme_applied = True
+    # Pending Residuum gifts — claim once, then clear from grants file
+    pending = grants.get("residuum_pending")
+    try:
+        pending_n = int(pending or 0)
+    except Exception:
+        pending_n = 0
+    if pending_n:
+        try:
+            _ensure_economy()
+        except Exception:
+            if "residuum" not in st.session_state:
+                st.session_state.residuum = 0
+        st.session_state.residuum = int(st.session_state.get("residuum") or 0) + pending_n
+        grants = dict(grants)
+        grants.pop("residuum_pending", None)
+        # Drop empty grant entries
+        if not grants.get("themes") and not grants.get("force_theme") and not grants.get("title") and not grants.get("residuum_pending"):
+            all_grants.pop(name, None)
+        else:
+            all_grants[name] = grants
+        try:
+            owner_grants_save(all_grants)
+        except Exception:
+            pass
+        st.session_state["_egg_flash"] = (
+            f"Owner gift received: **+{pending_n} Residuum**"
+        )
+        try:
+            save_user_data()
+        except Exception:
+            pass
+
+
+def owner_gift_residuum(username: str, amount: int) -> str:
+    """Queue Residuum for a user (applied on their next load). If they are this session, apply now."""
+    name = (username or "").strip().lower()
+    if not name:
+        return "empty"
+    try:
+        amount = int(amount)
+    except Exception:
+        return "bad_amount"
+    if amount == 0:
+        return "zero"
+    # Cap single gifts to avoid accidents
+    if amount > 10000:
+        amount = 10000
+    if amount < -10000:
+        amount = -10000
+    grants = owner_grants_load()
+    entry = dict(grants.get(name) or {})
+    try:
+        pending = int(entry.get("residuum_pending") or 0)
+    except Exception:
+        pending = 0
+    entry["residuum_pending"] = pending + amount
+    grants[name] = entry
+    owner_grants_save(grants)
+    # Live apply if gifting the current signed-in user
+    me = (st.session_state.get("username") or "").strip().lower()
+    if me == name and st.session_state.get("signed_in"):
+        apply_owner_grants_for_user(name)
+    return "ok"
 
 
 CHATROOM_FILE = DATA_DIR / "owner_chatroom.json"
@@ -2875,7 +2940,7 @@ def apply_site_effects_css() -> None:
 # RESIDUUM · QUESTS · BAZAAR
 # ============================================================
 # Currency earned by distinct shell actions (not grind loops).
-# Spend in the Menu → Bazaar on cosmetics, lore, and latent features.
+# Spend in the Menu → Drift Counter on cosmetics, lore, and latent features.
 
 QUESTS = {
     "first_words": {
@@ -2938,21 +3003,21 @@ BAZAAR_ITEMS = {
         "kind": "theme",
         "theme": "TV Girl",
     },
-    "font_newsreader": {
-        "name": "Newsreader face",
+    "font_space": {
+        "name": "Space Grotesk specimen",
         "cat": "Type",
-        "cost": 15,
-        "desc": "Editorial serif for long reading sessions.",
+        "cost": 18,
+        "desc": "Geometric display face — clean, modern, slightly technical.",
         "kind": "font",
-        "font": "Newsreader",
+        "font": "Space Grotesk",
     },
-    "font_jetbrains": {
-        "name": "JetBrains Mono",
+    "font_outfit": {
+        "name": "Outfit specimen",
         "cat": "Type",
-        "cost": 15,
-        "desc": "Monospace specimen for terminal-minded operators.",
+        "cost": 18,
+        "desc": "Soft geometric sans — calm body text with quiet presence.",
         "kind": "font",
-        "font": "JetBrains Mono",
+        "font": "Outfit",
     },
     "lore_santos": {
         "name": "Santos residual dossier",
@@ -3075,76 +3140,241 @@ def buy_bazaar_item(item_id: str) -> str:
 
 
 def render_bazaar_tab():
-    """Menu tab: balance, quest log, shop grid."""
+    """The Drift Counter — Residuum exchange UI."""
     _ensure_economy()
     bal = int(st.session_state.residuum or 0)
+    done = set(st.session_state.quests_done or [])
+    inv = set(st.session_state.inventory or [])
+    n_done = len(done)
+    n_quests = len(QUESTS)
+    n_owned = len(inv)
+
     st.markdown(
         f"""
-        <div style="
-          padding:0.9rem 1rem;border-radius:16px;margin-bottom:0.75rem;
-          border:1px solid rgba(196,167,231,0.28);
-          background:linear-gradient(155deg,rgba(28,18,40,0.75),rgba(12,10,18,0.85));
-        ">
-          <div style="font-family:ui-monospace,monospace;font-size:0.62rem;letter-spacing:0.2em;color:#c4a7e7;margin-bottom:0.35rem">BAZAAR · RESIDUUM</div>
-          <div style="font-size:1.6rem;font-weight:750;letter-spacing:-0.03em;color:#f5edff">{bal}</div>
-          <div style="opacity:0.65;font-size:0.82rem;margin-top:0.15rem">Earned by distinct actions · spent on unique shell goods</div>
+        <style>
+          .drift-shell {{
+            position: relative;
+            border-radius: 22px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(167,139,250,0.35);
+            background:
+              radial-gradient(ellipse at 0% 0%, rgba(167,139,250,0.22), transparent 52%),
+              radial-gradient(ellipse at 100% 100%, rgba(45,212,191,0.12), transparent 48%),
+              linear-gradient(155deg, rgba(16,12,28,0.92) 0%, rgba(8,8,14,0.96) 100%);
+            box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 24px 56px rgba(0,0,0,0.4);
+            backdrop-filter: blur(20px);
+          }}
+          .drift-shell::before {{
+            content: "";
+            position: absolute; left: 0; right: 0; top: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, #a78bfa, #2dd4bf, transparent);
+            animation: codexScanX 5s ease-in-out infinite;
+          }}
+          .drift-inner {{ padding: 1.35rem 1.3rem 1.15rem; }}
+          .drift-brand {{
+            display: flex; align-items: center; gap: 0.85rem;
+            margin-bottom: 1rem;
+          }}
+          .drift-logo {{
+            width: 48px; height: 48px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.35rem; font-weight: 800;
+            color: #0a0a10;
+            background: linear-gradient(135deg, #c4b5fd, #2dd4bf);
+            box-shadow: 0 0 28px rgba(167,139,250,0.35);
+            flex-shrink: 0;
+          }}
+          .drift-name {{
+            font-family: Syne, system-ui, sans-serif;
+            font-weight: 800; font-size: 1.35rem;
+            letter-spacing: -0.03em; color: #faf5ff; line-height: 1.15;
+          }}
+          .drift-tag {{
+            font-family: ui-monospace, monospace;
+            font-size: 0.62rem; letter-spacing: 0.2em;
+            text-transform: uppercase; color: rgba(196,181,253,0.7);
+            margin-top: 0.2rem;
+          }}
+          .drift-stats {{
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.55rem;
+          }}
+          .drift-stat {{
+            text-align: center;
+            padding: 0.7rem 0.4rem;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.04);
+          }}
+          .drift-stat .n {{
+            font-family: Syne, system-ui, sans-serif;
+            font-weight: 800; font-size: 1.25rem;
+            letter-spacing: -0.02em; color: #f5edff;
+          }}
+          .drift-stat .l {{
+            font-size: 0.62rem; letter-spacing: 0.12em;
+            text-transform: uppercase; color: rgba(180,170,210,0.55);
+            margin-top: 0.15rem;
+          }}
+          .drift-stat.bal .n {{
+            background: linear-gradient(120deg, #c4b5fd, #5eead4);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+          }}
+          .drift-card {{
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.09);
+            background: linear-gradient(160deg, rgba(24,20,36,0.75), rgba(12,12,18,0.85));
+            padding: 0.95rem 1rem;
+            margin-bottom: 0.55rem;
+            transition: border-color 0.2s ease, transform 0.2s ease;
+          }}
+          .drift-card:hover {{
+            border-color: rgba(167,139,250,0.35);
+            transform: translateY(-1px);
+          }}
+          .drift-card .cat {{
+            font-family: ui-monospace, monospace;
+            font-size: 0.6rem; letter-spacing: 0.16em;
+            text-transform: uppercase; color: rgba(167,139,250,0.75);
+            margin-bottom: 0.25rem;
+          }}
+          .drift-card .title {{
+            font-weight: 700; font-size: 0.98rem;
+            letter-spacing: -0.02em; color: #f4f0ff;
+            margin-bottom: 0.25rem;
+          }}
+          .drift-card .desc {{
+            font-size: 0.84rem; line-height: 1.45;
+            color: rgba(200,195,220,0.72);
+          }}
+          .drift-price {{
+            font-family: ui-monospace, monospace;
+            font-size: 0.78rem; font-weight: 600;
+            color: #5eead4; letter-spacing: 0.04em;
+          }}
+          .drift-owned {{
+            font-family: ui-monospace, monospace;
+            font-size: 0.72rem; color: rgba(167,139,250,0.8);
+            letter-spacing: 0.08em; text-transform: uppercase;
+          }}
+          .drift-sec {{
+            font-family: ui-monospace, monospace;
+            font-size: 0.62rem; letter-spacing: 0.2em;
+            text-transform: uppercase; color: rgba(196,181,253,0.65);
+            margin: 0.85rem 0 0.5rem;
+          }}
+        </style>
+        <div class="drift-shell">
+          <div class="drift-inner">
+            <div class="drift-brand">
+              <div class="drift-logo">◈</div>
+              <div>
+                <div class="drift-name">The Drift Counter</div>
+                <div class="drift-tag">Meridium exchange · Residuum market</div>
+              </div>
+            </div>
+            <div class="drift-stats">
+              <div class="drift-stat bal"><div class="n">{bal}</div><div class="l">Residuum</div></div>
+              <div class="drift-stat"><div class="n">{n_done}/{n_quests}</div><div class="l">Quests</div></div>
+              <div class="drift-stat"><div class="n">{n_owned}</div><div class="l">Owned</div></div>
+            </div>
+          </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    t_shop, t_quests, t_inv = st.tabs(["Shop", "Quests", "Inventory"])
-    done = set(st.session_state.quests_done or [])
-    inv = set(st.session_state.inventory or [])
+
+    t_shop, t_quests, t_inv = st.tabs(["Counter", "Fieldwork", "Holdings"])
+
     with t_shop:
+        st.caption("Spend Residuum on palettes, type, lore, and latent modules.")
         cats = []
         for it in BAZAAR_ITEMS.values():
             if it["cat"] not in cats:
                 cats.append(it["cat"])
         for cat in cats:
-            st.markdown(f"**{cat}**")
+            st.markdown(f'<div class="drift-sec">{cat}</div>', unsafe_allow_html=True)
             for iid, it in BAZAAR_ITEMS.items():
                 if it["cat"] != cat:
                     continue
                 owned = iid in inv
-                c1, c2 = st.columns([3.4, 1.2])
-                with c1:
-                    st.markdown(
-                        f"**{it['name']}** · `{it['cost']}◆`  \n"
-                        f"<span style='opacity:0.72;font-size:0.84rem'>{it['desc']}</span>",
-                        unsafe_allow_html=True,
-                    )
-                with c2:
+                st.markdown(
+                    f"""
+                    <div class="drift-card">
+                      <div class="cat">{it['cat']}</div>
+                      <div class="title">{it['name']}</div>
+                      <div class="desc">{it['desc']}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                b1, b2 = st.columns([3, 1.2])
+                with b1:
                     if owned:
-                        st.caption("Owned")
+                        st.markdown('<div class="drift-owned">In holdings</div>', unsafe_allow_html=True)
                     else:
-                        if st.button("Buy", key=f"baz_buy_{iid}", use_container_width=True):
+                        st.markdown(f'<div class="drift-price">{it["cost"]} ◆</div>', unsafe_allow_html=True)
+                with b2:
+                    if owned:
+                        st.caption("—")
+                    else:
+                        if st.button("Acquire", key=f"baz_buy_{iid}", use_container_width=True):
                             status = buy_bazaar_item(iid)
                             if status == "ok":
-                                st.success(f"Purchased {it['name']}")
+                                st.success(f"Acquired {it['name']}")
                                 st.rerun()
                             elif status == "broke":
                                 st.warning("Not enough Residuum.")
                             elif status == "owned":
                                 st.info("Already owned.")
-            st.markdown("")
+
     with t_quests:
+        st.caption("One-time fieldwork. Each action pays Residuum once.")
         for qid, q in QUESTS.items():
-            mark = "✓" if qid in done else "·"
+            got = qid in done
+            mark = "DONE" if got else "OPEN"
+            col = "rgba(94,234,212,0.85)" if got else "rgba(196,181,253,0.75)"
             st.markdown(
-                f"{mark} **{q['title']}** · +{q['reward']}◆  \n"
-                f"<span style='opacity:0.7;font-size:0.84rem'>{q['desc']}</span>",
+                f"""
+                <div class="drift-card">
+                  <div class="cat" style="color:{col}">{mark} · +{q['reward']} ◆</div>
+                  <div class="title">{q['title']}</div>
+                  <div class="desc">{q['desc']}</div>
+                </div>
+                """,
                 unsafe_allow_html=True,
             )
+
     with t_inv:
+        st.caption("What the shell already knows you carry.")
         if not inv:
-            st.caption("Empty pockets. Complete quests, then spend Residuum.")
+            st.markdown(
+                """
+                <div class="drift-card">
+                  <div class="title">Empty holdings</div>
+                  <div class="desc">Complete fieldwork, then acquire goods at the Counter.</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
         else:
             for iid in st.session_state.inventory:
-                it = BAZAAR_ITEMS.get(iid) or {"name": iid, "desc": ""}
-                st.markdown(f"**{it.get('name', iid)}**  \n<span style='opacity:0.7'>{it.get('desc','')}</span>", unsafe_allow_html=True)
-        # Coastal / Jaime access from inventory
+                it = BAZAAR_ITEMS.get(iid) or {"name": iid, "desc": "", "cat": "Item"}
+                st.markdown(
+                    f"""
+                    <div class="drift-card">
+                      <div class="cat">{it.get('cat','Item')}</div>
+                      <div class="title">{it.get('name', iid)}</div>
+                      <div class="desc">{it.get('desc','')}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
         if st.session_state.get("jaime_channel_key") or st.session_state.get("jaime_dossier_unlocked"):
-            if st.button("Open Jaime residual channel", use_container_width=True, key="baz_open_jaime"):
+            if st.button("Open Jaime residual channel", use_container_width=True, key="baz_open_jaime", type="primary"):
                 st.session_state.view = "jaime_residual"
                 st.session_state.popup = False
                 st.rerun()
@@ -5235,7 +5465,7 @@ if st.session_state.popup:
         unsafe_allow_html=True,
     )
 
-    m_nav, m_look, m_model, m_bazaar, m_more = st.tabs(["Go", "Look", "Model", "Bazaar", "More"])
+    m_nav, m_look, m_model, m_bazaar, m_more = st.tabs(["Go", "Look", "Model", "Drift Counter", "More"])
 
     with m_nav:
         st.caption("Where do you want to go?")
@@ -5720,7 +5950,7 @@ if st.session_state.view == "note":
     with st.expander("Residual contact (touch devices)", expanded=False):
         st.caption(
             "Desktop note_view listens for the Konami sequence. "
-            "On phones, use the phrase pad below — or buy the Coastal intake pass / Santos dossier in **Menu → Bazaar**."
+            "On phones, use the phrase pad below — or buy the Coastal intake pass / Santos dossier in **Menu → Drift Counter**."
         )
         phrase = st.text_input(
             "Phrase",
@@ -10467,13 +10697,62 @@ if st.session_state.view == "owner":
     # ---------- GRANTS ----------
     with tab_grants:
         st.markdown('<div class="own-section-label">Grants</div>', unsafe_allow_html=True)
-        st.markdown("Gift a theme or title to any username — residual badges, secret palettes.")
+        st.markdown("Gift themes, titles, or **Residuum** to any username.")
         target = st.text_input(
             "Username",
             key="owner_grant_user",
             placeholder="exact name",
             value=st.session_state.get("owner_grant_user") or "",
         )
+
+        st.markdown("##### Residuum gift")
+        st.caption("Queued until they next load Meridium · applied instantly if they are you / already online in this session.")
+        rc1, rc2, rc3 = st.columns([2, 1, 1])
+        with rc1:
+            gift_amount = st.number_input(
+                "Amount (◆)",
+                min_value=-10000,
+                max_value=10000,
+                value=25,
+                step=5,
+                key="owner_residuum_amount",
+            )
+        with rc2:
+            if st.button("Gift Residuum", key="owner_residuum_gift", type="primary", use_container_width=True):
+                tname = (target or "").strip().lower()
+                if not tname:
+                    st.error("Enter a username.")
+                else:
+                    status = owner_gift_residuum(tname, int(gift_amount))
+                    if status == "ok":
+                        sign = "+" if int(gift_amount) >= 0 else ""
+                        st.success(f"Queued **{sign}{int(gift_amount)} ◆** for **{tname}**.")
+                        st.rerun()
+                    elif status == "zero":
+                        st.info("Amount is zero — nothing queued.")
+                    else:
+                        st.error("Could not gift Residuum.")
+        with rc3:
+            if st.button("Clear pending ◆", key="owner_residuum_clear", use_container_width=True):
+                tname = (target or "").strip().lower()
+                if not tname:
+                    st.error("Enter a username.")
+                else:
+                    grants = owner_grants_load()
+                    entry = dict(grants.get(tname) or {})
+                    if "residuum_pending" in entry:
+                        entry.pop("residuum_pending", None)
+                        if not entry.get("themes") and not entry.get("force_theme") and not entry.get("title"):
+                            grants.pop(tname, None)
+                        else:
+                            grants[tname] = entry
+                        owner_grants_save(grants)
+                        st.success(f"Cleared pending Residuum for **{tname}**.")
+                    else:
+                        st.info("No pending Residuum for that user.")
+                    st.rerun()
+
+        st.markdown("##### Theme & title")
         all_themes = list(THEMES.keys()) + list(SECRET_THEMES.keys()) + list(OWNER_THEMES.keys())
         grant_theme = st.selectbox("Unlock theme", ["(none)"] + all_themes, key="owner_grant_theme")
         force_theme = st.checkbox("Force their active theme to this", key="owner_force_theme")
@@ -10560,10 +10839,15 @@ if st.session_state.view == "owner":
                 themes = entry.get("themes") or []
                 title = entry.get("title") or ""
                 force = entry.get("force_theme") or ""
+                try:
+                    pending_r = int(entry.get("residuum_pending") or 0)
+                except Exception:
+                    pending_r = 0
                 st.markdown(
                     f"**{uname}** · themes: `{', '.join(themes) if themes else '—'}`"
                     + (f" · title: *{title}*" if title else "")
                     + (f" · force: `{force}`" if force else "")
+                    + (f" · pending ◆: `{pending_r}`" if pending_r else "")
                 )
 
     # ---------- ARG ----------
@@ -11142,14 +11426,6 @@ if st.session_state.view == "home":
             letter-spacing: 0.08em;
             color: rgba(160,160,180,0.7);
           }}
-          .codex-qotd .hint {{
-            margin-top: 0.75rem;
-            font-family: ui-monospace, monospace;
-            font-size: 0.62rem;
-            letter-spacing: 0.14em;
-            text-transform: uppercase;
-            color: rgba(196,167,231,0.45);
-          }}
           /* Fully collapse the Streamlit trigger — card is the only visible control */
           .qotd-hit {{
             height: 0 !important;
@@ -11183,12 +11459,26 @@ if st.session_state.view == "home":
             <div class="by">— {_a_safe}</div>
             <div class="when">{date_str} · {time_str} · rotates hourly</div>
           </div>
-          <div class="hint">Tap to open the sealed note</div>
         </div>
             """,
             unsafe_allow_html=True,
         )
-        st.markdown('<div class="qotd-hit">', unsafe_allow_html=True)
+        st.markdown(
+            """
+            <style>
+              /* Nuke any leftover sealed-note controls under the signal card */
+              .qotd-hit, .qotd-hit * {
+                height: 0 !important; max-height: 0 !important; min-height: 0 !important;
+                overflow: hidden !important; opacity: 0 !important;
+                margin: 0 !important; padding: 0 !important; border: 0 !important;
+                pointer-events: none !important; position: absolute !important;
+                left: -9999px !important; width: 0 !important;
+              }
+            </style>
+            <div class="qotd-hit">
+            """,
+            unsafe_allow_html=True,
+        )
         if st.button("qotd_open_sealed", key="qotd_note", use_container_width=True):
             msg = register_qotd_open()
             if msg:
