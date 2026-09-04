@@ -2227,6 +2227,15 @@ _DEFAULT_SITE_EFFECTS = {
     "slow_aurora": False,
     "ember_glow": False,
     "cyber_grid": False,
+    # Owner shell controls
+    "maintenance_mode": False,
+    "maintenance_message": "Meridium is under brief maintenance. Return in a moment.",
+    "guest_chat_lock": False,
+    "economy_paused": False,
+    "global_toast": "",
+    "force_home_only": False,
+    "hide_drift_counter": False,
+    "owner_motd": "",
 }
 
 
@@ -3094,6 +3103,11 @@ def _ensure_economy():
 
 def complete_quest(quest_id: str, silent: bool = False) -> bool:
     """Award residuum once per quest id. Returns True if newly completed."""
+    try:
+        if site_effects_load().get("economy_paused"):
+            return False
+    except Exception:
+        pass
     _ensure_economy()
     q = QUESTS.get(quest_id)
     if not q:
@@ -5051,178 +5065,159 @@ if not st.session_state.get("signed_in") or not st.session_state.get("username")
     st.markdown(
         """
         <style>
-          @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Syne:wght@600;700&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Syne:wght@600;700;800&display=swap');
 
-          .stApp, [data-testid="stAppViewContainer"] {
+          html, body, .stApp, [data-testid="stAppViewContainer"],
+          section.main, [data-testid="stAppViewBlockContainer"] {
+            min-height: 100vh !important;
             background:
-              radial-gradient(900px 520px at 12% -8%, rgba(196,167,231,0.22), transparent 55%),
-              radial-gradient(700px 420px at 95% 8%, rgba(157,124,216,0.16), transparent 50%),
-              radial-gradient(600px 380px at 50% 110%, rgba(196,167,231,0.10), transparent 45%),
-              #0c0c10 !important;
+              radial-gradient(ellipse 900px 600px at 15% -10%, rgba(167,139,250,0.28), transparent 55%),
+              radial-gradient(ellipse 700px 500px at 95% 10%, rgba(94,234,212,0.12), transparent 50%),
+              radial-gradient(ellipse 600px 400px at 50% 110%, rgba(196,167,231,0.12), transparent 45%),
+              linear-gradient(180deg, #08070e 0%, #0c0b14 50%, #0a0910 100%) !important;
           }
           .block-container {
-            max-width: 480px !important;
-            padding-top: 4.5vh !important;
-            padding-bottom: 2rem !important;
+            max-width: 520px !important;
+            padding-top: 6vh !important;
+            padding-bottom: 3rem !important;
           }
-          [data-testid="stHeader"], footer, #MainMenu { display: none !important; }
+          [data-testid="stHeader"], footer, #MainMenu, [data-testid="stToolbar"] { display: none !important; }
+
+          .si-orbit {
+            position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0;
+          }
+          .si-orbit span {
+            position: absolute; border-radius: 50%;
+            border: 1px solid rgba(196,167,231,0.08);
+            animation: siFloat 14s ease-in-out infinite;
+          }
+          .si-orbit span:nth-child(1) { width: 280px; height: 280px; top: -60px; left: -40px; }
+          .si-orbit span:nth-child(2) { width: 180px; height: 180px; bottom: 10%; right: -30px; animation-delay: -4s; }
+          .si-orbit span:nth-child(3) { width: 100px; height: 100px; top: 40%; left: 8%; animation-delay: -7s; border-color: rgba(94,234,212,0.1); }
 
           .si-wrap {
-            position: relative;
+            position: relative; z-index: 1;
             margin: 0 auto;
-            padding: 2.1rem 1.55rem 1.45rem;
-            border-radius: 22px;
+            padding: 2.35rem 1.7rem 1.6rem;
+            border-radius: 26px;
             overflow: hidden;
-            border: 1px solid rgba(196,167,231,0.28);
+            border: 1px solid rgba(196,167,231,0.32);
             background:
-              radial-gradient(ellipse at 20% 0%, rgba(196,167,231,0.18), transparent 50%),
-              radial-gradient(ellipse at 90% 100%, rgba(157,124,216,0.12), transparent 45%),
-              linear-gradient(165deg, rgba(28,22,40,0.92) 0%, rgba(14,12,20,0.96) 100%);
+              radial-gradient(ellipse at 18% 0%, rgba(196,167,231,0.22), transparent 52%),
+              radial-gradient(ellipse at 92% 100%, rgba(94,234,212,0.1), transparent 48%),
+              linear-gradient(165deg, rgba(30,24,44,0.94) 0%, rgba(12,10,18,0.97) 100%);
             box-shadow:
-              0 30px 80px rgba(0,0,0,0.55),
-              0 0 60px rgba(167,139,250,0.12),
-              inset 0 1px 0 rgba(255,255,255,0.06);
+              0 36px 90px rgba(0,0,0,0.55),
+              0 0 80px rgba(167,139,250,0.14),
+              inset 0 1px 0 rgba(255,255,255,0.07);
             text-align: center;
-            animation: siIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+            animation: siIn 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+            backdrop-filter: blur(20px);
           }
           .si-wrap::before {
             content: "";
             position: absolute; left: 0; right: 0; top: 0; height: 2px;
-            background: linear-gradient(90deg, transparent, #c4a7e7, #9d7cd8, #c4a7e7, transparent);
-            opacity: 0.9;
+            background: linear-gradient(90deg, transparent, #c4a7e7, #5eead4, #c4a7e7, transparent);
+            opacity: 0.95;
+            animation: siScan 4.5s ease-in-out infinite;
           }
           .si-wrap::after {
             content: "";
             position: absolute; inset: 0;
-            background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.04) 50%, transparent 65%);
+            background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.045) 50%, transparent 65%);
             background-size: 220% 100%;
-            animation: siSheen 8s ease-in-out infinite;
+            animation: siSheen 9s ease-in-out infinite;
             pointer-events: none;
           }
 
           .si-mark {
             position: relative; z-index: 1;
-            width: 64px; height: 64px; margin: 0 auto 1.05rem;
-            border-radius: 18px;
+            width: 72px; height: 72px; margin: 0 auto 1.1rem;
+            border-radius: 22px;
             display: flex; align-items: center; justify-content: center;
-            background: linear-gradient(135deg, #c4a7e7, #9d7cd8 55%, #7c3aed);
-            box-shadow:
-              0 0 32px rgba(167,139,250,0.45),
-              0 12px 28px rgba(0,0,0,0.35),
-              inset 0 1px 0 rgba(255,255,255,0.25);
-            color: #fff;
-            font-family: Syne, system-ui, sans-serif;
-            font-weight: 700;
-            font-size: 1.55rem;
-            letter-spacing: -0.04em;
+            font-size: 1.85rem; font-weight: 800; color: #0a0a10;
+            background: linear-gradient(135deg, #c4b5fd 0%, #a78bfa 45%, #5eead4 100%);
+            box-shadow: 0 0 36px rgba(167,139,250,0.45), 0 14px 28px rgba(0,0,0,0.35);
             animation: siPulse 3.2s ease-in-out infinite;
           }
-
           .si-kicker {
             position: relative; z-index: 1;
-            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-            font-size: 0.62rem;
-            letter-spacing: 0.28em;
-            text-transform: uppercase;
-            color: #c4a7e7;
-            opacity: 0.85;
-            margin-bottom: 0.55rem;
+            font-family: ui-monospace, monospace;
+            font-size: 0.68rem; letter-spacing: 0.28em; text-transform: uppercase;
+            color: rgba(196,167,231,0.8); margin-bottom: 0.55rem;
           }
           .si-title {
             position: relative; z-index: 1;
             font-family: Syne, system-ui, sans-serif;
-            font-weight: 700;
-            font-size: clamp(1.85rem, 5vw, 2.25rem);
-            letter-spacing: -0.03em;
-            color: #f5f0ff;
-            margin: 0 0 0.4rem;
-            line-height: 1.15;
+            font-size: clamp(2.1rem, 7vw, 2.75rem);
+            font-weight: 800; letter-spacing: -0.04em;
+            color: #faf7ff; margin: 0 0 0.55rem;
+            background: linear-gradient(120deg, #faf7ff 20%, #c4a7e7 55%, #5eead4 100%);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
           }
           .si-sub {
             position: relative; z-index: 1;
-            font-family: 'Cormorant Garamond', Georgia, serif;
-            font-style: italic;
-            font-size: 1.12rem;
-            color: rgba(230,220,250,0.78);
-            line-height: 1.45;
-            margin: 0 auto 1.05rem;
-            max-width: 22rem;
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-style: italic; font-size: 1.12rem;
+            color: rgba(210,200,230,0.82); line-height: 1.45;
+            margin: 0 auto 1.15rem; max-width: 20rem;
           }
           .si-ridge {
             position: relative; z-index: 1;
-            height: 1px; margin: 0.35rem auto 1.15rem;
-            max-width: 12rem;
-            background: linear-gradient(90deg, transparent, #c4a7e7, transparent);
-            opacity: 0.55;
+            height: 1px; margin: 0.4rem auto 1rem; max-width: 200px;
+            background: linear-gradient(90deg, transparent, rgba(196,167,231,0.45), transparent);
           }
           .si-pills {
             position: relative; z-index: 1;
             display: flex; flex-wrap: wrap; gap: 0.4rem;
             justify-content: center;
-            margin-bottom: 0.15rem;
           }
           .si-pill {
-            display: inline-flex; align-items: center; gap: 0.3rem;
-            padding: 0.28rem 0.7rem;
-            border-radius: 999px;
             font-family: ui-monospace, monospace;
-            font-size: 0.65rem;
-            letter-spacing: 0.06em;
-            color: #c4a7e7;
-            background: rgba(196,167,231,0.10);
+            font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase;
+            padding: 0.35rem 0.65rem; border-radius: 999px;
+            color: rgba(220,210,240,0.85);
             border: 1px solid rgba(196,167,231,0.22);
+            background: rgba(255,255,255,0.04);
           }
-          .si-foot {
-            position: relative; z-index: 1;
-            margin-top: 1.15rem;
-            font-family: ui-monospace, monospace;
-            font-size: 0.64rem;
-            letter-spacing: 0.08em;
-            color: rgba(180,170,200,0.45);
-            line-height: 1.55;
-          }
-
           .si-owner-note {
-            margin: 0.35rem 0 0.55rem;
-            padding: 0.55rem 0.75rem;
-            border-radius: 12px;
-            border: 1px solid rgba(196,167,231,0.28);
-            background: rgba(28,16,48,0.55);
-            color: #d8c8f0;
-            font-family: ui-monospace, monospace;
-            font-size: 0.72rem;
-            letter-spacing: 0.06em;
             text-align: center;
+            font-family: ui-monospace, monospace;
+            font-size: 0.68rem; letter-spacing: 0.16em;
+            color: #c4a7e7; margin: 0.6rem 0 0.35rem;
           }
 
-          /* Tighten Streamlit inputs on this page */
           div[data-testid="stTextInput"] input {
             border-radius: 14px !important;
-            min-height: 48px !important;
+            border: 1px solid rgba(196,167,231,0.28) !important;
+            background: rgba(16,14,24,0.85) !important;
+            color: #f0eef8 !important;
+            padding: 0.85rem 1rem !important;
             font-size: 1rem !important;
-            text-align: center !important;
-            letter-spacing: 0.02em;
           }
-          div[data-testid="stTextInput"] label { display: none !important; }
-          .stButton > button[kind="primary"],
-          button[data-testid="baseButton-primary"] {
-            min-height: 48px !important;
+          div[data-testid="stTextInput"] input:focus {
+            border-color: rgba(196,167,231,0.55) !important;
+            box-shadow: 0 0 0 3px rgba(167,139,250,0.18) !important;
+          }
+          div[data-testid="stButton"] button[kind="primary"] {
             border-radius: 14px !important;
-            font-weight: 600 !important;
+            min-height: 3rem !important;
+            font-weight: 700 !important;
             letter-spacing: 0.02em !important;
-            background: linear-gradient(135deg, rgba(196,167,231,0.28), rgba(157,124,216,0.22)) !important;
-            border: 1px solid rgba(196,167,231,0.55) !important;
-            color: #f3e8ff !important;
-            box-shadow: 0 8px 28px rgba(167,139,250,0.22) !important;
+            background: linear-gradient(135deg, #a78bfa, #7c3aed) !important;
+            border: 1px solid rgba(196,167,231,0.45) !important;
+            box-shadow: 0 8px 28px rgba(124,58,237,0.35) !important;
+            transition: transform 0.2s ease, box-shadow 0.2s ease !important;
           }
-          .stButton > button[kind="primary"]:hover {
+          div[data-testid="stButton"] button[kind="primary"]:hover {
             border-color: #c4a7e7 !important;
-            box-shadow: 0 10px 36px rgba(167,139,250,0.35) !important;
-            transform: translateY(-1px);
+            box-shadow: 0 12px 40px rgba(167,139,250,0.4) !important;
+            transform: translateY(-2px);
           }
 
           @keyframes siIn {
-            from { opacity: 0; transform: translateY(18px) scale(0.98); filter: blur(6px); }
+            from { opacity: 0; transform: translateY(22px) scale(0.97); filter: blur(8px); }
             to   { opacity: 1; transform: none; filter: none; }
           }
           @keyframes siSheen {
@@ -5231,15 +5226,23 @@ if not st.session_state.get("signed_in") or not st.session_state.get("username")
           }
           @keyframes siPulse {
             0%, 100% { box-shadow: 0 0 28px rgba(167,139,250,0.4), 0 12px 28px rgba(0,0,0,0.35); }
-            50% { box-shadow: 0 0 42px rgba(196,167,231,0.55), 0 12px 28px rgba(0,0,0,0.35); }
+            50% { box-shadow: 0 0 48px rgba(196,167,231,0.6), 0 12px 28px rgba(0,0,0,0.35); }
+          }
+          @keyframes siScan {
+            0%, 100% { opacity: 0.55; filter: brightness(1); }
+            50% { opacity: 1; filter: brightness(1.25); }
+          }
+          @keyframes siFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(18px); }
           }
         </style>
-
+        <div class="si-orbit"><span></span><span></span><span></span></div>
         <div class="si-wrap">
           <div class="si-mark">◈</div>
           <div class="si-kicker">Quiet intelligence shell</div>
           <div class="si-title">Meridium</div>
-          <div class="si-sub">A calm room for thought. Enter your name to open Meridium.</div>
+          <div class="si-sub">A calm room for thought. Enter your name to open the shell.</div>
           <div class="si-ridge"></div>
           <div class="si-pills">
             <span class="si-pill">Caelestia</span>
@@ -5251,7 +5254,7 @@ if not st.session_state.get("signed_in") or not st.session_state.get("username")
         unsafe_allow_html=True,
     )
 
-    st.markdown("<div style='height:1.1rem'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:1.25rem'></div>", unsafe_allow_html=True)
 
     name = st.text_input(
         "Your name",
@@ -5414,29 +5417,202 @@ if (
             chatroom_decline(_inv_user)
             st.rerun()
 
-# Personalized intro (once after sign-in)
+# Personalized intro (once after sign-in) — true fullscreen veil
 if st.session_state.show_intro:
     user = st.session_state.username
     if is_owner(user):
-        intro_main = f'Welcome home, <span style="color:#c4a7e7;">{user}</span>'
+        intro_main = f'Welcome home, <span>{user}</span>'
         intro_sub = "Meridium recognises you as its owner"
     else:
-        intro_main = f'Hello, <span style="color:#c4a7e7;">{user}</span>'
-        intro_sub = "Personal intelligence"
+        intro_main = f'Hello, <span>{user}</span>'
+        intro_sub = "Personal intelligence · Caelestia shell"
     st.markdown(f"""
-    <div style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
-    background:#0c0c10;animation:introFade 2.3s ease forwards;">
-      <div style="text-align:center;">
-        <div style="font-size:0.72rem;letter-spacing:0.22em;text-transform:uppercase;color:#c4a7e7;margin-bottom:12px;">Meridium</div>
-        <div style="font-size:1.9rem;font-weight:600;color:#e8e6f0;">{intro_main}</div>
-        <div style="margin-top:10px;font-size:0.9rem;color:#8b8798;">{intro_sub}</div>
+    <style>
+      html, body, .stApp, [data-testid="stAppViewContainer"],
+      section.main, [data-testid="stAppViewBlockContainer"],
+      .block-container, [data-testid="stMain"] {{
+        margin: 0 !important; padding: 0 !important;
+        max-width: 100% !important; width: 100% !important;
+        min-height: 100vh !important; height: 100% !important;
+        background: #07060c !important;
+        overflow: hidden !important;
+      }}
+      [data-testid="stHeader"], footer, #MainMenu, [data-testid="stToolbar"],
+      [data-testid="stDecoration"], [data-testid="stStatusWidget"] {{
+        display: none !important;
+      }}
+      @keyframes introVeil {{
+        0%   {{ opacity: 0; }}
+        12%  {{ opacity: 1; }}
+        72%  {{ opacity: 1; }}
+        100% {{ opacity: 0; }}
+      }}
+      @keyframes introRise {{
+        from {{ opacity: 0; transform: translateY(16px); filter: blur(8px); }}
+        to   {{ opacity: 1; transform: none; filter: none; }}
+      }}
+      @keyframes introScan {{
+        0%, 100% {{ transform: translateX(-30%); opacity: 0.4; }}
+        50% {{ transform: translateX(30%); opacity: 1; }}
+      }}
+      .intro-veil {{
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        min-height: 100dvh !important;
+        z-index: 2147483647 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background:
+          radial-gradient(ellipse 80% 50% at 50% 40%, rgba(167,139,250,0.16), transparent 60%),
+          radial-gradient(ellipse 60% 40% at 80% 80%, rgba(45,212,191,0.08), transparent 50%),
+          #07060c !important;
+        animation: introVeil 2.4s ease forwards;
+        pointer-events: none;
+      }}
+      .intro-inner {{ text-align: center; padding: 1.5rem; animation: introRise 0.85s cubic-bezier(0.22,1,0.36,1) 0.15s both; }}
+      .intro-k {{
+        font-family: ui-monospace, monospace;
+        font-size: 0.7rem; letter-spacing: 0.28em; text-transform: uppercase;
+        color: #c4a7e7; margin-bottom: 1rem;
+      }}
+      .intro-k::after {{
+        content: ""; display: block; width: 48px; height: 2px; margin: 0.75rem auto 0;
+        background: linear-gradient(90deg, transparent, #c4a7e7, transparent);
+        animation: introScan 2s ease-in-out infinite;
+      }}
+      .intro-main {{
+        font-family: Syne, system-ui, sans-serif;
+        font-size: clamp(1.6rem, 5vw, 2.35rem);
+        font-weight: 700; letter-spacing: -0.03em;
+        color: #f4f0ff; line-height: 1.2;
+      }}
+      .intro-main span {{
+        background: linear-gradient(120deg, #c4a7e7, #5eead4);
+        -webkit-background-clip: text; background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }}
+      .intro-sub {{
+        margin-top: 0.85rem;
+        font-size: 0.95rem; color: rgba(180,170,200,0.72);
+        letter-spacing: 0.02em;
+      }}
+    </style>
+    <div class="intro-veil">
+      <div class="intro-inner">
+        <div class="intro-k">Meridium</div>
+        <div class="intro-main">{intro_main}</div>
+        <div class="intro-sub">{intro_sub}</div>
       </div>
     </div>
-    <style>@keyframes introFade{{0%,65%{{opacity:1}}100%{{opacity:0;pointer-events:none}}}}</style>
     """, unsafe_allow_html=True)
-    time.sleep(2.2)
+    time.sleep(2.3)
     st.session_state.show_intro = False
     st.rerun()
+
+# ===== SEALED NOTE (query param → open note; must run before home) =====
+try:
+    if st.session_state.get("signed_in") and str(st.query_params.get("sealed") or "") == "1":
+        try:
+            del st.query_params["sealed"]
+        except Exception:
+            try:
+                st.query_params.from_dict({})
+            except Exception:
+                pass
+        msg = register_qotd_open()
+        if msg:
+            st.session_state["_egg_flash"] = msg
+            if "Third knock" in str(msg):
+                unlock_theme("Soft Static", "third knock on the quote")
+        unlock_theme("M-119 Amber", "you found the sealed note")
+        try:
+            complete_quest("sealed_note", silent=True)
+        except Exception:
+            pass
+        st.session_state.view = "note"
+except Exception:
+    pass
+
+# Maintenance mode — guests blocked from shell (owner always passes)
+try:
+    _fx_gate = site_effects_load()
+    if (
+        st.session_state.get("signed_in")
+        and _fx_gate.get("maintenance_mode")
+        and not is_owner(st.session_state.get("username") or "")
+    ):
+        _mm = str(_fx_gate.get("maintenance_message") or "Meridium is under maintenance.").strip()
+        st.markdown(
+            f"""
+            <style>
+              .stApp, [data-testid="stAppViewContainer"] {{
+                background: #07060a !important;
+              }}
+              [data-testid="stHeader"], footer, #MainMenu {{ display:none !important; }}
+              .maint-wrap {{
+                min-height: 70vh; display:flex; align-items:center; justify-content:center;
+                text-align:center; padding: 2rem 1.25rem;
+              }}
+              .maint-card {{
+                max-width: 420px; padding: 2rem 1.5rem; border-radius: 22px;
+                border: 1px solid rgba(196,167,231,0.28);
+                background: linear-gradient(160deg, rgba(28,22,40,0.95), rgba(10,10,16,0.98));
+                box-shadow: 0 24px 60px rgba(0,0,0,0.45);
+              }}
+              .maint-card .k {{
+                font-family: ui-monospace, monospace; font-size: 0.65rem;
+                letter-spacing: 0.22em; color: #c4a7e7; text-transform: uppercase;
+                margin-bottom: 0.75rem;
+              }}
+              .maint-card h1 {{
+                font-size: 1.45rem; color: #f0eef8; margin: 0 0 0.6rem;
+                letter-spacing: -0.02em;
+              }}
+              .maint-card p {{ color: #9a94a8; line-height: 1.55; margin: 0; }}
+            </style>
+            <div class="maint-wrap"><div class="maint-card">
+              <div class="k">Meridium · maintenance</div>
+              <h1>Shell paused</h1>
+              <p>{_mm.replace('<','&lt;')}</p>
+            </div></div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("Sign out", key="maint_signout", use_container_width=True):
+            reset_user_session(keep_auth=False)
+            st.rerun()
+        st.stop()
+except Exception:
+    pass
+
+# Force guests to Home only
+try:
+    _fx_fh = site_effects_load()
+    if (
+        st.session_state.get("signed_in")
+        and _fx_fh.get("force_home_only")
+        and not is_owner(st.session_state.get("username") or "")
+        and st.session_state.get("view") not in ("home", None, "")
+    ):
+        st.session_state.view = "home"
+except Exception:
+    pass
+
+# Owner MOTD / global toast (one-shot style banner)
+try:
+    _fx_toast = site_effects_load()
+    _toast = str(_fx_toast.get("global_toast") or "").strip()
+    _motd = str(_fx_toast.get("owner_motd") or "").strip()
+    if st.session_state.get("signed_in") and _toast and st.session_state.get("_seen_global_toast") != _toast:
+        st.info(_toast)
+        st.session_state["_seen_global_toast"] = _toast
+    if st.session_state.get("signed_in") and _motd and is_owner(st.session_state.get("username") or ""):
+        st.caption(f"Owner MOTD · {_motd}")
+except Exception:
+    pass
 
 # ===== DESIGN 4 MENU (Night Bloom) =====
 if st.session_state.popup:
@@ -5989,6 +6165,8 @@ if st.session_state.view == "note":
                     "<p style='color:#a08090;font-size:0.88rem'>The channel does not answer that phrase.</p>",
                     unsafe_allow_html=True,
                 )
+    # Prevent falling through into home / chat routes
+    st.stop()
 
 if st.session_state.view == "jaime_residual":
     if not (
@@ -10934,6 +11112,81 @@ if st.session_state.view == "owner":
     # ---------- TOOLS ----------
     with tab_tools:
         st.markdown('<div class="own-section-label">System tools</div>', unsafe_allow_html=True)
+
+        st.markdown("##### Shell command")
+        st.caption("Site-wide controls that affect every signed-in guest. Owner always bypasses maintenance.")
+        _sfx = site_effects_load()
+        with st.form("owner_shell_command"):
+            sc1, sc2 = st.columns(2)
+            with sc1:
+                maint = st.checkbox("Maintenance mode", value=bool(_sfx.get("maintenance_mode")), key="sc_maint")
+                guest_lock = st.checkbox("Lock guest chat", value=bool(_sfx.get("guest_chat_lock")), key="sc_gchat")
+                econ_pause = st.checkbox("Pause Residuum economy", value=bool(_sfx.get("economy_paused")), key="sc_econ")
+                hide_drift = st.checkbox("Hide Drift Counter", value=bool(_sfx.get("hide_drift_counter")), key="sc_drift")
+            with sc2:
+                force_home = st.checkbox("Force guests to Home only", value=bool(_sfx.get("force_home_only")), key="sc_fhome")
+            maint_msg = st.text_area(
+                "Maintenance message",
+                value=str(_sfx.get("maintenance_message") or ""),
+                max_chars=280,
+                key="sc_maint_msg",
+            )
+            global_toast = st.text_input(
+                "Global toast (shown once per user)",
+                value=str(_sfx.get("global_toast") or ""),
+                max_chars=180,
+                key="sc_toast",
+            )
+            owner_motd = st.text_input(
+                "Owner MOTD (only you see this)",
+                value=str(_sfx.get("owner_motd") or ""),
+                max_chars=160,
+                key="sc_motd",
+            )
+            saved_shell = st.form_submit_button("Save shell command", type="primary", use_container_width=True)
+        if saved_shell:
+            cur = dict(site_effects_load())
+            cur["maintenance_mode"] = bool(maint)
+            cur["maintenance_message"] = str(maint_msg or "").strip()[:280]
+            cur["guest_chat_lock"] = bool(guest_lock)
+            cur["economy_paused"] = bool(econ_pause)
+            cur["hide_drift_counter"] = bool(hide_drift)
+            cur["force_home_only"] = bool(force_home)
+            cur["global_toast"] = str(global_toast or "").strip()[:180]
+            cur["owner_motd"] = str(owner_motd or "").strip()[:160]
+            site_effects_save(cur)
+            st.success("Shell command saved — live for all sessions on next load.")
+            st.rerun()
+
+        qk1, qk2, qk3 = st.columns(3)
+        with qk1:
+            if st.button("All clear (open shell)", key="sc_allclear", use_container_width=True):
+                cur = dict(site_effects_load())
+                cur["maintenance_mode"] = False
+                cur["guest_chat_lock"] = False
+                cur["force_home_only"] = False
+                cur["economy_paused"] = False
+                cur["global_toast"] = ""
+                site_effects_save(cur)
+                st.success("Shell fully open.")
+                st.rerun()
+        with qk2:
+            if st.button("Flash maintenance 5m note", key="sc_flash_maint", use_container_width=True):
+                cur = dict(site_effects_load())
+                cur["maintenance_mode"] = True
+                cur["maintenance_message"] = "Brief residual maintenance — back in a few minutes."
+                site_effects_save(cur)
+                st.success("Maintenance on.")
+                st.rerun()
+        with qk3:
+            if st.button("Gift 50◆ to yourself", key="sc_self_residuum", use_container_width=True):
+                me = (st.session_state.get("username") or "").strip().lower()
+                if me:
+                    owner_gift_residuum(me, 50)
+                    st.success("+50 Residuum queued for you.")
+                    st.rerun()
+
+        st.markdown("---")
         t1, t2 = st.columns(2)
         with t1:
             st.markdown("**Presence**")
@@ -11305,9 +11558,15 @@ if st.session_state.view == "home":
         if st.button("☰  Menu", use_container_width=True, key="bm_menu"):
             st.session_state.popup = True
             st.rerun()
-        if st.button("◈  Drift Counter", use_container_width=True, key="bm_drift"):
-            st.session_state.view = "drift"
-            st.rerun()
+        _hide_drift = False
+        try:
+            _hide_drift = bool(site_effects_load().get("hide_drift_counter"))
+        except Exception:
+            pass
+        if not _hide_drift:
+            if st.button("◈  Drift Counter", use_container_width=True, key="bm_drift"):
+                st.session_state.view = "drift"
+                st.rerun()
         if is_owner(st.session_state.get("username") or ""):
             if st.button("👑  Owner", use_container_width=True, key="bm_owner"):
                 st.session_state.view = "owner"
@@ -11382,31 +11641,6 @@ if st.session_state.view == "home":
         if st.session_state.get("feat_double_clock"):
             st.caption(f"London {time_str} · shell clock locked to Europe/London")
 
-
-        # Quote of the hour — clickable card via query param (no extra button)
-        try:
-            if st.query_params.get("sealed") == "1":
-                try:
-                    del st.query_params["sealed"]
-                except Exception:
-                    try:
-                        st.query_params.clear()
-                    except Exception:
-                        pass
-                msg = register_qotd_open()
-                if msg:
-                    st.session_state["_egg_flash"] = msg
-                    if "Third knock" in str(msg):
-                        unlock_theme("Soft Static", "third knock on the quote")
-                unlock_theme("M-119 Amber", "you found the sealed note")
-                try:
-                    complete_quest("sealed_note", silent=True)
-                except Exception:
-                    pass
-                st.session_state.view = "note"
-                st.rerun()
-        except Exception:
-            pass
 
         qotd, qotd_author = quote_of_the_day()
         import html as _html_q
@@ -11744,6 +11978,19 @@ if prompt := st.chat_input("Ask Meridium anything…"):
         st.session_state.chats[st.session_state.current_chat_id] = current
         save_user_data()
         st.rerun()
+
+    # Guest chat lock (owner site control)
+    try:
+        if site_effects_load().get("guest_chat_lock") and not is_owner(st.session_state.get("username") or ""):
+            soft = "Guest chat is temporarily locked by the owner. You can still explore the shell."
+            with st.chat_message("assistant"):
+                st.markdown(soft)
+            current["messages"].append({"role": "assistant", "content": soft})
+            st.session_state.chats[st.session_state.current_chat_id] = current
+            save_user_data()
+            st.stop()
+    except Exception:
+        pass
 
     # Mobile / phrase path to Jaime residual (no Konami)
     if prompt.strip().lower() in {
