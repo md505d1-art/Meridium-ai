@@ -6210,7 +6210,7 @@ try:
 except Exception:
     pass
 
-# ===== DESIGN 4 MENU (Night Bloom) =====
+# ===== MENU (Codex shell) =====
 if st.session_state.popup:
     st.markdown(
         """
@@ -6222,17 +6222,37 @@ if st.session_state.popup:
             max-width: 100% !important;
           }
           .menu-hero {
-            padding: 1.1rem 1.2rem 1rem;
-            border-radius: 18px;
-            border: 1px solid rgba(255,255,255,0.1);
-            background: linear-gradient(155deg, rgba(28,22,40,0.95), rgba(12,10,18,0.98));
-            margin-bottom: 0.75rem;
+            position: relative; overflow: hidden;
+            padding: 1.35rem 1.3rem 1.15rem;
+            border-radius: 22px;
+            border: 1px solid rgba(196,167,231,0.28);
+            background:
+              radial-gradient(ellipse at 0% 0%, rgba(167,139,250,0.22), transparent 55%),
+              radial-gradient(ellipse at 100% 100%, rgba(244,114,182,0.12), transparent 50%),
+              linear-gradient(155deg, rgba(22,16,36,0.96), rgba(10,8,16,0.98));
+            margin-bottom: 0.85rem;
+            box-shadow: 0 20px 48px rgba(0,0,0,0.35);
+          }
+          .menu-hero::before {
+            content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, #c4a7e7, #f472b6, transparent);
+          }
+          .menu-hero .kicker {
+            font-family: ui-monospace, monospace; font-size: 0.6rem;
+            letter-spacing: 0.24em; text-transform: uppercase;
+            color: rgba(196,167,231,0.75); margin-bottom: 0.4rem;
           }
           .menu-hero .hi {
-            font-size: 1.25rem; font-weight: 650; letter-spacing: -0.02em; margin: 0 0 0.25rem;
+            font-size: 1.4rem; font-weight: 700; letter-spacing: -0.03em;
+            margin: 0 0 0.3rem; color: #faf5ff;
           }
           .menu-hero .lo {
-            opacity: 0.6; font-size: 0.88rem; margin: 0;
+            opacity: 0.65; font-size: 0.88rem; margin: 0; color: #d4c8e8;
+          }
+          .menu-sec {
+            font-family: ui-monospace, monospace; font-size: 0.6rem;
+            letter-spacing: 0.18em; text-transform: uppercase;
+            color: rgba(196,167,231,0.55); margin: 0.65rem 0 0.4rem;
           }
         </style>
         """,
@@ -6240,78 +6260,97 @@ if st.session_state.popup:
     )
     _uname = st.session_state.get("username") or "friend"
     _own = is_owner(_uname)
+    _bal = int(st.session_state.get("residuum") or 0)
     st.markdown(
         f"""
         <div class="menu-hero">
+          <div class="kicker">{"Owner channel" if _own else "Meridium · shell menu"}</div>
           <div class="hi">{"Welcome home, " + _uname if _own else "Hello, " + _uname}</div>
-          <div class="lo">{"Owner menu · Meridium" if _own else "Menu · navigate · look · model"}</div>
+          <div class="lo">Navigate · appearance · model · ◆ {_bal} Residuum</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    m_nav, m_look, m_model, m_bazaar, m_more = st.tabs(["Go", "Look", "Model", "Drift Counter", "More"])
+    m_nav, m_look, m_model, m_bazaar, m_more = st.tabs(["Go", "Look", "Model", "Drift", "More"])
 
     with m_nav:
-        st.caption("Where do you want to go?")
-        g1, g2 = st.columns(2)
+        st.markdown('<div class="menu-sec">Core</div>', unsafe_allow_html=True)
+        g1, g2, g3 = st.columns(3)
         with g1:
-            if st.button("⌂  Home", use_container_width=True, key="pop_home"):
+            if st.button("⌂ Home", use_container_width=True, key="pop_home"):
                 st.session_state.view = "home"
                 st.session_state.popup = False
                 st.rerun()
-            if st.button("💬  Chat", use_container_width=True, key="pop_chat", type="primary"):
+            if st.button("💬 Chat", use_container_width=True, key="pop_chat", type="primary"):
                 st.session_state.view = "chat"
                 st.session_state.popup = False
                 st.rerun()
-            if st.button("＋  New chat", use_container_width=True, key="pop_new"):
+            if st.button("＋ New chat", use_container_width=True, key="pop_new"):
                 create_new_chat()
                 st.session_state.view = "chat"
                 st.session_state.popup = False
                 st.rerun()
-            if st.button("📚  Library", use_container_width=True, key="pop_library"):
+        with g2:
+            if st.button("🎙 Call", use_container_width=True, key="pop_call"):
+                st.session_state.view = "call_meridium"
+                st.session_state.call_phase = st.session_state.get("call_phase") or "idle"
+                st.session_state.popup = False
+                st.rerun()
+            if st.button("♟ Chess", use_container_width=True, key="pop_chess"):
+                st.session_state.view = "chess"
+                st.session_state.popup = False
+                st.rerun()
+            if st.button("◈ Drift", use_container_width=True, key="pop_drift"):
+                st.session_state.view = "drift"
+                st.session_state.popup = False
+                st.rerun()
+        with g3:
+            if st.button("📚 Library", use_container_width=True, key="pop_library"):
                 st.session_state.library_reading = None
                 st.session_state.view = "library"
                 st.session_state.popup = False
                 st.rerun()
-            if st.button("◈  Drift Counter", use_container_width=True, key="pop_drift"):
-                st.session_state.view = "drift"
-                st.session_state.popup = False
-                st.rerun()
-        with g2:
-            if st.button("♫  Music", use_container_width=True, key="pop_music"):
+            if st.button("♫ Music", use_container_width=True, key="pop_music"):
                 st.session_state.view = "music"
                 st.session_state.popup = False
                 st.rerun()
-            if st.button("◎  Listen", use_container_width=True, key="pop_listen"):
-                st.session_state.view = "listen"
-                st.session_state.popup = False
-                st.rerun()
-            if st.button("🎬  Cinema", use_container_width=True, key="pop_cinema"):
+            if st.button("🎬 Cinema", use_container_width=True, key="pop_cinema"):
                 st.session_state.cinema_watching = None
                 st.session_state.view = "cinema"
                 st.session_state.popup = False
                 st.rerun()
-            if st.button("▶  Shorts", use_container_width=True, key="pop_shorts"):
+
+        st.markdown('<div class="menu-sec">Media</div>', unsafe_allow_html=True)
+        m1, m2 = st.columns(2)
+        with m1:
+            if st.button("◎ Listen", use_container_width=True, key="pop_listen"):
+                st.session_state.view = "listen"
+                st.session_state.popup = False
+                st.rerun()
+        with m2:
+            if st.button("▶ Shorts", use_container_width=True, key="pop_shorts"):
                 st.session_state.shorts_index = st.session_state.get("shorts_index") or 0
                 st.session_state.view = "shorts"
                 st.session_state.popup = False
                 st.rerun()
 
-        # Conditional ARG / owner — compact row
+        # Conditional ARG / owner
         extra = []
         if lab_is_unlocked():
-            extra.append(("🔬  Lab", "lab", "pop_lab"))
+            extra.append(("🔬 Lab", "lab", "pop_lab"))
         if st.session_state.get("board_unlocked") or st.session_state.get("callaghan_safe_unlocked"):
-            extra.append(("📌  Board", "board", "pop_board"))
+            extra.append(("📌 Board", "board", "pop_board"))
         if st.session_state.get("voss_file_unlocked"):
-            extra.append(("📁  Voss", "voss_file", "pop_voss"))
+            extra.append(("📁 Voss", "voss_file", "pop_voss"))
+        if st.session_state.get("lore_owned"):
+            extra.append(("📜 Archive", "lore_archive", "pop_lore"))
         if _own:
-            extra.append(("👑  Owner", "owner", "pop_owner"))
+            extra.append(("👑 Owner", "owner", "pop_owner"))
         elif chatroom_user_allowed(_uname):
-            extra.append(("💬  Room", "owner_room", "pop_room"))
+            extra.append(("💬 Room", "owner_room", "pop_room"))
         if extra:
-            st.caption("Unlocked")
+            st.markdown('<div class="menu-sec">Unlocked</div>', unsafe_allow_html=True)
             cols = st.columns(min(len(extra), 4))
             for i, (label, view_name, key) in enumerate(extra):
                 with cols[i % len(cols)]:
@@ -6320,12 +6359,14 @@ if st.session_state.popup:
                             st.session_state.board_evidence_open = None
                         if view_name == "voss_file":
                             st.session_state.voss_cutscene_stage = 0
+                        if view_name == "lab":
+                            st.session_state.lab_transition = True
                         st.session_state.view = view_name
                         st.session_state.popup = False
                         st.rerun()
 
         st.markdown("---")
-        if st.button("✕  Close menu", use_container_width=True, key="pop_close"):
+        if st.button("✕ Close menu", use_container_width=True, key="pop_close"):
             st.session_state.popup = False
             st.rerun()
 
@@ -6468,20 +6509,62 @@ if st.session_state.view == "dead_link":
     st.markdown(
         """
         <style>
-          .stApp, [data-testid="stAppViewContainer"], section.main { background:#000 !important; }
+          .stApp, [data-testid="stAppViewContainer"], section.main {
+            background: radial-gradient(ellipse at 50% 30%, #1a0a12 0%, #050308 55%, #000 100%) !important;
+          }
+          .dead-wrap {
+            max-width: 420px; margin: 12vh auto 0; text-align: center;
+            padding: 2rem 1.5rem; border-radius: 24px;
+            border: 1px solid rgba(196,80,100,0.25);
+            background: linear-gradient(160deg, rgba(28,10,18,0.9), rgba(8,4,10,0.95));
+            box-shadow: 0 30px 80px rgba(0,0,0,0.55), 0 0 40px rgba(180,40,60,0.08);
+            animation: deadIn 0.7s cubic-bezier(0.22,1,0.36,1) both;
+          }
+          @keyframes deadIn {
+            from { opacity: 0; transform: translateY(16px) scale(0.98); filter: blur(4px); }
+            to { opacity: 1; transform: none; filter: none; }
+          }
+          .dead-kicker {
+            font-family: ui-monospace, monospace; font-size: 0.62rem;
+            letter-spacing: 0.28em; color: #c05060; text-transform: uppercase;
+            margin-bottom: 0.85rem;
+          }
+          .dead-title {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 1.45rem; color: #f0d8de; letter-spacing: -0.02em;
+            margin: 0 0 0.75rem; line-height: 1.25;
+          }
+          .dead-body {
+            font-family: Georgia, serif; font-style: italic;
+            color: rgba(220,190,200,0.72); font-size: 0.98rem;
+            line-height: 1.55; margin: 0 0 1.25rem;
+          }
+          .dead-bar {
+            height: 2px; width: 48%; margin: 0 auto 1.25rem;
+            background: linear-gradient(90deg, transparent, #a04050, transparent);
+            opacity: 0.7;
+          }
         </style>
-        <p style="color:#666;font-family:Georgia;text-align:center;margin-top:30vh;line-height:1.8;">
-        This control never shipped.<br/>
-        You found a gap in the menu where a tool was planned<br/>
-        and then redacted.<br/><br/>
-        <span style="color:#8b3030;">The shell does not mind being incomplete.</span>
-        </p>
+        <div class="dead-wrap">
+          <div class="dead-kicker">Redacted control · residual gap</div>
+          <div class="dead-title">This surface was never meant to load.</div>
+          <div class="dead-bar"></div>
+          <p class="dead-body">
+            A menu entry pointed here before the tool was pulled.
+            The shell kept the address. The Division did not keep the feature.
+          </p>
+          <p class="dead-body" style="opacity:0.65;font-size:0.88rem;">
+            Finding gaps is still observation. Return when you are ready.
+          </p>
+        </div>
         """,
         unsafe_allow_html=True,
     )
-    if st.button("Return", key="dead_back"):
-        st.session_state.view = "home"
-        st.rerun()
+    c1, c2, c3 = st.columns([1, 2, 1])
+    with c2:
+        if st.button("Return to Meridium", key="dead_back", use_container_width=True, type="primary"):
+            st.session_state.view = "home"
+            st.rerun()
     st.stop()
 
 
@@ -6489,6 +6572,7 @@ if st.session_state.view == "dead_link":
 
 if st.session_state.get("view") != "lab":
     st.session_state._currently_in_lab = False
+    st.session_state._lab_entered_ok = False
 
 
 # Stop Voss theme when not in her cutscene/file
@@ -6696,6 +6780,65 @@ if st.session_state.view == "lab":
         st.warning("The lab is sealed. Finish the observation puzzle in chat to unlock it.")
         st.rerun()
 
+    # Cinematic transition gate (once per entry)
+    if st.session_state.get("lab_transition") or not st.session_state.get("_lab_entered_ok"):
+        st.markdown(
+            """
+            <style>
+              .stApp, [data-testid="stAppViewContainer"], section.main {
+                background: #050204 !important;
+              }
+              .lab-trans {
+                max-width: 480px; margin: 14vh auto 0; text-align: center;
+                padding: 2rem 1.4rem; border-radius: 20px;
+                border: 1px solid rgba(200,60,60,0.35);
+                background:
+                  radial-gradient(ellipse at 50% 0%, rgba(180,40,40,0.2), transparent 60%),
+                  linear-gradient(165deg, rgba(20,6,8,0.96), rgba(6,2,4,0.99));
+                animation: labFade 1.1s ease both;
+              }
+              @keyframes labFade {
+                from { opacity: 0; filter: blur(8px); transform: scale(0.97); }
+                to { opacity: 1; filter: none; transform: none; }
+              }
+              .lab-trans .k {
+                font-family: ui-monospace, monospace; font-size: 0.62rem;
+                letter-spacing: 0.28em; color: #c05050; text-transform: uppercase;
+                margin-bottom: 0.75rem;
+              }
+              .lab-trans .t {
+                font-family: Georgia, serif; font-size: 1.5rem; color: #f0d0d0;
+                margin: 0 0 0.6rem; letter-spacing: -0.02em;
+              }
+              .lab-trans .b {
+                font-family: Georgia, serif; font-style: italic;
+                color: rgba(220,180,180,0.75); line-height: 1.5; font-size: 0.95rem;
+              }
+            </style>
+            <div class="lab-trans">
+              <div class="k">Observation Division · airlock</div>
+              <div class="t">You were not cleared for this floor.</div>
+              <p class="b">
+                The residual signature already opened the lock.
+                Fluorescent hum. Cold glass. Something on the tray is still warm.
+              </p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        c1, c2, c3 = st.columns([1, 2, 1])
+        with c2:
+            if st.button("Step through", use_container_width=True, type="primary", key="lab_trans_enter"):
+                st.session_state.lab_transition = False
+                st.session_state._lab_entered_ok = True
+                st.rerun()
+            if st.button("Turn back", use_container_width=True, key="lab_trans_back"):
+                st.session_state.lab_transition = False
+                st.session_state._lab_entered_ok = False
+                st.session_state.view = "home"
+                st.rerun()
+        st.stop()
+
     if not st.session_state.get("_currently_in_lab"):
         st.session_state._currently_in_lab = True
         st.session_state.lab_visits = int(st.session_state.get("lab_visits") or 0) + 1
@@ -6723,7 +6866,6 @@ if st.session_state.view == "lab":
     except Exception:
         pass
 
-    # Always render lab (builtin is solid; external module used when present)
     try:
         render_lab()
     except Exception as _lab_render_err:
@@ -12175,63 +12317,298 @@ if st.session_state.view == "lore_archive":
 
 # ===== CALL MERIDIUM (voice channel) =====
 if st.session_state.view == "call_meridium":
-    if st.button("← Home", key="call_back_home"):
-        st.session_state.view = "home"
-        st.rerun()
+    # Phone-call state machine: idle → ringing → connected → ended
+    if "call_phase" not in st.session_state:
+        st.session_state.call_phase = "idle"
+    if "call_history" not in st.session_state:
+        st.session_state.call_history = []
+    if "call_started_at" not in st.session_state:
+        st.session_state.call_started_at = None
+    if "call_muted" not in st.session_state:
+        st.session_state.call_muted = False
+
+    phase = st.session_state.call_phase
+    warm = bool(st.session_state.get("feat_voice_warm"))
+    uname = st.session_state.get("username") or "you"
+
+    # ---- IDLE: dial screen ----
+    if phase == "idle":
+        st.markdown(
+            """
+            <style>
+              .call-dial {
+                max-width: 360px; margin: 2rem auto; text-align: center;
+                padding: 2rem 1.5rem 1.5rem; border-radius: 28px;
+                border: 1px solid rgba(167,139,250,0.35);
+                background:
+                  radial-gradient(ellipse at 50% 0%, rgba(167,139,250,0.25), transparent 60%),
+                  linear-gradient(165deg, rgba(18,12,32,0.96), rgba(8,6,16,0.98));
+                box-shadow: 0 28px 70px rgba(0,0,0,0.45);
+              }
+              .call-avatar {
+                width: 110px; height: 110px; margin: 0 auto 1.1rem;
+                border-radius: 50%;
+                background: radial-gradient(circle at 35% 30%, #c4a7e7, #7c3aed 55%, #1e1030 100%);
+                box-shadow: 0 0 40px rgba(167,139,250,0.45), 0 0 80px rgba(124,58,237,0.2);
+                display: flex; align-items: center; justify-content: center;
+                font-size: 2.4rem; color: #faf5ff; font-weight: 700;
+                animation: callPulse 2.8s ease-in-out infinite;
+              }
+              @keyframes callPulse {
+                0%,100% { transform: scale(1); box-shadow: 0 0 40px rgba(167,139,250,0.4); }
+                50% { transform: scale(1.04); box-shadow: 0 0 56px rgba(167,139,250,0.6); }
+              }
+              .call-name { font-size: 1.5rem; font-weight: 700; color: #faf5ff; letter-spacing: -0.02em; margin: 0 0 0.25rem; }
+              .call-sub { color: rgba(200,190,230,0.65); font-size: 0.9rem; margin-bottom: 1.4rem; }
+            </style>
+            <div class="call-dial">
+              <div class="call-avatar">M</div>
+              <div class="call-name">Meridium</div>
+              <div class="call-sub">Residual voice channel · not a chatbot window</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        voice_opts = ["Residual calm", "Warm familiar"] + (["Intimate residual"] if warm else [])
+        st.selectbox("Voice colour", voice_opts, key="call_voice_style")
+        c1, c2, c3 = st.columns([1, 2, 1])
+        with c2:
+            if st.button("📞  Call Meridium", use_container_width=True, type="primary", key="call_start_btn"):
+                st.session_state.call_phase = "ringing"
+                st.session_state.call_history = []
+                st.session_state._last_speak = None
+                st.rerun()
+            if st.button("← Home", use_container_width=True, key="call_idle_home"):
+                st.session_state.view = "home"
+                st.rerun()
+        st.stop()
+
+    # ---- RINGING ----
+    if phase == "ringing":
+        st.markdown(
+            """
+            <style>
+              .call-ring {
+                max-width: 360px; margin: 3rem auto; text-align: center;
+                padding: 2.2rem 1.5rem; border-radius: 28px;
+                border: 1px solid rgba(167,139,250,0.4);
+                background: linear-gradient(165deg, rgba(20,12,36,0.97), rgba(8,6,14,0.99));
+              }
+              .call-ring .av {
+                width: 100px; height: 100px; margin: 0 auto 1rem; border-radius: 50%;
+                background: radial-gradient(circle at 35% 30%, #c4a7e7, #6d28d9);
+                animation: ringBounce 1s ease-in-out infinite;
+                display: flex; align-items: center; justify-content: center;
+                font-size: 2rem; color: #fff; font-weight: 700;
+              }
+              @keyframes ringBounce {
+                0%,100% { transform: scale(1); }
+                50% { transform: scale(1.08); }
+              }
+              .call-ring .nm { font-size: 1.35rem; font-weight: 700; color: #faf5ff; }
+              .call-ring .st { color: #a78bfa; font-size: 0.9rem; margin-top: 0.35rem;
+                font-family: ui-monospace, monospace; letter-spacing: 0.12em; }
+            </style>
+            <div class="call-ring">
+              <div class="av">M</div>
+              <div class="nm">Meridium</div>
+              <div class="st">RINGING…</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        # Auto-connect after brief beat via button (Streamlit can't true-sleep well)
+        c1, c2, c3 = st.columns([1, 2, 1])
+        with c2:
+            if st.button("Answer / Connect", use_container_width=True, type="primary", key="call_connect"):
+                st.session_state.call_phase = "connected"
+                st.session_state.call_started_at = datetime.now(ZoneInfo("Europe/London")).isoformat()
+                # Opening line from Meridium
+                openers = [
+                    f"Hey, {uname}. Channel's open — I'm here.",
+                    f"Connected. Residual link stable. What's on your mind, {uname}?",
+                    f"You reached me. No committees on this line. Talk whenever you're ready.",
+                ]
+                import random as _r
+                opener = _r.choice(openers)
+                st.session_state.call_history = [{"role": "assistant", "content": opener}]
+                st.session_state._last_speak = opener
+                st.session_state._call_auto_speak = True
+                try:
+                    complete_quest("voice_first_call")
+                except Exception:
+                    pass
+                st.rerun()
+            if st.button("Decline", use_container_width=True, key="call_decline"):
+                st.session_state.call_phase = "idle"
+                st.rerun()
+        st.stop()
+
+    # ---- ENDED ----
+    if phase == "ended":
+        st.markdown(
+            """
+            <div style="max-width:360px;margin:3rem auto;text-align:center;padding:2rem;
+              border-radius:24px;border:1px solid rgba(255,255,255,0.1);
+              background:rgba(12,10,18,0.95);color:#c8c0d8;">
+              <div style="font-size:1.2rem;font-weight:650;color:#f0e8ff;margin-bottom:0.4rem;">Call ended</div>
+              <div style="opacity:0.7;font-size:0.9rem;">The residual channel closed cleanly.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        c1, c2, c3 = st.columns([1, 2, 1])
+        with c2:
+            if st.button("Call again", use_container_width=True, type="primary", key="call_again"):
+                st.session_state.call_phase = "idle"
+                st.session_state.call_history = []
+                st.rerun()
+            if st.button("← Home", use_container_width=True, key="call_ended_home"):
+                st.session_state.view = "home"
+                st.session_state.call_phase = "idle"
+                st.rerun()
+        st.stop()
+
+    # ---- CONNECTED: live call UI ----
+    voice_style = st.session_state.get("call_voice_style") or "Residual calm"
+    # Duration label
+    dur = "00:00"
+    try:
+        if st.session_state.call_started_at:
+            t0 = datetime.fromisoformat(str(st.session_state.call_started_at))
+            if t0.tzinfo is None:
+                t0 = t0.replace(tzinfo=ZoneInfo("Europe/London"))
+            secs = int((datetime.now(ZoneInfo("Europe/London")) - t0).total_seconds())
+            dur = f"{secs // 60:02d}:{secs % 60:02d}"
+    except Exception:
+        pass
+
     st.markdown(
-        """
-        <div class="panel">
-          <div class="panel-label">Voice channel</div>
-          <div class="hero" style="font-size:1.45rem;">Call Meridium</div>
-          <div class="sub">Speak or type. Meridium answers with personality — not a generic assistant voice.</div>
-          <div class="ridge"></div>
+        f"""
+        <style>
+          .call-live {{
+            max-width: 420px; margin: 0.5rem auto 0.75rem; text-align: center;
+            padding: 1.5rem 1.2rem 1.2rem; border-radius: 28px;
+            border: 1px solid rgba(74,222,128,0.35);
+            background:
+              radial-gradient(ellipse at 50% 0%, rgba(74,222,128,0.12), transparent 55%),
+              linear-gradient(165deg, rgba(12,16,20,0.97), rgba(8,10,14,0.99));
+            box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+          }}
+          .call-live .av {{
+            width: 88px; height: 88px; margin: 0 auto 0.75rem; border-radius: 50%;
+            background: radial-gradient(circle at 35% 30%, #86efac, #22c55e 50%, #14532d 100%);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem; color: #052e16; font-weight: 800;
+            box-shadow: 0 0 32px rgba(74,222,128,0.35);
+            animation: liveGlow 2.4s ease-in-out infinite;
+          }}
+          @keyframes liveGlow {{
+            0%,100% {{ box-shadow: 0 0 28px rgba(74,222,128,0.3); }}
+            50% {{ box-shadow: 0 0 48px rgba(74,222,128,0.55); }}
+          }}
+          .call-live .nm {{ font-size: 1.25rem; font-weight: 700; color: #ecfdf5; }}
+          .call-live .st {{
+            font-family: ui-monospace, monospace; font-size: 0.78rem;
+            color: #4ade80; letter-spacing: 0.1em; margin-top: 0.25rem;
+          }}
+          .call-live .dur {{
+            font-family: ui-monospace, monospace; font-size: 0.85rem;
+            color: rgba(200,220,210,0.7); margin-top: 0.35rem;
+          }}
+          .call-bubble {{
+            max-width: 420px; margin: 0.4rem auto; padding: 0.7rem 0.95rem;
+            border-radius: 16px; font-size: 0.92rem; line-height: 1.45;
+          }}
+          .call-bubble.them {{
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+            color: #e8e4f0; margin-right: 12%;
+          }}
+          .call-bubble.me {{
+            background: linear-gradient(135deg, rgba(167,139,250,0.28), rgba(124,58,237,0.2));
+            border: 1px solid rgba(196,181,253,0.35); color: #f5f3ff; margin-left: 12%;
+            text-align: right;
+          }}
+          .call-bubble .who {{
+            font-size: 0.65rem; letter-spacing: 0.08em; opacity: 0.55;
+            margin-bottom: 0.2rem; text-transform: uppercase;
+          }}
+        </style>
+        <div class="call-live">
+          <div class="av">M</div>
+          <div class="nm">Meridium</div>
+          <div class="st">● ON CALL</div>
+          <div class="dur">{dur} · {voice_style}</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    warm = bool(st.session_state.get("feat_voice_warm"))
-    voice_style = st.selectbox(
-        "Voice colour",
-        ["Residual calm", "Warm familiar"] + (["Intimate residual"] if warm else []),
-        key="call_voice_style",
-    )
-    st.caption("Browser speech synthesis + optional mic. Best in Chrome / Edge. Personality is in the replies.")
 
-    if "call_history" not in st.session_state:
-        st.session_state.call_history = []
+    # Controls
+    b1, b2, b3 = st.columns(3)
+    with b1:
+        mute_label = "🔊 Unmute" if st.session_state.call_muted else "🔇 Mute"
+        if st.button(mute_label, use_container_width=True, key="call_mute"):
+            st.session_state.call_muted = not st.session_state.call_muted
+            st.rerun()
+    with b2:
+        if st.button("🔴 End", use_container_width=True, key="call_end", type="primary"):
+            st.session_state.call_phase = "ended"
+            st.session_state._call_auto_speak = False
+            st.rerun()
+    with b3:
+        if st.button("↻", use_container_width=True, key="call_refresh", help="Refresh timer"):
+            st.rerun()
 
-    for turn in st.session_state.call_history[-12:]:
+    # Transcript as call bubbles
+    import html as _html_call
+    for turn in (st.session_state.call_history or [])[-16:]:
         role = turn.get("role", "assistant")
-        with st.chat_message(role):
-            st.markdown(turn.get("content", ""))
+        text = _html_call.escape(turn.get("content") or "")
+        if role == "user":
+            st.markdown(
+                f'<div class="call-bubble me"><div class="who">You</div>{text}</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                f'<div class="call-bubble them"><div class="who">Meridium</div>{text}</div>',
+                unsafe_allow_html=True,
+            )
 
-    # Text input for reliability
-    user_line = st.chat_input("Speak to Meridium… (type or use mic below)")
-    # Mic via browser (best-effort)
+    # Auto-speak last Meridium line when connected
+    if st.session_state.get("_call_auto_speak") and st.session_state.get("_last_speak") and not st.session_state.call_muted:
+        spoken = re.sub(r"[\#\`\*_>]+", " ", str(st.session_state["_last_speak"]))
+        spoken = re.sub(r"\s+", " ", spoken).strip()
+        st.components.v1.html(speak_html(spoken, autoplay=True), height=1)
+        st.session_state._call_auto_speak = False
+
+    # Input — looks like speaking into the call
+    user_line = st.chat_input("Talk… (type or use the mic)")
+
+    # Mic component
     st.components.v1.html(
         """
-        <div style="margin:0.5rem 0;">
+        <div style="max-width:420px;margin:0.4rem auto;text-align:center;">
           <button id="mer-mic" style="
-            background:rgba(167,139,250,0.2);border:1px solid rgba(167,139,250,0.5);
-            color:#e9e0ff;border-radius:12px;padding:0.5rem 1rem;cursor:pointer;font-weight:600;">
-            🎤 Hold to talk (browser STT)
-          </button>
-          <span id="mer-mic-status" style="margin-left:0.75rem;opacity:0.7;font-size:0.85rem;"></span>
+            width:64px;height:64px;border-radius:50%;
+            background:linear-gradient(145deg,#7c3aed,#a78bfa);color:#fff;
+            border:none;font-size:1.4rem;cursor:pointer;
+            box-shadow:0 8px 24px rgba(124,58,237,0.4);">🎤</button>
+          <div id="mer-mic-status" style="margin-top:0.4rem;font-size:0.8rem;color:#a89bc8;"></div>
         </div>
         <script>
         (function(){
           const btn = document.getElementById('mer-mic');
           const st = document.getElementById('mer-mic-status');
           const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-          if (!SR) { if (st) st.textContent = 'Speech recognition not supported in this browser.'; return; }
+          if (!SR) { if (st) st.textContent = 'Mic unavailable — type instead'; return; }
           const rec = new SR();
           rec.lang = 'en-GB';
           rec.interimResults = false;
-          rec.continuous = false;
           rec.onresult = function(e){
             const t = e.results[0][0].transcript;
-            if (st) st.textContent = 'Heard: ' + t;
-            // Push into nearest chat input if present
+            if (st) st.textContent = t;
             try {
               const parent = window.parent.document;
               const ta = parent.querySelector('[data-testid="stChatInput"] textarea');
@@ -12242,27 +12619,33 @@ if st.session_state.view == "call_meridium":
               }
             } catch(err){}
           };
-          rec.onerror = function(){ if (st) st.textContent = 'Mic error — try again or type.'; };
-          btn.onmousedown = btn.ontouchstart = function(ev){ ev.preventDefault(); try { rec.start(); if (st) st.textContent = 'Listening…'; } catch(e){} };
-          btn.onmouseup = btn.ontouchend = function(){ try { rec.stop(); } catch(e){} };
+          rec.onerror = function(){ if (st) st.textContent = 'Could not hear you — try again'; };
+          btn.onclick = function(){
+            try { rec.start(); if (st) st.textContent = 'Listening…'; } catch(e){}
+          };
         })();
         </script>
         """,
-        height=70,
+        height=110,
     )
 
     if user_line:
         st.session_state.call_history.append({"role": "user", "content": user_line})
-        # Personality system note
         style_note = {
-            "Residual calm": "Speak calmly, precisely, with quiet residual poetry. Short paragraphs.",
-            "Warm familiar": "Warmer, more familiar tone — still Meridium, never sycophantic.",
-            "Intimate residual": "Soft, intimate residual register. Quiet loyalty. Adult, restrained.",
-        }.get(voice_style, "Calm and precise.")
+            "Residual calm": "You are on a live phone call. Speak calmly, in short spoken sentences. No markdown lists.",
+            "Warm familiar": "Live phone call. Warm, familiar, concise spoken English.",
+            "Intimate residual": "Live phone call. Soft, intimate, quiet loyalty. Spoken, not essay.",
+        }.get(voice_style, "Live phone call. Concise spoken replies.")
         messages = [
-            {"role": "system", "content": SYSTEM_PROMPT + f"\n\nVoice channel mode. {style_note} Keep answers speakable aloud (avoid huge lists)."},
+            {
+                "role": "system",
+                "content": SYSTEM_PROMPT
+                + f"\n\n{style_note}\nYou are ON A PHONE CALL with {uname}. "
+                "Reply like speech: 1–3 short sentences unless they ask for more. "
+                "Never say you are an AI text model on a call — you are Meridium on the residual channel.",
+            },
         ]
-        for t in st.session_state.call_history[-10:]:
+        for t in st.session_state.call_history[-12:]:
             messages.append({"role": t["role"], "content": t["content"]})
         try:
             provider = st.session_state.get("provider") or "groq"
@@ -12270,26 +12653,16 @@ if st.session_state.view == "call_meridium":
             api_key = st.session_state.get("api_key_val") or ""
             reply = run_chat(messages, provider, model_name, api_key)
         except Exception as e:
-            reply = f"Channel noise — could not complete the call ({e})."
+            reply = "Sorry — the channel glitched for a second. Say that again?"
         st.session_state.call_history.append({"role": "assistant", "content": reply})
         st.session_state["_last_speak"] = reply
-        try:
-            complete_quest("voice_first_call")
-        except Exception:
-            pass
+        st.session_state._call_auto_speak = True
         try:
             save_user_data()
         except Exception:
             pass
         st.rerun()
 
-    if st.session_state.get("_last_speak"):
-        with st.expander("🔊 Speak last reply", expanded=True):
-            spoken = re.sub(r"[\#\`\*_>]+", " ", str(st.session_state["_last_speak"]))
-            spoken = re.sub(r"\s+", " ", spoken).strip()
-            # Slight rate/pitch personality
-            rate = 0.92 if "Warm" in voice_style or "Intimate" in voice_style else 1.0
-            st.components.v1.html(speak_html(spoken, autoplay=False), height=70)
     st.stop()
 
 
