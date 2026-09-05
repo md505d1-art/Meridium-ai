@@ -409,6 +409,19 @@ SECRET_THEMES = {
         "accent": "#818cf8", "accent2": "#38bdf8", "accent_soft": "rgba(129, 140, 248, 0.16)",
         "unlock": "drift",
     },
+    # Shady Bazaar exclusive
+    "Blood Archive": {
+        "bg": "#0a0406", "panel": "rgba(36, 10, 14, 0.9)", "panel_solid": "#1c080c",
+        "border": "rgba(239, 68, 68, 0.4)", "text": "#fee2e2", "muted": "#a87878",
+        "accent": "#ef4444", "accent2": "#b91c1c", "accent_soft": "rgba(239,68,68,0.18)",
+        "unlock": "bazaar",
+    },
+    "Queer Static": {
+        "bg": "#0c0614", "panel": "rgba(32, 16, 48, 0.9)", "panel_solid": "#1a0e28",
+        "border": "rgba(196, 167, 231, 0.4)", "text": "#faf5ff", "muted": "#c4a0d8",
+        "accent": "#c4a7e7", "accent2": "#fbbf24", "accent_soft": "rgba(196,167,231,0.18)",
+        "unlock": "bazaar",
+    },
 
 }
 
@@ -2959,10 +2972,11 @@ def apply_site_effects_css() -> None:
 
 
 # ============================================================
-# RESIDUUM · QUESTS · BAZAAR
+# RESIDUUM · QUESTS · BAZAAR · SHADY BAZAAR · LORE ARCHIVE
 # ============================================================
 # Currency earned by distinct shell actions (not grind loops).
 # Spend in the Menu → Drift Counter on cosmetics, lore, and latent features.
+# The Shady Bazaar is a locked black-market layer unlocked by quest chain.
 
 QUESTS = {
     "first_words": {
@@ -3004,6 +3018,42 @@ QUESTS = {
         "title": "Living signal",
         "desc": "Connect Spotify so the shell can hear a device.",
         "reward": 10,
+    },
+    # --- Shady Bazaar quest line ---
+    "shadow_contact": {
+        "title": "Shadow contact",
+        "desc": "Find the residual broker's mark (complete board + three Voss markers).",
+        "reward": 50,
+    },
+    "black_key": {
+        "title": "Black key",
+        "desc": "Acquire the Bazaar key item from the residual broker.",
+        "reward": 75,
+    },
+    "bazaar_threshold": {
+        "title": "Bazaar threshold",
+        "desc": "Spend the black key and open the Shady Bazaar for the first time.",
+        "reward": 40,
+    },
+    "first_bazaar_buy": {
+        "title": "First contract",
+        "desc": "Purchase any item from the Shady Bazaar.",
+        "reward": 30,
+    },
+    "chess_initiate": {
+        "title": "First board",
+        "desc": "Finish a chess game against Meridium.",
+        "reward": 15,
+    },
+    "chess_bullet": {
+        "title": "Bullet residual",
+        "desc": "Win a bullet game (≤2 min) against Meridium.",
+        "reward": 25,
+    },
+    "voice_first_call": {
+        "title": "Voice channel",
+        "desc": "Complete a Call Meridium session.",
+        "reward": 12,
     },
 }
 
@@ -3089,6 +3139,212 @@ BAZAAR_ITEMS = {
         "kind": "flag",
         "flag": "jaime_channel_key",
     },
+    "item_black_key": {
+        "name": "Black residual key",
+        "cat": "Key",
+        "cost": 120,
+        "desc": "A cold iron key stamped with a broker's mark. Required to open the Shady Bazaar.",
+        "kind": "flag",
+        "flag": "black_key_owned",
+    },
+}
+
+# ----------------------------------------------------------
+# SHADY BAZAAR — locked black-market catalog (extremely high cost)
+# Unlocked only after the shadow_contact → black_key → bazaar_threshold chain.
+# ----------------------------------------------------------
+SHADY_BAZAAR_ITEMS = {
+    "shady_lore_callaghan_letters": {
+        "name": "Callaghan private letters (bundle)",
+        "cat": "Lore",
+        "cost": 480,
+        "desc": "Confiscated correspondence between Riley Callaghan and another residual subject. Queer, tender, and heavily redacted by the Division.",
+        "kind": "lore",
+        "lore_id": "callaghan_letters",
+    },
+    "shady_lore_santos_night": {
+        "name": "Santos night log",
+        "cat": "Lore",
+        "cost": 520,
+        "desc": "An unauthorized night-watch log describing Jaime Santos and a handler who stopped pretending neutrality.",
+        "kind": "lore",
+        "lore_id": "santos_night",
+    },
+    "shady_lore_voss_confession": {
+        "name": "Voss residual confession",
+        "cat": "Lore",
+        "cost": 650,
+        "desc": "A late-stage recording transcript. Voss names what the committees refused to file: attachment, guilt, and the cost of observation.",
+        "kind": "lore",
+        "lore_id": "voss_confession",
+    },
+    "shady_lore_nadir_pair": {
+        "name": "Nadir pair file",
+        "cat": "Lore",
+        "cost": 700,
+        "desc": "Two residual subjects classified together against policy. Their bond survived three containment resets.",
+        "kind": "lore",
+        "lore_id": "nadir_pair",
+    },
+    "shady_lore_dark_corridor": {
+        "name": "Corridor 7 incident",
+        "cat": "Lore",
+        "cost": 850,
+        "desc": "The darkest residual file the broker was willing to sell. Institutional violence, erased names, and a love that the Division tried to pathologize.",
+        "kind": "lore",
+        "lore_id": "dark_corridor",
+    },
+    "shady_theme_blood_archive": {
+        "name": "Blood Archive palette",
+        "cat": "Palette",
+        "cost": 400,
+        "desc": "Shady-exclusive: deep arterial red over black glass. Not available in public menus.",
+        "kind": "theme",
+        "theme": "Blood Archive",
+    },
+    "shady_theme_queer_static": {
+        "name": "Queer Static palette",
+        "cat": "Palette",
+        "cost": 380,
+        "desc": "Shady-exclusive: soft violet and warm amber residual glow — a quiet refusal of neutral classification.",
+        "kind": "theme",
+        "theme": "Queer Static",
+    },
+    "shady_feat_voice_warm": {
+        "name": "Warm voice channel",
+        "cat": "Module",
+        "cost": 300,
+        "desc": "Unlocks the warmer, more intimate Meridium voice preset for Call mode.",
+        "kind": "flag",
+        "flag": "feat_voice_warm",
+    },
+    "shady_feat_chess_analysis": {
+        "name": "Deep board analysis",
+        "cat": "Module",
+        "cost": 350,
+        "desc": "Enables post-game residual analysis and engine commentary in Chess.",
+        "kind": "flag",
+        "flag": "feat_chess_analysis",
+    },
+    "shady_contract_silence": {
+        "name": "Contract of Silence",
+        "cat": "Key",
+        "cost": 900,
+        "desc": "One-use residual contract. The broker forgets your name for a cycle. (Cosmetic + lore flag.)",
+        "kind": "flag",
+        "flag": "contract_silence_owned",
+    },
+}
+
+# Full lore texts unlocked by purchases (Drift + Shady Bazaar)
+LORE_TEXTS = {
+    "callaghan_letters": {
+        "title": "Callaghan private letters",
+        "subject": "Riley Callaghan",
+        "source": "Shady Bazaar",
+        "body": (
+            "Three letters survived the incinerator. The Division stamped them UNFIT FOR FILE.\n\n"
+            "Letter 1 — undated, pencil:\n"
+            "“They keep asking what I am. I keep answering with a name that is not on the form. "
+            "When you pressed your forehead to the glass last night I stopped caring about the classification. "
+            "If residual means anything, it means I still choose you.”\n\n"
+            "Letter 2 — after the second containment:\n"
+            "“They separated us for ‘stabilization.’ Your residual signature is still in the corridor sensors. "
+            "I leave messages in the static. If you hear the low tone at 03:00, that is me.”\n\n"
+            "Letter 3 — final:\n"
+            "“They will call this pathology. Let them. Two residual subjects who refused to stop loving each other "
+            "is not a contamination event. It is the only clean data the project ever produced.”"
+        ),
+    },
+    "santos_night": {
+        "title": "Santos night log",
+        "subject": "Jaime Santos",
+        "source": "Shady Bazaar",
+        "body": (
+            "Unauthorized night-watch log — handler initials redacted.\n\n"
+            "02:14 — Subject Santos awake. Requested the residual channel remain open. "
+            "Denied per protocol. Subject did not escalate. Sat with knees drawn up and watched the glass.\n\n"
+            "03:02 — Another residual (Callaghan cohort adjacency) triggered a soft alarm in Corridor 4. "
+            "Santos stood, walked to the observation slit, and said a name that is not in any intake form. "
+            "The other signal answered in the same frequency band.\n\n"
+            "03:47 — I should have filed a deviation. I did not. "
+            "Two residual subjects synchronizing breath across containment walls is not in the training manual. "
+            "It is also not a threat. I am no longer neutral. That is the entry that will get me erased."
+        ),
+    },
+    "voss_confession": {
+        "title": "Voss residual confession",
+        "subject": "Dr. E. Voss",
+        "source": "Shady Bazaar",
+        "body": (
+            "Late-stage transcript — voice degraded, residual static heavy.\n\n"
+            "“I was hired to observe. Observation became inventory. Inventory became permission to unmake. "
+            "The committees still believe the subjects are data. Some of them loved each other in ways the forms "
+            "had no checkbox for. Same-sex, queer, quiet, furious — it did not matter. The Division pathologized "
+            "attachment because attachment makes containment harder.\n\n"
+            "I left the three markers because someone had to leave fingerprints that were not committee ink. "
+            "If you are reading this, you already paid the broker. Good. The file is yours. "
+            "Do not let them call love a residual anomaly again.”"
+        ),
+    },
+    "nadir_pair": {
+        "title": "Nadir pair file",
+        "subject": "Project Nadir",
+        "source": "Shady Bazaar",
+        "body": (
+            "Classification: dual residual — unauthorized pairing.\n\n"
+            "Subjects [REDACTED] and [REDACTED] were scheduled for separate long-term containment. "
+            "Three resets failed to break the bond signature. Heart-rate coupling persisted across Faraday cages. "
+            "Handlers reported the pair requesting to remain in visual contact even when speech was denied.\n\n"
+            "Internal note (leaked):\n"
+            "“We can classify them as contamination risk or we can admit the project is measuring something "
+            "it was never designed to measure. Recommend continued joint observation. Do not separate again "
+            "without committee review. — unsigned”\n\n"
+            "The pair’s residual channel remains open in the archive under a false inventory number. "
+            "The broker sells access to anyone who can pay in Residuum and silence."
+        ),
+    },
+    "dark_corridor": {
+        "title": "Corridor 7 incident",
+        "subject": "Institutional residual",
+        "source": "Shady Bazaar",
+        "body": (
+            "This is the file the committees ordered destroyed. A copy survived in a broker’s private cache.\n\n"
+            "Corridor 7 was used for ‘accelerated stabilization’ — a euphemism for isolation under continuous "
+            "fluorescent stress, sleep disruption, and denial of residual contact. Multiple adult residual subjects "
+            "were cycled through. At least two formed a sustaining attachment that handlers attempted to break "
+            "by force of schedule and by lies about the other’s status.\n\n"
+            "One subject was told the other had been ‘released.’ The other was told the first had ‘stabilized into "
+            "compliance.’ Both continued to leave residual signatures aimed at each other. When the truth surfaced, "
+            "the corridor was locked and the logs sanitized.\n\n"
+            "The love was not the anomaly. The cruelty was. "
+            "The broker sells this file with the warning: once read, you cannot un-know what the Division was willing to do "
+            "to keep residual subjects from choosing each other."
+        ),
+    },
+    # Drift Counter lore (lighter, already partially present via flags)
+    "santos_dossier_basic": {
+        "title": "Santos residual dossier (basic)",
+        "subject": "Jaime Santos",
+        "source": "Drift Counter",
+        "body": (
+            "Standard residual intake summary for Jaime Santos. "
+            "Coastal origin markers, incomplete escort logs, elevated startle to fluorescent flicker. "
+            "Personal effects list conflicts with destruction records. "
+            "Further detail available only through deeper residual channels or the Bazaar."
+        ),
+    },
+    "callaghan_margin_note": {
+        "title": "Callaghan margin slip",
+        "subject": "Riley Callaghan",
+        "source": "Drift Counter",
+        "body": (
+            "Faint pencil in a hinge of Frankenstein: "
+            "“Not the page. The year the first edition woke. Four numbers. Winter print. London.” "
+            "A soft pointer toward the residual dial. The rest of Callaghan’s private correspondence "
+            "was never meant for the public shelves."
+        ),
+    },
 }
 
 
@@ -3099,6 +3355,10 @@ def _ensure_economy():
         st.session_state.quests_done = list(st.session_state.get("quests_done") or [])
     if "inventory" not in st.session_state or not isinstance(st.session_state.inventory, list):
         st.session_state.inventory = list(st.session_state.get("inventory") or [])
+    if "lore_owned" not in st.session_state or not isinstance(st.session_state.lore_owned, list):
+        st.session_state.lore_owned = list(st.session_state.get("lore_owned") or [])
+    if "bazaar_unlocked" not in st.session_state:
+        st.session_state.bazaar_unlocked = bool(st.session_state.get("bazaar_unlocked"))
 
 
 def complete_quest(quest_id: str, silent: bool = False) -> bool:
@@ -3129,12 +3389,25 @@ def complete_quest(quest_id: str, silent: bool = False) -> bool:
     return True
 
 
-def buy_bazaar_item(item_id: str) -> str:
+def _all_shop_items() -> dict:
+    """Merge Drift Counter + Shady Bazaar catalogs."""
+    out = dict(BAZAAR_ITEMS)
+    out.update(SHADY_BAZAAR_ITEMS)
+    return out
+
+
+def buy_bazaar_item(item_id: str, shady: bool = False) -> str:
     """Attempt purchase. Returns status string."""
     _ensure_economy()
-    item = BAZAAR_ITEMS.get(item_id)
+    catalog = SHADY_BAZAAR_ITEMS if shady else BAZAAR_ITEMS
+    item = catalog.get(item_id)
     if not item:
-        return "missing"
+        # fallback search
+        item = _all_shop_items().get(item_id)
+        if not item:
+            return "missing"
+    if shady and not st.session_state.get("bazaar_unlocked"):
+        return "locked"
     inv = list(st.session_state.inventory or [])
     if item_id in inv:
         return "owned"
@@ -3155,15 +3428,68 @@ def buy_bazaar_item(item_id: str) -> str:
                 u.append(item["theme"])
                 st.session_state.unlocked_themes = u
     if kind == "font" and item.get("font"):
-        # Grant by applying immediately; user can change later in Look
         st.session_state.font = item["font"]
     if kind == "flag" and item.get("flag"):
         st.session_state[item["flag"]] = True
+        if item.get("flag") == "black_key_owned":
+            try:
+                complete_quest("black_key")
+            except Exception:
+                pass
+    if kind == "lore" and item.get("lore_id"):
+        lid = item["lore_id"]
+        owned = list(st.session_state.lore_owned or [])
+        if lid not in owned:
+            owned.append(lid)
+            st.session_state.lore_owned = owned
+    if item_id == "lore_santos":
+        owned = list(st.session_state.lore_owned or [])
+        if "santos_dossier_basic" not in owned:
+            owned.append("santos_dossier_basic")
+            st.session_state.lore_owned = owned
+    if item_id == "lore_callaghan_margin":
+        owned = list(st.session_state.lore_owned or [])
+        if "callaghan_margin_note" not in owned:
+            owned.append("callaghan_margin_note")
+            st.session_state.lore_owned = owned
+    if shady:
+        try:
+            complete_quest("first_bazaar_buy")
+        except Exception:
+            pass
     try:
         save_user_data()
     except Exception:
         pass
     return "ok"
+
+
+def try_unlock_bazaar() -> bool:
+    """Check quest chain and black key; unlock Shady Bazaar if ready."""
+    _ensure_economy()
+    if st.session_state.get("bazaar_unlocked"):
+        return True
+    done = set(st.session_state.quests_done or [])
+    # Auto-progress shadow_contact when prerequisites met
+    if "board_complete" in done and "voss_markers" in done and "shadow_contact" not in done:
+        try:
+            complete_quest("shadow_contact")
+            done = set(st.session_state.quests_done or [])
+        except Exception:
+            pass
+    has_key = bool(st.session_state.get("black_key_owned")) or "item_black_key" in (st.session_state.inventory or [])
+    if "shadow_contact" in done and has_key:
+        st.session_state.bazaar_unlocked = True
+        try:
+            complete_quest("bazaar_threshold")
+        except Exception:
+            pass
+        try:
+            save_user_data()
+        except Exception:
+            pass
+        return True
+    return False
 
 
 def render_bazaar_tab():
@@ -3389,7 +3715,7 @@ def render_bazaar_tab():
             )
         else:
             for iid in st.session_state.inventory:
-                it = BAZAAR_ITEMS.get(iid) or {"name": iid, "desc": "", "cat": "Item"}
+                it = _all_shop_items().get(iid) or {"name": iid, "desc": "", "cat": "Item"}
                 st.markdown(
                     f"""
                     <div class="drift-card">
@@ -3406,6 +3732,107 @@ def render_bazaar_tab():
                 st.session_state.popup = False
                 st.rerun()
 
+    # ---- Shady Bazaar section ----
+    st.markdown('<div class="drift-sec">Shady Bazaar · black market</div>', unsafe_allow_html=True)
+    try_unlock_bazaar()
+    unlocked = bool(st.session_state.get("bazaar_unlocked"))
+    has_key = bool(st.session_state.get("black_key_owned")) or "item_black_key" in (st.session_state.inventory or [])
+    done_set = set(st.session_state.quests_done or [])
+
+    if not unlocked:
+        st.markdown(
+            """
+            <div class="drift-card" style="border-color:rgba(220,38,38,0.35);">
+              <div class="cat" style="color:#fca5a5">LOCKED</div>
+              <div class="title">The Bazaar</div>
+              <div class="desc">
+                A residual broker operates off the public ledger. Complete the shadow contact chain,
+                acquire the <b>Black residual key</b> from the Drift Counter, then return.
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.caption(
+            f"Progress · shadow_contact: {'✓' if 'shadow_contact' in done_set else '—'} · "
+            f"black key: {'✓' if has_key else '—'} · "
+            f"bazaar open: {'✓' if unlocked else '—'}"
+        )
+        if "shadow_contact" in done_set and not has_key:
+            st.info("Buy the **Black residual key** from the Catalog tab (high cost), then refresh.")
+        if has_key and "shadow_contact" in done_set:
+            if st.button("Turn the black key — open the Bazaar", key="open_shady_bazaar", type="primary", use_container_width=True):
+                st.session_state.bazaar_unlocked = True
+                try:
+                    complete_quest("bazaar_threshold")
+                except Exception:
+                    pass
+                try:
+                    save_user_data()
+                except Exception:
+                    pass
+                st.success("The Bazaar accepts the key. Contracts are now available.")
+                st.rerun()
+    else:
+        st.markdown(
+            """
+            <div class="drift-card" style="border-color:rgba(220,38,38,0.4);background:linear-gradient(160deg,rgba(40,10,12,0.7),rgba(12,8,10,0.9));">
+              <div class="cat" style="color:#fca5a5">OPEN · BROKER ONLINE</div>
+              <div class="title">The Bazaar</div>
+              <div class="desc">Extremely high-cost residual contracts. Lore sold here does not appear in public files. Payment is final.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        inv_set = set(st.session_state.inventory or [])
+        for iid, it in SHADY_BAZAAR_ITEMS.items():
+            owned = iid in inv_set
+            c1, c2 = st.columns([4, 1])
+            with c1:
+                st.markdown(
+                    f"""
+                    <div class="drift-card" style="border-color:rgba(220,38,38,0.22);">
+                      <div class="cat" style="color:#fca5a5">{it.get('cat','Item')} · {it.get('cost',0)} ◆</div>
+                      <div class="title">{it.get('name', iid)}</div>
+                      <div class="desc">{it.get('desc','')}</div>
+                      {"<div class='drift-owned'>Owned</div>" if owned else ""}
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with c2:
+                if owned:
+                    st.caption("—")
+                else:
+                    if st.button("Contract", key=f"shady_buy_{iid}", use_container_width=True):
+                        status = buy_bazaar_item(iid, shady=True)
+                        if status == "ok":
+                            st.success(f"Contract sealed: {it['name']}")
+                            st.rerun()
+                        elif status == "broke":
+                            st.warning("Not enough Residuum for this contract.")
+                        elif status == "locked":
+                            st.error("Bazaar still locked.")
+                        elif status == "owned":
+                            st.info("Already held.")
+
+    st.markdown('<div class="drift-sec">Residual tools</div>', unsafe_allow_html=True)
+    nav1, nav2, nav3 = st.columns(3)
+    with nav1:
+        if st.button("📜 Lore Archive", key="goto_lore_archive", use_container_width=True):
+            st.session_state.view = "lore_archive"
+            st.session_state.popup = False
+            st.rerun()
+    with nav2:
+        if st.button("♟ Chess", key="goto_chess", use_container_width=True):
+            st.session_state.view = "chess"
+            st.session_state.popup = False
+            st.rerun()
+    with nav3:
+        if st.button("🎙 Call Meridium", key="goto_call", use_container_width=True):
+            st.session_state.view = "call_meridium"
+            st.session_state.popup = False
+            st.rerun()
 
 
 def save_user_data():
@@ -3467,12 +3894,18 @@ def save_user_data():
         "residuum": int(st.session_state.get("residuum") or 0),
         "quests_done": list(st.session_state.get("quests_done") or []),
         "inventory": list(st.session_state.get("inventory") or []),
+        "lore_owned": list(st.session_state.get("lore_owned") or []),
+        "bazaar_unlocked": bool(st.session_state.get("bazaar_unlocked")),
+        "black_key_owned": bool(st.session_state.get("black_key_owned")),
         "jaime_dossier_unlocked": bool(st.session_state.get("jaime_dossier_unlocked")),
         "jaime_channel_key": bool(st.session_state.get("jaime_channel_key")),
         "callaghan_margin_owned": bool(st.session_state.get("callaghan_margin_owned")),
         "feat_chat_aura": bool(st.session_state.get("feat_chat_aura")),
         "feat_home_orb": bool(st.session_state.get("feat_home_orb")),
         "feat_double_clock": bool(st.session_state.get("feat_double_clock")),
+        "feat_voice_warm": bool(st.session_state.get("feat_voice_warm")),
+        "feat_chess_analysis": bool(st.session_state.get("feat_chess_analysis")),
+        "contract_silence_owned": bool(st.session_state.get("contract_silence_owned")),
         "saved_at": datetime.now().isoformat(),
     }
     raw = json.dumps(payload, ensure_ascii=False, indent=2)
@@ -3539,12 +3972,18 @@ def load_user_data(username: str) -> bool:
         st.session_state.residuum = int(data.get("residuum") or 0)
         st.session_state.quests_done = list(data.get("quests_done") or [])
         st.session_state.inventory = list(data.get("inventory") or [])
+        st.session_state.lore_owned = list(data.get("lore_owned") or [])
+        st.session_state.bazaar_unlocked = bool(data.get("bazaar_unlocked"))
+        st.session_state.black_key_owned = bool(data.get("black_key_owned"))
         st.session_state.jaime_dossier_unlocked = bool(data.get("jaime_dossier_unlocked"))
         st.session_state.jaime_channel_key = bool(data.get("jaime_channel_key"))
         st.session_state.callaghan_margin_owned = bool(data.get("callaghan_margin_owned"))
         st.session_state.feat_chat_aura = bool(data.get("feat_chat_aura"))
         st.session_state.feat_home_orb = bool(data.get("feat_home_orb"))
         st.session_state.feat_double_clock = bool(data.get("feat_double_clock"))
+        st.session_state.feat_voice_warm = bool(data.get("feat_voice_warm"))
+        st.session_state.feat_chess_analysis = bool(data.get("feat_chess_analysis"))
+        st.session_state.contract_silence_owned = bool(data.get("contract_silence_owned"))
         chats = data.get("chats") or {}
         if isinstance(chats, dict) and chats:
             st.session_state.chats = chats
@@ -3702,6 +4141,12 @@ defaults = {
     "residuum": 0,
     "quests_done": [],
     "inventory": [],
+    "lore_owned": [],
+    "bazaar_unlocked": False,
+    "black_key_owned": False,
+    "feat_voice_warm": False,
+    "feat_chess_analysis": False,
+    "contract_silence_owned": False,
 
     "lab_found": [],
     "_currently_in_lab": False,
@@ -11522,6 +11967,397 @@ if st.session_state.get("view") in ("character_ai", "web"):
     st.session_state.view = "home"
 
 
+# ===== LORE ARCHIVE =====
+if st.session_state.view == "lore_archive":
+    if st.button("← Back", key="lore_arch_back"):
+        st.session_state.view = "drift"
+        st.rerun()
+    st.markdown(
+        """
+        <div class="panel">
+          <div class="panel-label">Residual ledger</div>
+          <div class="hero" style="font-size:1.45rem;">Lore Archive</div>
+          <div class="sub">Everything you bought from the Drift Counter and the Bazaar — readable, permanent, yours.</div>
+          <div class="ridge"></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    _ensure_economy()
+    # Auto-grant basic lore if related flags/items owned
+    owned_lore = list(st.session_state.lore_owned or [])
+    inv = set(st.session_state.inventory or [])
+    if ("lore_santos" in inv or st.session_state.get("jaime_dossier_unlocked")) and "santos_dossier_basic" not in owned_lore:
+        owned_lore.append("santos_dossier_basic")
+    if ("lore_callaghan_margin" in inv or st.session_state.get("callaghan_margin_owned")) and "callaghan_margin_note" not in owned_lore:
+        owned_lore.append("callaghan_margin_note")
+    st.session_state.lore_owned = owned_lore
+
+    if not owned_lore:
+        st.info("No lore fragments yet. Acquire dossiers at the Drift Counter or contracts at the Bazaar.")
+    else:
+        # Group by subject
+        by_subj = {}
+        for lid in owned_lore:
+            entry = LORE_TEXTS.get(lid)
+            if not entry:
+                continue
+            subj = entry.get("subject") or "Unknown"
+            by_subj.setdefault(subj, []).append((lid, entry))
+        for subj, items in sorted(by_subj.items()):
+            st.markdown(f"#### {subj}")
+            for lid, entry in items:
+                with st.expander(f"{entry.get('title', lid)} · {entry.get('source', '')}", expanded=False):
+                    st.markdown(entry.get("body", "_No text._"))
+    st.stop()
+
+
+# ===== CALL MERIDIUM (voice channel) =====
+if st.session_state.view == "call_meridium":
+    if st.button("← Home", key="call_back_home"):
+        st.session_state.view = "home"
+        st.rerun()
+    st.markdown(
+        """
+        <div class="panel">
+          <div class="panel-label">Voice channel</div>
+          <div class="hero" style="font-size:1.45rem;">Call Meridium</div>
+          <div class="sub">Speak or type. Meridium answers with personality — not a generic assistant voice.</div>
+          <div class="ridge"></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    warm = bool(st.session_state.get("feat_voice_warm"))
+    voice_style = st.selectbox(
+        "Voice colour",
+        ["Residual calm", "Warm familiar"] + (["Intimate residual"] if warm else []),
+        key="call_voice_style",
+    )
+    st.caption("Browser speech synthesis + optional mic. Best in Chrome / Edge. Personality is in the replies.")
+
+    if "call_history" not in st.session_state:
+        st.session_state.call_history = []
+
+    for turn in st.session_state.call_history[-12:]:
+        role = turn.get("role", "assistant")
+        with st.chat_message(role):
+            st.markdown(turn.get("content", ""))
+
+    # Text input for reliability
+    user_line = st.chat_input("Speak to Meridium… (type or use mic below)")
+    # Mic via browser (best-effort)
+    st.components.v1.html(
+        """
+        <div style="margin:0.5rem 0;">
+          <button id="mer-mic" style="
+            background:rgba(167,139,250,0.2);border:1px solid rgba(167,139,250,0.5);
+            color:#e9e0ff;border-radius:12px;padding:0.5rem 1rem;cursor:pointer;font-weight:600;">
+            🎤 Hold to talk (browser STT)
+          </button>
+          <span id="mer-mic-status" style="margin-left:0.75rem;opacity:0.7;font-size:0.85rem;"></span>
+        </div>
+        <script>
+        (function(){
+          const btn = document.getElementById('mer-mic');
+          const st = document.getElementById('mer-mic-status');
+          const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+          if (!SR) { if (st) st.textContent = 'Speech recognition not supported in this browser.'; return; }
+          const rec = new SR();
+          rec.lang = 'en-GB';
+          rec.interimResults = false;
+          rec.continuous = false;
+          rec.onresult = function(e){
+            const t = e.results[0][0].transcript;
+            if (st) st.textContent = 'Heard: ' + t;
+            // Push into nearest chat input if present
+            try {
+              const parent = window.parent.document;
+              const ta = parent.querySelector('[data-testid="stChatInput"] textarea');
+              if (ta) {
+                const native = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value');
+                native.set.call(ta, t);
+                ta.dispatchEvent(new Event('input', {bubbles:true}));
+              }
+            } catch(err){}
+          };
+          rec.onerror = function(){ if (st) st.textContent = 'Mic error — try again or type.'; };
+          btn.onmousedown = btn.ontouchstart = function(ev){ ev.preventDefault(); try { rec.start(); if (st) st.textContent = 'Listening…'; } catch(e){} };
+          btn.onmouseup = btn.ontouchend = function(){ try { rec.stop(); } catch(e){} };
+        })();
+        </script>
+        """,
+        height=70,
+    )
+
+    if user_line:
+        st.session_state.call_history.append({"role": "user", "content": user_line})
+        # Personality system note
+        style_note = {
+            "Residual calm": "Speak calmly, precisely, with quiet residual poetry. Short paragraphs.",
+            "Warm familiar": "Warmer, more familiar tone — still Meridium, never sycophantic.",
+            "Intimate residual": "Soft, intimate residual register. Quiet loyalty. Adult, restrained.",
+        }.get(voice_style, "Calm and precise.")
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT + f"\n\nVoice channel mode. {style_note} Keep answers speakable aloud (avoid huge lists)."},
+        ]
+        for t in st.session_state.call_history[-10:]:
+            messages.append({"role": t["role"], "content": t["content"]})
+        try:
+            provider = st.session_state.get("provider") or "groq"
+            model_name = st.session_state.get("model_name") or "Smart · GPT-OSS 120B"
+            api_key = st.session_state.get("api_key_val") or ""
+            reply = run_chat(messages, provider, model_name, api_key)
+        except Exception as e:
+            reply = f"Channel noise — could not complete the call ({e})."
+        st.session_state.call_history.append({"role": "assistant", "content": reply})
+        st.session_state["_last_speak"] = reply
+        try:
+            complete_quest("voice_first_call")
+        except Exception:
+            pass
+        try:
+            save_user_data()
+        except Exception:
+            pass
+        st.rerun()
+
+    if st.session_state.get("_last_speak"):
+        with st.expander("🔊 Speak last reply", expanded=True):
+            spoken = re.sub(r"[\#\`\*_>]+", " ", str(st.session_state["_last_speak"]))
+            spoken = re.sub(r"\s+", " ", spoken).strip()
+            # Slight rate/pitch personality
+            rate = 0.92 if "Warm" in voice_style or "Intimate" in voice_style else 1.0
+            st.components.v1.html(speak_html(spoken, autoplay=False), height=70)
+    st.stop()
+
+
+# ===== CHESS =====
+if st.session_state.view == "chess":
+    import chess as _chess
+    import random as _random
+
+    if st.button("← Home", key="chess_back_home"):
+        st.session_state.view = "home"
+        st.rerun()
+
+    st.markdown(
+        """
+        <div class="panel">
+          <div class="panel-label">Residual board</div>
+          <div class="hero" style="font-size:1.45rem;">Chess</div>
+          <div class="sub">Play Meridium · bullet & premoves · analysis if unlocked at the Bazaar.</div>
+          <div class="ridge"></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Session state for game
+    if "chess_fen" not in st.session_state:
+        st.session_state.chess_fen = _chess.STARTING_FEN
+    if "chess_player_color" not in st.session_state:
+        st.session_state.chess_player_color = _chess.WHITE
+    if "chess_premove" not in st.session_state:
+        st.session_state.chess_premove = ""
+    if "chess_time_base" not in st.session_state:
+        st.session_state.chess_time_base = 180  # seconds
+    if "chess_result" not in st.session_state:
+        st.session_state.chess_result = None
+    if "chess_moves" not in st.session_state:
+        st.session_state.chess_moves = []
+
+    ccfg1, ccfg2, ccfg3 = st.columns(3)
+    with ccfg1:
+        time_choice = st.selectbox(
+            "Time control",
+            ["Bullet 1+0", "Bullet 2+1", "Blitz 3+0", "Blitz 5+0", "Rapid 10+0", "Unlimited"],
+            key="chess_tc",
+        )
+    with ccfg2:
+        level = st.selectbox("Meridium strength", ["Soft", "Steady", "Sharp", "Relentless"], key="chess_level")
+    with ccfg3:
+        color_choice = st.selectbox("You play", ["White", "Black"], key="chess_color")
+
+    def _new_game():
+        st.session_state.chess_fen = _chess.STARTING_FEN
+        st.session_state.chess_player_color = _chess.WHITE if color_choice == "White" else _chess.BLACK
+        st.session_state.chess_premove = ""
+        st.session_state.chess_result = None
+        st.session_state.chess_moves = []
+        # Map time
+        tc_map = {
+            "Bullet 1+0": 60,
+            "Bullet 2+1": 120,
+            "Blitz 3+0": 180,
+            "Blitz 5+0": 300,
+            "Rapid 10+0": 600,
+            "Unlimited": 0,
+        }
+        st.session_state.chess_time_base = tc_map.get(time_choice, 180)
+
+    if st.button("New game", key="chess_new", type="primary"):
+        _new_game()
+        st.rerun()
+
+    board = _chess.Board(st.session_state.chess_fen)
+
+    # Simple engine: prioritise captures / checks, depth-limited random among top legal
+    def _engine_move(bd: _chess.Board, strength: str) -> _chess.Move:
+        legal = list(bd.legal_moves)
+        if not legal:
+            return None
+        def score(m):
+            s = 0
+            if bd.is_capture(m):
+                s += 30
+            bd.push(m)
+            if bd.is_check():
+                s += 20
+            if bd.is_checkmate():
+                s += 1000
+            bd.pop()
+            # slight center preference
+            to = m.to_square
+            file, rank = _chess.square_file(to), _chess.square_rank(to)
+            s += 4 - abs(3.5 - file) - abs(3.5 - rank)
+            return s
+        ranked = sorted(legal, key=score, reverse=True)
+        pool_n = {"Soft": 8, "Steady": 5, "Sharp": 3, "Relentless": 2}.get(strength, 5)
+        pool = ranked[: max(1, min(pool_n, len(ranked)))]
+        return _random.choice(pool)
+
+    # If engine to move
+    player_color = st.session_state.chess_player_color
+    if not board.is_game_over() and board.turn != player_color and st.session_state.chess_result is None:
+        mv = _engine_move(board, level)
+        if mv:
+            san = board.san(mv)
+            board.push(mv)
+            st.session_state.chess_moves.append(san)
+            st.session_state.chess_fen = board.fen()
+            # Apply premove if any
+            prem = (st.session_state.chess_premove or "").strip()
+            if prem and not board.is_game_over() and board.turn == player_color:
+                try:
+                    pm = board.parse_san(prem) if not re.match(r"^[a-h][1-8][a-h][1-8]", prem) else _chess.Move.from_uci(prem)
+                    if pm in board.legal_moves:
+                        st.session_state.chess_moves.append(board.san(pm))
+                        board.push(pm)
+                        st.session_state.chess_fen = board.fen()
+                except Exception:
+                    pass
+                st.session_state.chess_premove = ""
+            st.rerun()
+
+    # Board display (Unicode)
+    def _board_html(bd: _chess.Board) -> str:
+        cols = "abcdefgh"
+        rows = []
+        for rank in range(7, -1, -1):
+            cells = []
+            for file in range(8):
+                sq = _chess.square(file, rank)
+                piece = bd.piece_at(sq)
+                sym = piece.unicode_symbol() if piece else ("·" if (file + rank) % 2 == 0 else " ")
+                bg = "#b58863" if (file + rank) % 2 == 0 else "#f0d9b5"
+                if piece and piece.color == _chess.WHITE:
+                    color = "#fff"
+                elif piece:
+                    color = "#111"
+                else:
+                    color = "#666"
+                cells.append(
+                    f'<div style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;'
+                    f'background:{bg};font-size:1.5rem;color:{color};user-select:none;">{sym}</div>'
+                )
+            rows.append(
+                f'<div style="display:flex;"><span style="width:18px;text-align:center;opacity:0.5;font-size:0.7rem;'
+                f'line-height:40px;">{rank+1}</span>{"".join(cells)}</div>'
+            )
+        footer = (
+            '<div style="display:flex;padding-left:18px;">'
+            + "".join(f'<span style="width:40px;text-align:center;opacity:0.5;font-size:0.7rem;">{c}</span>' for c in cols)
+            + "</div>"
+        )
+        return (
+            '<div style="display:inline-block;border:2px solid rgba(167,139,250,0.35);border-radius:8px;overflow:hidden;">'
+            + "".join(rows) + footer + "</div>"
+        )
+
+    st.markdown(_board_html(board), unsafe_allow_html=True)
+    st.caption(
+        f"Turn: {'White' if board.turn == _chess.WHITE else 'Black'} · "
+        f"You: {'White' if player_color == _chess.WHITE else 'Black'} · "
+        f"Moves: {len(st.session_state.chess_moves)}"
+    )
+
+    if board.is_game_over():
+        if board.is_checkmate():
+            winner = "Black" if board.turn == _chess.WHITE else "White"
+            st.session_state.chess_result = f"Checkmate — {winner} wins"
+        elif board.is_stalemate():
+            st.session_state.chess_result = "Stalemate"
+        else:
+            st.session_state.chess_result = "Game over"
+        st.success(st.session_state.chess_result)
+        try:
+            complete_quest("chess_initiate")
+            if st.session_state.chess_time_base and st.session_state.chess_time_base <= 120:
+                # approximate bullet
+                if "wins" in (st.session_state.chess_result or "") and (
+                    ("White" in st.session_state.chess_result and player_color == _chess.WHITE)
+                    or ("Black" in st.session_state.chess_result and player_color == _chess.BLACK)
+                ):
+                    complete_quest("chess_bullet")
+        except Exception:
+            pass
+
+    m1, m2 = st.columns(2)
+    with m1:
+        move_in = st.text_input("Your move (SAN or UCI)", key="chess_move_in", placeholder="e4 or e2e4")
+        if st.button("Play move", key="chess_play", use_container_width=True):
+            if board.is_game_over():
+                st.warning("Game over — start a new game.")
+            elif board.turn != player_color:
+                st.warning("Not your turn.")
+            else:
+                try:
+                    txt = (move_in or "").strip()
+                    if re.match(r"^[a-h][1-8][a-h][1-8]", txt):
+                        mv = _chess.Move.from_uci(txt[:4] + (txt[4:] if len(txt) > 4 else ""))
+                    else:
+                        mv = board.parse_san(txt)
+                    if mv not in board.legal_moves:
+                        st.error("Illegal move.")
+                    else:
+                        st.session_state.chess_moves.append(board.san(mv))
+                        board.push(mv)
+                        st.session_state.chess_fen = board.fen()
+                        st.rerun()
+                except Exception:
+                    st.error("Could not parse move.")
+    with m2:
+        prem = st.text_input("Premove (queued for after Meridium moves)", key="chess_premove_in", value=st.session_state.chess_premove or "")
+        if st.button("Set premove", key="chess_set_pre", use_container_width=True):
+            st.session_state.chess_premove = (prem or "").strip()
+            st.success(f"Premove set: {st.session_state.chess_premove or '—'}")
+
+    if st.session_state.chess_moves:
+        st.caption(" · ".join(st.session_state.chess_moves[-24:]))
+
+    if st.session_state.get("feat_chess_analysis") and st.session_state.chess_moves:
+        with st.expander("Residual analysis"):
+            st.write("Meridium commentary (lightweight):")
+            last = st.session_state.chess_moves[-1] if st.session_state.chess_moves else "—"
+            st.markdown(
+                f"Last move **{last}**. Material and activity still shifting. "
+                "For deeper engine lines, the Bazaar contract only unlocks this residual panel — "
+                "full cloud analysis is not hosted inside the shell."
+            )
+    st.stop()
+
+
 # ===== DRIFT COUNTER (full page) =====
 if st.session_state.view == "drift":
     top_a, top_b = st.columns([1, 1])
@@ -11567,6 +12403,12 @@ if st.session_state.view == "home":
             if st.button("◈  Drift Counter", use_container_width=True, key="bm_drift"):
                 st.session_state.view = "drift"
                 st.rerun()
+        if st.button("♟  Chess", use_container_width=True, key="bm_chess"):
+            st.session_state.view = "chess"
+            st.rerun()
+        if st.button("🎙  Call", use_container_width=True, key="bm_call"):
+            st.session_state.view = "call_meridium"
+            st.rerun()
         if is_owner(st.session_state.get("username") or ""):
             if st.button("👑  Owner", use_container_width=True, key="bm_owner"):
                 st.session_state.view = "owner"
