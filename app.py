@@ -78,28 +78,177 @@ def is_owner(username="") -> bool:
         return False
 
 try:
-    from lab_view import render_lab
+    from lab_view import render_lab as _external_render_lab
+    def render_lab():
+        try:
+            return _external_render_lab()
+        except Exception as _lab_err:
+            return _render_lab_builtin(error=str(_lab_err))
 except Exception:
     def render_lab():
+        return _render_lab_builtin()
+
+
+def _render_lab_builtin(error: str = ""):
+    """Self-contained observation lab — hotspots, fragments, residual door."""
+    if "lab_found" not in st.session_state or not isinstance(st.session_state.lab_found, list):
+        st.session_state.lab_found = list(st.session_state.get("lab_found") or [])
+
+    found = set(st.session_state.lab_found or [])
+
+    LAB_HOTSPOTS = [
+        ("hs_glass", "Observation glass", "Condensation on the inside. A palm print that is not yours."),
+        ("hs_tray", "Open tray", "Needle, drip line, residual bloom sample — still warm."),
+        ("hs_logbook", "Logbook", "Pages torn out. One margin: “do not separate the pair.”"),
+        ("hs_locker", "Subject locker", "A red string. A name written until the pencil broke."),
+        ("hs_speaker", "Dead speaker", "Static resolves into a breath pattern. Two signatures."),
+        ("hs_door", "Residual door panel", "Key-slot cold. Archive channel waits for the right residual."),
+    ]
+
+    st.markdown(
+        """
+        <style>
+          .lab-shell {
+            max-width: 640px; margin: 0 auto 1rem;
+            padding: 1.25rem 1.2rem 1.1rem;
+            border-radius: 16px;
+            border: 1px solid rgba(220,60,60,0.35);
+            background:
+              radial-gradient(ellipse at 20% 0%, rgba(180,40,40,0.18), transparent 55%),
+              linear-gradient(165deg, rgba(18,8,8,0.95), rgba(8,4,4,0.98));
+            box-shadow: 0 20px 50px rgba(0,0,0,0.45);
+          }
+          .lab-kicker {
+            font-family: ui-monospace, monospace;
+            font-size: 0.62rem; letter-spacing: 0.22em;
+            color: #c05050; text-transform: uppercase; margin-bottom: 0.4rem;
+          }
+          .lab-title {
+            font-family: Georgia, serif;
+            font-size: 1.55rem; color: #f0d0d0;
+            margin: 0 0 0.35rem; letter-spacing: -0.02em;
+          }
+          .lab-sub { color: #a08080; font-size: 0.9rem; line-height: 1.45; margin-bottom: 0.85rem; }
+          .lab-frag {
+            font-family: ui-monospace, monospace;
+            font-size: 0.72rem; color: #e8a0a0; letter-spacing: 0.06em;
+            margin-bottom: 0.75rem;
+          }
+          .lab-card {
+            border: 1px solid rgba(180,60,60,0.28);
+            background: rgba(20,8,8,0.65);
+            border-radius: 12px;
+            padding: 0.75rem 0.9rem;
+            margin-bottom: 0.45rem;
+            color: #e8c8c8;
+            font-size: 0.9rem;
+            line-height: 1.45;
+          }
+          .lab-card.found { border-color: rgba(94,234,212,0.35); }
+          .lab-card .nm {
+            font-family: ui-monospace, monospace;
+            font-size: 0.65rem; letter-spacing: 0.14em;
+            text-transform: uppercase; color: #c07070; margin-bottom: 0.2rem;
+          }
+        </style>
+        <div class="lab-shell">
+          <div class="lab-kicker">Observation Division · Lab</div>
+          <div class="lab-title">Containment floor</div>
+          <div class="lab-sub">
+            Six residual hotspots. Touch each one. The Division is still listening.
+          </div>
+          <div class="lab-frag">Fragments secured: """
+        + f"{len(found)} / 6</div></div>",
+        unsafe_allow_html=True,
+    )
+
+    if error:
+        st.caption(f"External lab module failed — builtin lab active. ({error[:120]})")
+
+    top_l, top_r = st.columns(2)
+    with top_l:
+        if st.button("← Home", key="lab_builtin_home", use_container_width=True):
+            st.session_state._currently_in_lab = False
+            st.session_state.view = "home"
+            st.rerun()
+    with top_r:
+        if st.button("Open board", key="lab_builtin_board", use_container_width=True):
+            st.session_state.view = "board"
+            st.rerun()
+
+    for hid, name, blurb in LAB_HOTSPOTS:
+        is_found = hid in found
         st.markdown(
-            """
-            <div style="
-              max-width:520px;margin:1rem auto;padding:1.2rem 1.1rem;
-              border:1px solid rgba(180,60,60,0.35);border-radius:12px;
-              background:rgba(12,6,6,0.9);color:#e8c8c8;font-family:Georgia,serif;
-            ">
-              <div style="font-family:ui-monospace,monospace;font-size:0.65rem;letter-spacing:0.2em;color:#c05050;margin-bottom:0.5rem">
-                OBSERVATION LOG · LAB
-              </div>
-              <p style="margin:0;line-height:1.55;font-size:0.95rem">
-                The lab is active. Hotspots and fragments load when
-                <code>lab_view.py</code> is present on the server.
-                The residual door still functions below when you have the key.
-              </p>
+            f"""
+            <div class="lab-card {'found' if is_found else ''}">
+              <div class="nm">{'Secured' if is_found else 'Unscanned'} · {name}</div>
+              {blurb if is_found else 'Residual interference — scan to reveal.'}
             </div>
             """,
             unsafe_allow_html=True,
         )
+        if not is_found:
+            if st.button(f"Scan · {name}", key=f"lab_scan_{hid}", use_container_width=True):
+                found.add(hid)
+                st.session_state.lab_found = list(found)
+                try:
+                    play_glitch_sfx()
+                except Exception:
+                    pass
+                if hid == "hs_glass":
+                    try:
+                        find_glitch("lab", "Voss log: lab marker secured.")
+                    except Exception:
+                        pass
+                if len(found) >= 6:
+                    try:
+                        unlock_theme("Voss Static", "all fragments recovered", apply=False)
+                    except Exception:
+                        pass
+                    st.session_state["_egg_flash"] = "All six lab fragments secured. Theme unlocked: Voss Static."
+                try:
+                    save_user_data()
+                except Exception:
+                    pass
+                st.rerun()
+
+    st.markdown("---")
+    st.markdown("**Residual door**")
+    has_key = bool(st.session_state.get("archive_key") or st.session_state.get("lab_door_unlocked"))
+    if has_key:
+        st.success("Door panel accepts residual key.")
+        if st.button("Enter Project Nadir channel", key="lab_nadir_door", type="primary", use_container_width=True):
+            st.session_state.lab_door_unlocked = True
+            st.session_state.view = "nadir_door"
+            st.rerun()
+    else:
+        st.caption("Door sealed. Recover the archive key from the investigation board (7/7), or the residual dial path.")
+
+    # Lab glitch marker (2nd visit+)
+    try:
+        if glitches_unlocked() and "lab" not in set(st.session_state.get("glitches_found") or []):
+            st.markdown(
+                """
+                <div style="margin-top:0.75rem;padding:0.65rem 0.8rem;border-radius:10px;
+                  border:1px solid rgba(34,211,238,0.35);background:rgba(4,18,16,0.5);
+                  font-family:ui-monospace,monospace;font-size:0.75rem;color:#5eead4;">
+                  Voss field residual — interference in the glass
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button("Tap lab anomaly", key="glitch_lab_builtin"):
+                try:
+                    play_glitch_sfx()
+                except Exception:
+                    pass
+                try:
+                    find_glitch("lab", "Voss log: lab marker secured.")
+                except Exception:
+                    pass
+                st.rerun()
+    except Exception:
+        pass
 
 try:
     from note_view import render_note
@@ -3865,6 +4014,7 @@ def save_user_data():
         "glitches_found": list(st.session_state.get("glitches_found") or []),
         "voss_file_unlocked": bool(st.session_state.get("voss_file_unlocked")),
         "lab_visits": int(st.session_state.get("lab_visits") or 0),
+        "lab_found": list(st.session_state.get("lab_found") or []),
         "arg_stabilized": bool(st.session_state.get("arg_stabilized")),
         "stabilize_at": st.session_state.get("stabilize_at"),
         "qotd_opens": int(st.session_state.get("qotd_opens") or 0),
@@ -3938,6 +4088,7 @@ def load_user_data(username: str) -> bool:
         st.session_state.glitches_found = list(data.get("glitches_found") or [])
         st.session_state.voss_file_unlocked = bool(data.get("voss_file_unlocked"))
         st.session_state.lab_visits = int(data.get("lab_visits") or 0)
+        st.session_state.lab_found = list(data.get("lab_found") or [])
         st.session_state.arg_stabilized = bool(data.get("arg_stabilized"))
         st.session_state.stabilize_at = data.get("stabilize_at")
         st.session_state.qotd_opens = int(data.get("qotd_opens") or 0)
@@ -6541,7 +6692,6 @@ if st.session_state.get("view") == "voss_file":
 # LAB first — full black, no waybar/nav chrome (gated behind ARG puzzle)
 if st.session_state.view == "lab":
     if not lab_is_unlocked():
-        # New users / incomplete puzzle cannot open the lab
         st.session_state.view = "home"
         st.warning("The lab is sealed. Finish the observation puzzle in chat to unlock it.")
         st.rerun()
@@ -6553,31 +6703,38 @@ if st.session_state.view == "lab":
             save_user_data()
         except Exception:
             pass
-    # arg_unlocked already required by lab_is_unlocked — keep it true
     st.session_state.arg_unlocked = True
     try:
         save_user_data()
     except Exception:
         pass
-    mark_lab_visit()
-    unlock_theme("Containment Red", "you entered the observation log", apply=False)
-    # All 6 fragments?
-    found = st.session_state.get("lab_found") or set()
-    if isinstance(found, (list, set)) and len(set(found)) >= 6:
-        unlock_theme("Voss Static", "all fragments recovered", apply=False)
+    try:
+        mark_lab_visit()
+    except Exception:
+        pass
+    try:
+        unlock_theme("Containment Red", "you entered the observation log", apply=False)
+    except Exception:
+        pass
+    found = st.session_state.get("lab_found") or []
+    try:
+        if isinstance(found, (list, set)) and len(set(found)) >= 6:
+            unlock_theme("Voss Static", "all fragments recovered", apply=False)
+    except Exception:
+        pass
 
+    # Always render lab (builtin is solid; external module used when present)
     try:
         render_lab()
-    except Exception:
-        st.markdown(
-            """
-            <div style="max-width:520px;margin:1rem auto;padding:1rem;border:1px solid rgba(180,60,60,0.3);
-              border-radius:12px;background:rgba(10,6,6,0.85);color:#d8b8b8;font-family:Georgia,serif;">
-              Observation lab online. Residual systems standing by.
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    except Exception as _lab_render_err:
+        st.error(f"Lab render error: {_lab_render_err}")
+        try:
+            _render_lab_builtin(error=str(_lab_render_err))
+        except Exception as _lab2:
+            st.error(f"Builtin lab also failed: {_lab2}")
+            if st.button("← Home", key="lab_fatal_home"):
+                st.session_state.view = "home"
+                st.rerun()
 
     st.stop()
 
@@ -6678,7 +6835,11 @@ Committees called that *success*. Floor staff called it worse.
     st.stop()
 
 # ===== DESIGN 1 WAYBAR + NAV (hidden in lab) =====
-if st.session_state.view not in ("lab", "note", "voss_file", "lyrics_full", "callaghan_safe", "board", "nadir", "nadir_transition", "nadir_door", "jaime_residual"):
+if st.session_state.view not in (
+    "lab", "note", "voss_file", "lyrics_full", "callaghan_safe", "board",
+    "nadir", "nadir_transition", "nadir_door", "jaime_residual",
+    "chess", "call_meridium", "lore_archive", "drift",
+):
     st.markdown(f"""
 <div class="waybar">
   <div class="waybar-left">
@@ -12134,8 +12295,15 @@ if st.session_state.view == "call_meridium":
 
 # ===== CHESS =====
 if st.session_state.view == "chess":
-    import chess as _chess
-    import random as _random
+    try:
+        import chess as _chess
+        import random as _random
+    except Exception as _chess_imp_err:
+        st.error(f"Chess module unavailable: {_chess_imp_err}")
+        if st.button("← Home", key="chess_imp_fail_home"):
+            st.session_state.view = "home"
+            st.rerun()
+        st.stop()
 
     if st.button("← Home", key="chess_back_home"):
         st.session_state.view = "home"
@@ -12146,26 +12314,28 @@ if st.session_state.view == "chess":
         <div class="panel">
           <div class="panel-label">Residual board</div>
           <div class="hero" style="font-size:1.45rem;">Chess</div>
-          <div class="sub">Play Meridium · bullet & premoves · analysis if unlocked at the Bazaar.</div>
+          <div class="sub">Play Meridium · bullet &amp; premoves · type SAN (e4) or UCI (e2e4).</div>
           <div class="ridge"></div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    # Session state for game
-    if "chess_fen" not in st.session_state:
+    # Defaults
+    if "chess_fen" not in st.session_state or not st.session_state.chess_fen:
         st.session_state.chess_fen = _chess.STARTING_FEN
     if "chess_player_color" not in st.session_state:
         st.session_state.chess_player_color = _chess.WHITE
     if "chess_premove" not in st.session_state:
         st.session_state.chess_premove = ""
     if "chess_time_base" not in st.session_state:
-        st.session_state.chess_time_base = 180  # seconds
+        st.session_state.chess_time_base = 180
     if "chess_result" not in st.session_state:
         st.session_state.chess_result = None
-    if "chess_moves" not in st.session_state:
+    if "chess_moves" not in st.session_state or not isinstance(st.session_state.chess_moves, list):
         st.session_state.chess_moves = []
+    if "chess_quest_done" not in st.session_state:
+        st.session_state.chess_quest_done = False
 
     ccfg1, ccfg2, ccfg3 = st.columns(3)
     with ccfg1:
@@ -12179,79 +12349,108 @@ if st.session_state.view == "chess":
     with ccfg3:
         color_choice = st.selectbox("You play", ["White", "Black"], key="chess_color")
 
-    def _new_game():
+    def _chess_new_game():
         st.session_state.chess_fen = _chess.STARTING_FEN
         st.session_state.chess_player_color = _chess.WHITE if color_choice == "White" else _chess.BLACK
         st.session_state.chess_premove = ""
         st.session_state.chess_result = None
         st.session_state.chess_moves = []
-        # Map time
+        st.session_state.chess_quest_done = False
         tc_map = {
-            "Bullet 1+0": 60,
-            "Bullet 2+1": 120,
-            "Blitz 3+0": 180,
-            "Blitz 5+0": 300,
-            "Rapid 10+0": 600,
-            "Unlimited": 0,
+            "Bullet 1+0": 60, "Bullet 2+1": 120, "Blitz 3+0": 180,
+            "Blitz 5+0": 300, "Rapid 10+0": 600, "Unlimited": 0,
         }
         st.session_state.chess_time_base = tc_map.get(time_choice, 180)
 
     if st.button("New game", key="chess_new", type="primary"):
-        _new_game()
+        _chess_new_game()
         st.rerun()
 
-    board = _chess.Board(st.session_state.chess_fen)
+    try:
+        board = _chess.Board(st.session_state.chess_fen)
+    except Exception:
+        st.session_state.chess_fen = _chess.STARTING_FEN
+        board = _chess.Board(st.session_state.chess_fen)
 
-    # Simple engine: prioritise captures / checks, depth-limited random among top legal
-    def _engine_move(bd: _chess.Board, strength: str) -> _chess.Move:
+    def _chess_engine_move(bd, strength: str):
         legal = list(bd.legal_moves)
         if not legal:
             return None
         def score(m):
-            s = 0
+            s = 0.0
             if bd.is_capture(m):
                 s += 30
             bd.push(m)
-            if bd.is_check():
-                s += 20
-            if bd.is_checkmate():
-                s += 1000
-            bd.pop()
-            # slight center preference
+            try:
+                if bd.is_check():
+                    s += 20
+                if bd.is_checkmate():
+                    s += 1000
+            finally:
+                bd.pop()
             to = m.to_square
-            file, rank = _chess.square_file(to), _chess.square_rank(to)
-            s += 4 - abs(3.5 - file) - abs(3.5 - rank)
+            fl, rk = _chess.square_file(to), _chess.square_rank(to)
+            s += 4 - abs(3.5 - fl) - abs(3.5 - rk)
             return s
         ranked = sorted(legal, key=score, reverse=True)
         pool_n = {"Soft": 8, "Steady": 5, "Sharp": 3, "Relentless": 2}.get(strength, 5)
         pool = ranked[: max(1, min(pool_n, len(ranked)))]
         return _random.choice(pool)
 
-    # If engine to move
+    def _chess_parse_move(bd, txt: str):
+        txt = (txt or "").strip()
+        if not txt:
+            return None
+        try:
+            if re.match(r"^[a-h][1-8][a-h][1-8][qrbnQRBN]?$", txt):
+                return _chess.Move.from_uci(txt.lower())
+            return bd.parse_san(txt)
+        except Exception:
+            return None
+
     player_color = st.session_state.chess_player_color
-    if not board.is_game_over() and board.turn != player_color and st.session_state.chess_result is None:
-        mv = _engine_move(board, level)
-        if mv:
-            san = board.san(mv)
-            board.push(mv)
-            st.session_state.chess_moves.append(san)
-            st.session_state.chess_fen = board.fen()
-            # Apply premove if any
+
+    # Engine turn (one move, then continue render — no tight loop)
+    if (
+        st.session_state.chess_result is None
+        and not board.is_game_over()
+        and board.turn != player_color
+    ):
+        mv = _chess_engine_move(board, level)
+        if mv is not None:
+            try:
+                san = board.san(mv)
+                board.push(mv)
+                st.session_state.chess_moves = list(st.session_state.chess_moves or []) + [san]
+                st.session_state.chess_fen = board.fen()
+            except Exception:
+                pass
+            # Premove
             prem = (st.session_state.chess_premove or "").strip()
             if prem and not board.is_game_over() and board.turn == player_color:
-                try:
-                    pm = board.parse_san(prem) if not re.match(r"^[a-h][1-8][a-h][1-8]", prem) else _chess.Move.from_uci(prem)
-                    if pm in board.legal_moves:
-                        st.session_state.chess_moves.append(board.san(pm))
+                pm = _chess_parse_move(board, prem)
+                if pm is not None and pm in board.legal_moves:
+                    try:
+                        st.session_state.chess_moves = list(st.session_state.chess_moves or []) + [board.san(pm)]
                         board.push(pm)
                         st.session_state.chess_fen = board.fen()
-                except Exception:
-                    pass
+                    except Exception:
+                        pass
                 st.session_state.chess_premove = ""
-            st.rerun()
 
-    # Board display (Unicode)
-    def _board_html(bd: _chess.Board) -> str:
+    # Refresh board from fen after possible engine move
+    try:
+        board = _chess.Board(st.session_state.chess_fen)
+    except Exception:
+        board = _chess.Board(_chess.STARTING_FEN)
+
+    # ASCII-safe board (no unicode piece issues in some fonts)
+    PIECE_ASCII = {
+        "P": "P", "N": "N", "B": "B", "R": "R", "Q": "Q", "K": "K",
+        "p": "p", "n": "n", "b": "b", "r": "r", "q": "q", "k": "k",
+    }
+
+    def _board_html(bd):
         cols = "abcdefgh"
         rows = []
         for rank in range(7, -1, -1):
@@ -12259,100 +12458,126 @@ if st.session_state.view == "chess":
             for file in range(8):
                 sq = _chess.square(file, rank)
                 piece = bd.piece_at(sq)
-                sym = piece.unicode_symbol() if piece else ("·" if (file + rank) % 2 == 0 else " ")
-                bg = "#b58863" if (file + rank) % 2 == 0 else "#f0d9b5"
-                if piece and piece.color == _chess.WHITE:
-                    color = "#fff"
-                elif piece:
-                    color = "#111"
+                if piece:
+                    sym = PIECE_ASCII.get(piece.symbol(), piece.symbol())
+                    color = "#1a1a1a" if piece.color == _chess.WHITE else "#f5f5f5"
+                    weight = "700"
                 else:
-                    color = "#666"
+                    sym = ""
+                    color = "transparent"
+                    weight = "400"
+                bg = "#b58863" if (file + rank) % 2 == 0 else "#f0d9b5"
                 cells.append(
-                    f'<div style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;'
-                    f'background:{bg};font-size:1.5rem;color:{color};user-select:none;">{sym}</div>'
+                    f'<div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;'
+                    f'background:{bg};font-size:1.15rem;font-weight:{weight};color:{color};'
+                    f'font-family:ui-monospace,monospace;user-select:none;">{sym}</div>'
                 )
             rows.append(
-                f'<div style="display:flex;"><span style="width:18px;text-align:center;opacity:0.5;font-size:0.7rem;'
-                f'line-height:40px;">{rank+1}</span>{"".join(cells)}</div>'
+                f'<div style="display:flex;align-items:center;">'
+                f'<span style="width:16px;text-align:center;opacity:0.55;font-size:0.65rem;">{rank+1}</span>'
+                f'{"".join(cells)}</div>'
             )
         footer = (
-            '<div style="display:flex;padding-left:18px;">'
-            + "".join(f'<span style="width:40px;text-align:center;opacity:0.5;font-size:0.7rem;">{c}</span>' for c in cols)
+            '<div style="display:flex;padding-left:16px;">'
+            + "".join(
+                f'<span style="width:36px;text-align:center;opacity:0.55;font-size:0.65rem;">{c}</span>'
+                for c in cols
+            )
             + "</div>"
         )
         return (
-            '<div style="display:inline-block;border:2px solid rgba(167,139,250,0.35);border-radius:8px;overflow:hidden;">'
+            '<div style="display:inline-block;border:2px solid rgba(167,139,250,0.35);'
+            'border-radius:8px;overflow:hidden;line-height:1;">'
             + "".join(rows) + footer + "</div>"
         )
 
     st.markdown(_board_html(board), unsafe_allow_html=True)
-    st.caption(
-        f"Turn: {'White' if board.turn == _chess.WHITE else 'Black'} · "
-        f"You: {'White' if player_color == _chess.WHITE else 'Black'} · "
-        f"Moves: {len(st.session_state.chess_moves)}"
-    )
+    side = "White" if player_color == _chess.WHITE else "Black"
+    turn = "White" if board.turn == _chess.WHITE else "Black"
+    st.caption(f"Turn: **{turn}** · You: **{side}** · Moves: {len(st.session_state.chess_moves or [])}")
 
-    if board.is_game_over():
+    if board.is_game_over() and st.session_state.chess_result is None:
         if board.is_checkmate():
             winner = "Black" if board.turn == _chess.WHITE else "White"
             st.session_state.chess_result = f"Checkmate — {winner} wins"
         elif board.is_stalemate():
             st.session_state.chess_result = "Stalemate"
+        elif board.is_insufficient_material():
+            st.session_state.chess_result = "Draw — insufficient material"
         else:
             st.session_state.chess_result = "Game over"
+
+    if st.session_state.chess_result:
         st.success(st.session_state.chess_result)
-        try:
-            complete_quest("chess_initiate")
-            if st.session_state.chess_time_base and st.session_state.chess_time_base <= 120:
-                # approximate bullet
-                if "wins" in (st.session_state.chess_result or "") and (
-                    ("White" in st.session_state.chess_result and player_color == _chess.WHITE)
-                    or ("Black" in st.session_state.chess_result and player_color == _chess.BLACK)
-                ):
+        if not st.session_state.chess_quest_done:
+            st.session_state.chess_quest_done = True
+            try:
+                complete_quest("chess_initiate")
+                player_won = (
+                    "wins" in (st.session_state.chess_result or "")
+                    and (
+                        ("White" in st.session_state.chess_result and player_color == _chess.WHITE)
+                        or ("Black" in st.session_state.chess_result and player_color == _chess.BLACK)
+                    )
+                )
+                if player_won and int(st.session_state.chess_time_base or 0) and int(st.session_state.chess_time_base) <= 120:
                     complete_quest("chess_bullet")
+            except Exception:
+                pass
+
+    # Move entry
+    m1, m2 = st.columns(2)
+    with m1:
+        with st.form(key="chess_move_form", clear_on_submit=True):
+            move_in = st.text_input("Your move (SAN or UCI)", placeholder="e4 or e2e4")
+            play_clicked = st.form_submit_button("Play move", use_container_width=True)
+            if play_clicked:
+                if board.is_game_over():
+                    st.warning("Game over — start a new game.")
+                elif board.turn != player_color:
+                    st.warning("Not your turn — Meridium is thinking, or start a new game.")
+                else:
+                    mv = _chess_parse_move(board, move_in)
+                    if mv is None or mv not in board.legal_moves:
+                        st.error("Illegal or unparsed move. Try SAN (Nf3) or UCI (g1f3).")
+                    else:
+                        try:
+                            st.session_state.chess_moves = list(st.session_state.chess_moves or []) + [board.san(mv)]
+                            board.push(mv)
+                            st.session_state.chess_fen = board.fen()
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Move failed: {e}")
+    with m2:
+        cur_pre = st.session_state.get("chess_premove") or ""
+        if cur_pre:
+            st.caption(f"Active premove: `{cur_pre}`")
+        with st.form(key="chess_pre_form", clear_on_submit=True):
+            prem = st.text_input("Premove (SAN or UCI)", placeholder="queued after Meridium")
+            if st.form_submit_button("Set premove", use_container_width=True):
+                st.session_state.chess_premove = (prem or "").strip()
+                st.success(f"Premove: {st.session_state.chess_premove or 'cleared'}")
+                st.rerun()
+
+    # Helper: show a few legal moves
+    if not board.is_game_over() and board.turn == player_color:
+        try:
+            samples = []
+            for m in list(board.legal_moves)[:12]:
+                samples.append(board.san(m))
+            if samples:
+                st.caption("Examples of legal moves: " + ", ".join(samples))
         except Exception:
             pass
 
-    m1, m2 = st.columns(2)
-    with m1:
-        move_in = st.text_input("Your move (SAN or UCI)", key="chess_move_in", placeholder="e4 or e2e4")
-        if st.button("Play move", key="chess_play", use_container_width=True):
-            if board.is_game_over():
-                st.warning("Game over — start a new game.")
-            elif board.turn != player_color:
-                st.warning("Not your turn.")
-            else:
-                try:
-                    txt = (move_in or "").strip()
-                    if re.match(r"^[a-h][1-8][a-h][1-8]", txt):
-                        mv = _chess.Move.from_uci(txt[:4] + (txt[4:] if len(txt) > 4 else ""))
-                    else:
-                        mv = board.parse_san(txt)
-                    if mv not in board.legal_moves:
-                        st.error("Illegal move.")
-                    else:
-                        st.session_state.chess_moves.append(board.san(mv))
-                        board.push(mv)
-                        st.session_state.chess_fen = board.fen()
-                        st.rerun()
-                except Exception:
-                    st.error("Could not parse move.")
-    with m2:
-        prem = st.text_input("Premove (queued for after Meridium moves)", key="chess_premove_in", value=st.session_state.chess_premove or "")
-        if st.button("Set premove", key="chess_set_pre", use_container_width=True):
-            st.session_state.chess_premove = (prem or "").strip()
-            st.success(f"Premove set: {st.session_state.chess_premove or '—'}")
-
     if st.session_state.chess_moves:
-        st.caption(" · ".join(st.session_state.chess_moves[-24:]))
+        st.caption(" · ".join(st.session_state.chess_moves[-30:]))
 
     if st.session_state.get("feat_chess_analysis") and st.session_state.chess_moves:
         with st.expander("Residual analysis"):
-            st.write("Meridium commentary (lightweight):")
-            last = st.session_state.chess_moves[-1] if st.session_state.chess_moves else "—"
+            last = st.session_state.chess_moves[-1]
             st.markdown(
-                f"Last move **{last}**. Material and activity still shifting. "
-                "For deeper engine lines, the Bazaar contract only unlocks this residual panel — "
+                f"Last move **{last}**. Lightweight residual commentary only — "
                 "full cloud analysis is not hosted inside the shell."
             )
     st.stop()
