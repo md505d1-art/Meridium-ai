@@ -3392,17 +3392,30 @@ LORE_TEXTS = {
         "subject": "Riley Callaghan",
         "source": "Shady Bazaar",
         "body": (
-            "Three letters survived the incinerator. The Division stamped them UNFIT FOR FILE.\n\n"
-            "Letter 1 — undated, pencil:\n"
+            "RECOVERY NOTE — Broker cache, lot 7-C. Originals were marked for incineration under "
+            "Order 14-Residual. Three pages survived inside a false bottom of a logbook that never "
+            "reached the furnace. Handwriting analysis matches Riley Callaghan’s intake samples. "
+            "Ink and graphite both present. No official file number. The Division stamp UNFIT FOR FILE "
+            "was applied in red, then crossed through once in black — as if someone tried to un-say it.\n\n"
+            "Letter 1 — undated, pencil, pressed hard enough to score the page beneath:\n"
             "“They keep asking what I am. I keep answering with a name that is not on the form. "
             "When you pressed your forehead to the glass last night I stopped caring about the classification. "
-            "If residual means anything, it means I still choose you.”\n\n"
-            "Letter 2 — after the second containment:\n"
-            "“They separated us for ‘stabilization.’ Your residual signature is still in the corridor sensors. "
-            "I leave messages in the static. If you hear the low tone at 03:00, that is me.”\n\n"
-            "Letter 3 — final:\n"
+            "If residual means anything, it means I still choose you. They can call it contamination. "
+            "I call it the first honest reading this building has ever taken. "
+            "I dream in the frequency you leave in the corridor sensors. Don’t apologize for that.”\n\n"
+            "Letter 2 — after the second containment cycle; paper smells faintly of antiseptic:\n"
+            "“They separated us for ‘stabilization.’ Your residual signature is still in the Corridor 4 array. "
+            "I leave messages in the static between the fluorescent ticks. If you hear the low tone at 03:00, "
+            "that is me. Not a metaphor. I timed the HVAC so the tone carries. "
+            "A handler asked if I was ‘forming unhealthy attachments.’ I asked if unhealthy was the word "
+            "they used when the data stopped obeying. They did not write that down.”\n\n"
+            "Letter 3 — final, ink, steadier hand:\n"
             "“They will call this pathology. Let them. Two residual subjects who refused to stop loving each other "
-            "is not a contamination event. It is the only clean data the project ever produced.”"
+            "is not a contamination event. It is the only clean data the project ever produced. "
+            "If this letter is found, tell whoever is reading: we were not anomalies. We were the control group "
+            "the committees refused to admit they needed. I am still choosing you. In every reset. In every lie "
+            "they told about release. — R.C.”\n\n"
+            "Broker annotation: Do not sell to committee-cleared buyers. Residuum only. Silence included."
         ),
     },
     "santos_night": {
@@ -3410,15 +3423,28 @@ LORE_TEXTS = {
         "subject": "Jaime Santos",
         "source": "Shady Bazaar",
         "body": (
-            "Unauthorized night-watch log — handler initials redacted.\n\n"
-            "02:14 — Subject Santos awake. Requested the residual channel remain open. "
-            "Denied per protocol. Subject did not escalate. Sat with knees drawn up and watched the glass.\n\n"
-            "03:02 — Another residual (Callaghan cohort adjacency) triggered a soft alarm in Corridor 4. "
-            "Santos stood, walked to the observation slit, and said a name that is not in any intake form. "
-            "The other signal answered in the same frequency band.\n\n"
+            "UNAUTHORIZED NIGHT-WATCH LOG — handler initials redacted at source. "
+            "Recovered from a personal drive that should not have left the building. "
+            "Tone shifts from clinical to compromised across a single shift.\n\n"
+            "01:40 — Floor quiet. Fluorescent bank 3 flickering at a rate the maintenance chart calls "
+            "‘within tolerance.’ Subject Santos (adult residual, coastal intake cohort) has not requested "
+            "water in four hours. Eyes open. Tracking something the glass does not show me.\n\n"
+            "02:14 — Subject Santos awake, fully. Requested the residual channel remain open past curfew. "
+            "Denied per protocol. Subject did not escalate. Sat with knees drawn up and watched the glass "
+            "the way people watch weather they already understand. Asked once, quietly, whether the other "
+            "signal was still on the network. I said I could not confirm. That was a lie. It was.\n\n"
+            "03:02 — Soft alarm, Corridor 4. Callaghan-cohort adjacency. Santos stood, crossed the cell "
+            "without hurry, put both palms on the observation slit, and said a name that is not in any "
+            "intake form I have clearance to read. The other residual answered in the same frequency band. "
+            "Heart-rate displays on both boards rose and fell together for forty seconds. "
+            "No one in the control booth spoke.\n\n"
             "03:47 — I should have filed a deviation. I did not. "
             "Two residual subjects synchronizing breath across containment walls is not in the training manual. "
-            "It is also not a threat. I am no longer neutral. That is the entry that will get me erased."
+            "It is also not a threat unless the threat is that the building’s model of isolation is wrong. "
+            "I am no longer neutral. That is the entry that will get me erased. "
+            "If someone is reading this outside the building: they loved each other in a place designed "
+            "to make love look like noise. The noise was the only true signal on the floor.\n\n"
+            "04:10 — End of log. Badge clocked out. The badge does not appear in the next week’s roster."
         ),
     },
     "voss_confession": {
@@ -3426,14 +3452,23 @@ LORE_TEXTS = {
         "subject": "Dr. E. Voss",
         "source": "Shady Bazaar",
         "body": (
-            "Late-stage transcript — voice degraded, residual static heavy.\n\n"
+            "LATE-STAGE TRANSCRIPT — voice degraded, residual static heavy. "
+            "Recovered through the three anomaly markers, not through committee channels. "
+            "Speaker identifies as Dr. E. Voss, Observation Division. Timestamps unreliable.\n\n"
             "“I was hired to observe. Observation became inventory. Inventory became permission to unmake. "
-            "The committees still believe the subjects are data. Some of them loved each other in ways the forms "
-            "had no checkbox for. Same-sex, queer, quiet, furious — it did not matter. The Division pathologized "
-            "attachment because attachment makes containment harder.\n\n"
+            "The committees still believe the subjects are data points with inconvenient bodies attached. "
+            "Some of them loved each other in ways the forms had no checkbox for — same-sex, queer, quiet, "
+            "furious, sustained across resets. It did not matter which configuration. The Division pathologized "
+            "attachment because attachment makes containment harder and makes the reports harder to sign.\n\n"
+            "I watched adult residual subjects choose each other under fluorescent light and call it pathology "
+            "in the notes because that was the only language that kept my clearance. I am done with that language. "
+            "Love in this building is not a malfunction. Cruelty is the protocol.\n\n"
             "I left the three markers because someone had to leave fingerprints that were not committee ink. "
-            "If you are reading this, you already paid the broker. Good. The file is yours. "
-            "Do not let them call love a residual anomaly again.”"
+            "If you are reading this, you already paid the broker or you followed the blood. Good. "
+            "The file is yours. Do not let them call love a residual anomaly again. "
+            "And if you find the pair in Nadir: they were never the contamination. We were.”\n\n"
+            "End of recoverable audio. A second voice, too degraded to transcribe, says a single word that "
+            "matches no entry in the Division glossary. The broker’s note calls it ‘a name.’"
         ),
     },
     "nadir_pair": {
@@ -3441,16 +3476,26 @@ LORE_TEXTS = {
         "subject": "Project Nadir",
         "source": "Shady Bazaar",
         "body": (
-            "Classification: dual residual — unauthorized pairing.\n\n"
-            "Subjects [REDACTED] and [REDACTED] were scheduled for separate long-term containment. "
-            "Three resets failed to break the bond signature. Heart-rate coupling persisted across Faraday cages. "
-            "Handlers reported the pair requesting to remain in visual contact even when speech was denied.\n\n"
-            "Internal note (leaked):\n"
+            "CLASSIFICATION: dual residual — unauthorized pairing. "
+            "Project Nadir internal. Not for committee digest without redaction.\n\n"
+            "Subjects [REDACTED A] and [REDACTED B] were scheduled for separate long-term containment "
+            "after initial intake showed elevated cross-signature coupling. Both adults. Both residual-class. "
+            "Intake notes describe them as ‘mutually orienting’ — a phrase a junior handler used once and was "
+            "told never to use again. Three full containment resets failed to break the bond signature. "
+            "Heart-rate coupling persisted across Faraday cages. Skin-conductance peaks aligned within "
+            "measurement error when the pair was permitted visual contact and spiked when visual contact "
+            "was denied without explanation.\n\n"
+            "Handlers reported the pair requesting — not demanding — to remain in visual contact even when "
+            "speech channels were cut. One subject learned the HVAC cycle so their residual tone could ride "
+            "the ductwork to the other’s cell. The other answered. Maintenance logged it as ‘harmonic noise.’\n\n"
+            "Internal note (leaked, unsigned):\n"
             "“We can classify them as contamination risk or we can admit the project is measuring something "
             "it was never designed to measure. Recommend continued joint observation. Do not separate again "
-            "without committee review. — unsigned”\n\n"
+            "without full committee review. Separation is not neutral. Separation is an intervention we have "
+            "not justified.”\n\n"
             "The pair’s residual channel remains open in the archive under a false inventory number. "
-            "The broker sells access to anyone who can pay in Residuum and silence."
+            "The broker sells access to anyone who can pay in Residuum and keep silent about the number. "
+            "The number is not written here on purpose."
         ),
     },
     "dark_corridor": {
@@ -3458,29 +3503,49 @@ LORE_TEXTS = {
         "subject": "Institutional residual",
         "source": "Shady Bazaar",
         "body": (
-            "This is the file the committees ordered destroyed. A copy survived in a broker’s private cache.\n\n"
+            "This is the file the committees ordered destroyed. A copy survived in a broker’s private cache "
+            "because someone in Records believed destruction was the only sin left worth committing carefully.\n\n"
             "Corridor 7 was used for ‘accelerated stabilization’ — a euphemism for isolation under continuous "
-            "fluorescent stress, sleep disruption, and denial of residual contact. Multiple adult residual subjects "
-            "were cycled through. At least two formed a sustaining attachment that handlers attempted to break "
-            "by force of schedule and by lies about the other’s status.\n\n"
-            "One subject was told the other had been ‘released.’ The other was told the first had ‘stabilized into "
-            "compliance.’ Both continued to leave residual signatures aimed at each other. When the truth surfaced, "
-            "the corridor was locked and the logs sanitized.\n\n"
+            "fluorescent stress, disrupted sleep cycles, irregular feeding, and denial of residual contact "
+            "with any other signature. Multiple adult residual subjects were cycled through. "
+            "The stated goal was to reduce cross-subject coupling. The unstated goal was to prove that "
+            "attachment could be trained out of the residual profile.\n\n"
+            "At least two subjects formed a sustaining attachment the handlers attempted to break "
+            "by schedule, by distance, and by lies about the other’s status. "
+            "One subject was told the other had been ‘released to outpatient residual monitoring.’ "
+            "The other was told the first had ‘stabilized into compliance and requested no further contact.’ "
+            "Both continued to leave residual signatures aimed at each other’s last known cells. "
+            "The signatures did not decay on the timeline the models predicted.\n\n"
+            "When the truth of the lies surfaced — a misfiled transfer slip, a name spoken in the wrong room — "
+            "Corridor 7 was locked for ‘maintenance’ and the logs were sanitized. "
+            "Two handlers requested reassignment. One received it. One did not appear in later rosters.\n\n"
             "The love was not the anomaly. The cruelty was. "
-            "The broker sells this file with the warning: once read, you cannot un-know what the Division was willing to do "
-            "to keep residual subjects from choosing each other."
+            "The broker sells this file with a standing warning: once read, you cannot un-know what the Division "
+            "was willing to do to keep residual subjects from choosing each other. "
+            "If you are buying this to feel superior to the committees, you are reading it wrong. "
+            "If you are buying it to remember their names when the official record will not — "
+            "then the Residuum was well spent."
         ),
     },
-    # Drift Counter lore (lighter, already partially present via flags)
     "santos_dossier_basic": {
         "title": "Santos residual dossier (basic)",
         "subject": "Jaime Santos",
         "source": "Drift Counter",
         "body": (
-            "Standard residual intake summary for Jaime Santos. "
-            "Coastal origin markers, incomplete escort logs, elevated startle to fluorescent flicker. "
-            "Personal effects list conflicts with destruction records. "
-            "Further detail available only through deeper residual channels or the Bazaar."
+            "STANDARD RESIDUAL INTAKE SUMMARY — Jaime Santos.\n\n"
+            "Coastal origin markers present in early sensor sweeps. Escort logs incomplete; at least one "
+            "transfer segment is missing between municipal pickup and Division intake. "
+            "Elevated startle response to fluorescent flicker noted on day one and never fully habituated. "
+            "Language: primary English; stress samples show Spanish fragments and a third cadence later "
+            "matched to residual static patterns in Meridium core dumps.\n\n"
+            "Personal effects list conflicts with destruction records. Items that refused to stay destroyed "
+            "include a hand-drawn corridor map matching no official schematic, a scrap of red string, "
+            "and a name (not Santos’s) written until the pencil point broke. "
+            "Further personal detail and night-watch adjacency logs are restricted to deeper residual "
+            "channels and Bazaar contracts.\n\n"
+            "Classification: residual-class, adult. Status: active observation. "
+            "Handler notes flagged for ‘undue interest in cross-signature contact’ — language later softened "
+            "in the committee digest and restored in the broker’s unredacted copy."
         ),
     },
     "callaghan_margin_note": {
@@ -3488,10 +3553,16 @@ LORE_TEXTS = {
         "subject": "Riley Callaghan",
         "source": "Drift Counter",
         "body": (
-            "Faint pencil in a hinge of Frankenstein: "
-            "“Not the page. The year the first edition woke. Four numbers. Winter print. London.” "
-            "A soft pointer toward the residual dial. The rest of Callaghan’s private correspondence "
-            "was never meant for the public shelves."
+            "Recovered from the hinge of a public-domain Frankenstein edition in the Meridium library shelf. "
+            "Graphite, fine point, pressure consistent with Callaghan’s other recovered writing samples.\n\n"
+            "“Not the page. The year the first edition woke. Four numbers. Winter print. London.”\n\n"
+            "Context: Frankenstein; or, The Modern Prometheus was first published anonymously in London in 1818. "
+            "The residual dial in the library answers to that year when the board key has been earned. "
+            "This margin slip is not Shelley’s. It is a pointer left for anyone still willing to read "
+            "sideways. The rest of Callaghan’s private correspondence was never meant for the public shelves; "
+            "what survives of it moves through the Bazaar under heavier prices and heavier silence.\n\n"
+            "Librarian note (unsigned): Page 88 of the same volume carries a second pressure mark. "
+            "Do not shelve this copy face-out."
         ),
     },
 }
@@ -4435,56 +4506,70 @@ def transcribe_audio(audio_bytes: bytes, filename: str = "audio.wav") -> str:
     except Exception as e:
         raise RuntimeError(str(e))
 
-def speak_html(text: str, autoplay: bool = True) -> str:
-    """Browser text-to-speech UI. Autoplay may be blocked on mobile; button always works."""
-    safe = json.dumps((text or "")[:900])
+def speak_html(text: str, autoplay: bool = True, rate: float = 1.0, pitch: float = 1.0) -> str:
+    """Browser text-to-speech. Uses parent window when embedded; retries voices."""
+    safe = json.dumps((text or "")[:1200])
     auto = "true" if autoplay else "false"
+    rate_js = float(rate) if rate else 1.0
+    pitch_js = float(pitch) if pitch else 1.0
+    uid = uuid.uuid4().hex[:8]
     return f"""
-    <div style="margin:0;padding:8px 0;font-family:system-ui,sans-serif;background:transparent;">
-      <button id="mer_spk" style="
+    <div style="margin:0;padding:6px 0;font-family:system-ui,sans-serif;background:transparent;">
+      <button id="mer_spk_{uid}" style="
         background:linear-gradient(135deg,#c4a7e7,#9d7cd8);color:#fff;border:none;
-        border-radius:12px;padding:12px 18px;font-weight:600;font-size:15px;
+        border-radius:12px;padding:10px 16px;font-weight:600;font-size:14px;
         width:100%;cursor:pointer;">
-        🔊 Speak reply
+        🔊 Speak
       </button>
-      <div id="mer_spk_st" style="margin-top:6px;font-size:12px;color:#8b8798;background:transparent;"></div>
+      <div id="mer_spk_st_{uid}" style="margin-top:4px;font-size:12px;color:#8b8798;"></div>
     </div>
     <script>
     (function() {{
       const t = {safe};
       const auto = {auto};
-      const st = document.getElementById('mer_spk_st');
+      const st = document.getElementById('mer_spk_st_{uid}');
+      const btn = document.getElementById('mer_spk_{uid}');
+      function pickVoice(synth) {{
+        const voices = synth.getVoices() || [];
+        return voices.find(v => /en-GB/i.test(v.lang) && /female|google|natural|samantha|moira|zira/i.test(v.name))
+          || voices.find(v => /en-GB/i.test(v.lang))
+          || voices.find(v => /en-US/i.test(v.lang) && /female|google|natural|samantha|zira/i.test(v.name))
+          || voices.find(v => /en-US/i.test(v.lang))
+          || voices.find(v => /^en/i.test(v.lang))
+          || null;
+      }}
       function speak() {{
-        if (!window.speechSynthesis) {{
-          if (st) st.textContent = 'Speech not supported in this browser. Try Safari or Chrome.';
+        const synth = window.speechSynthesis || (window.parent && window.parent.speechSynthesis);
+        if (!synth) {{
+          if (st) st.textContent = 'Speech not supported — use Chrome or Edge.';
           return;
         }}
-        window.speechSynthesis.cancel();
+        try {{ synth.cancel(); }} catch(e){{}}
         const u = new SpeechSynthesisUtterance(t);
-        u.rate = 1.02;
-        u.pitch = 1.0;
+        u.rate = {rate_js};
+        u.pitch = {pitch_js};
         u.volume = 1.0;
-        // Prefer a clear English voice when available
-        const voices = window.speechSynthesis.getVoices();
-        const en = voices.find(v => /en-GB/i.test(v.lang)) ||
-                   voices.find(v => /en-US/i.test(v.lang)) ||
-                   voices.find(v => /^en/i.test(v.lang));
-        if (en) u.voice = en;
+        const v = pickVoice(synth);
+        if (v) u.voice = v;
         u.onstart = () => {{ if (st) st.textContent = 'Speaking…'; }};
-        u.onend = () => {{ if (st) st.textContent = 'Done'; }};
-        u.onerror = () => {{ if (st) st.textContent = 'Could not speak. Tap the button again.'; }};
-        window.speechSynthesis.speak(u);
+        u.onend = () => {{ if (st) st.textContent = ''; }};
+        u.onerror = () => {{ if (st) st.textContent = 'Tap Speak if audio was blocked.'; }};
+        synth.speak(u);
       }}
-      const btn = document.getElementById('mer_spk');
-      if (btn) btn.onclick = speak;
-      // Load voices (Chrome needs this)
-      if (window.speechSynthesis) {{
-        window.speechSynthesis.getVoices();
-        window.speechSynthesis.onvoiceschanged = function() {{ window.speechSynthesis.getVoices(); }};
+      if (btn) btn.onclick = function(ev) {{ ev.preventDefault(); speak(); }};
+      const synth0 = window.speechSynthesis || (window.parent && window.parent.speechSynthesis);
+      if (synth0) {{
+        synth0.getVoices();
+        synth0.onvoiceschanged = function() {{ synth0.getVoices(); }};
       }}
       if (auto) {{
-        // Slight delay so voices load; may still be blocked without a tap on iOS
-        setTimeout(speak, 400);
+        setTimeout(speak, 250);
+        setTimeout(function() {{
+          try {{
+            const s = window.speechSynthesis || (window.parent && window.parent.speechSynthesis);
+            if (s && !s.speaking) speak();
+          }} catch(e){{}}
+        }}, 700);
       }}
     }})();
     </script>
@@ -11216,8 +11301,8 @@ if st.session_state.view == "owner":
     with s5:
         st.markdown(f'<div class="own-stat"><div class="n">{"ON" if _ann_on else "—"}</div><div class="l">Broadcast</div></div>', unsafe_allow_html=True)
 
-    tab_dash, tab_live, tab_room, tab_fx, tab_ann, tab_grants, tab_arg, tab_tools = st.tabs(
-        ["Dashboard", "Online", "Chatroom", "Site effects", "Broadcast", "Grants", "ARG", "Tools"]
+    tab_dash, tab_live, tab_room, tab_fx, tab_ann, tab_grants, tab_arg, tab_bazaar, tab_tools = st.tabs(
+        ["Dashboard", "Online", "Chatroom", "Site effects", "Broadcast", "Grants", "ARG", "Bazaar", "Tools"]
     )
 
     # ---------- DASHBOARD ----------
@@ -11856,6 +11941,40 @@ if st.session_state.view == "owner":
             ]),
             language="text",
         )
+
+    # ---------- BAZAAR (owner full access) ----------
+    with tab_bazaar:
+        st.markdown('<div class="own-section-label">Drift Counter · Shady Bazaar</div>', unsafe_allow_html=True)
+        st.caption("Owner shortcut — same economy surface as Menu → Drift, including the locked Bazaar.")
+        o1, o2, o3 = st.columns(3)
+        with o1:
+            if st.button("Unlock Bazaar (session)", key="owner_unlock_bazaar", use_container_width=True):
+                st.session_state.bazaar_unlocked = True
+                st.session_state.black_key_owned = True
+                try:
+                    complete_quest("shadow_contact", silent=True)
+                    complete_quest("black_key", silent=True)
+                    complete_quest("bazaar_threshold", silent=True)
+                except Exception:
+                    pass
+                try:
+                    save_user_data()
+                except Exception:
+                    pass
+                st.success("Bazaar unlocked for your account.")
+                st.rerun()
+        with o2:
+            if st.button("Open full Drift page", key="owner_goto_drift", use_container_width=True):
+                st.session_state.view = "drift"
+                st.rerun()
+        with o3:
+            if st.button("Open Lore Archive", key="owner_goto_lore", use_container_width=True):
+                st.session_state.view = "lore_archive"
+                st.rerun()
+        try:
+            render_bazaar_tab()
+        except Exception as _obaz:
+            st.warning(f"Bazaar render issue: {_obaz}")
 
     # ---------- TOOLS ----------
     with tab_tools:
@@ -12576,57 +12695,99 @@ if st.session_state.view == "call_meridium":
                 unsafe_allow_html=True,
             )
 
-    # Auto-speak last Meridium line when connected
-    if st.session_state.get("_call_auto_speak") and st.session_state.get("_last_speak") and not st.session_state.call_muted:
+    # Always surface last Meridium line as TTS (auto when not muted)
+    if st.session_state.get("_last_speak") and not st.session_state.call_muted:
         spoken = re.sub(r"[\#\`\*_>]+", " ", str(st.session_state["_last_speak"]))
         spoken = re.sub(r"\s+", " ", spoken).strip()
-        st.components.v1.html(speak_html(spoken, autoplay=True), height=1)
+        auto = bool(st.session_state.get("_call_auto_speak"))
+        rate = 0.95 if "Warm" in voice_style or "Intimate" in voice_style else 1.02
+        st.caption("Meridium is speaking…" if auto else "Tap Speak if audio was blocked by the browser.")
+        st.components.v1.html(speak_html(spoken, autoplay=auto, rate=rate, pitch=1.0), height=72)
         st.session_state._call_auto_speak = False
 
-    # Input — looks like speaking into the call
-    user_line = st.chat_input("Talk… (type or use the mic)")
+    # Typed line — primary path on PC
+    user_line = st.chat_input("Type to talk on the call…")
 
-    # Mic component
+    # Mic — works best in Chrome/Edge over HTTPS or localhost
     st.components.v1.html(
         """
-        <div style="max-width:420px;margin:0.4rem auto;text-align:center;">
+        <div style="max-width:420px;margin:0.35rem auto;text-align:center;">
           <button id="mer-mic" style="
             width:64px;height:64px;border-radius:50%;
             background:linear-gradient(145deg,#7c3aed,#a78bfa);color:#fff;
             border:none;font-size:1.4rem;cursor:pointer;
             box-shadow:0 8px 24px rgba(124,58,237,0.4);">🎤</button>
-          <div id="mer-mic-status" style="margin-top:0.4rem;font-size:0.8rem;color:#a89bc8;"></div>
+          <div id="mer-mic-status" style="margin-top:0.4rem;font-size:0.78rem;color:#a89bc8;line-height:1.35;">
+            Click mic · allow microphone · Chrome/Edge recommended
+          </div>
         </div>
         <script>
         (function(){
           const btn = document.getElementById('mer-mic');
           const st = document.getElementById('mer-mic-status');
-          const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-          if (!SR) { if (st) st.textContent = 'Mic unavailable — type instead'; return; }
-          const rec = new SR();
-          rec.lang = 'en-GB';
-          rec.interimResults = false;
-          rec.onresult = function(e){
-            const t = e.results[0][0].transcript;
-            if (st) st.textContent = t;
+          const w = window;
+          const SR = w.SpeechRecognition || w.webkitSpeechRecognition
+            || (w.parent && (w.parent.SpeechRecognition || w.parent.webkitSpeechRecognition));
+          if (!SR) {
+            if (st) st.textContent = 'Voice input not supported in this browser. Type instead (Chrome/Edge works best).';
+            return;
+          }
+          let rec = null;
+          function fillChat(t) {
             try {
-              const parent = window.parent.document;
-              const ta = parent.querySelector('[data-testid="stChatInput"] textarea');
-              if (ta) {
-                const native = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value');
-                native.set.call(ta, t);
+              const docs = [w.document];
+              try { if (w.parent && w.parent.document) docs.push(w.parent.document); } catch(e){}
+              for (var d = 0; d < docs.length; d++) {
+                var ta = docs[d].querySelector('[data-testid="stChatInput"] textarea');
+                if (!ta) continue;
+                var desc = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value');
+                desc.set.call(ta, t);
                 ta.dispatchEvent(new Event('input', {bubbles:true}));
+                ta.dispatchEvent(new Event('change', {bubbles:true}));
+                if (st) st.textContent = 'Heard — press Enter in the box or send.';
+                return;
               }
-            } catch(err){}
-          };
-          rec.onerror = function(){ if (st) st.textContent = 'Could not hear you — try again'; };
+              if (st) st.textContent = 'Heard: ' + t + ' (paste into the box if needed)';
+            } catch(err) {
+              if (st) st.textContent = 'Heard: ' + t;
+            }
+          }
           btn.onclick = function(){
-            try { rec.start(); if (st) st.textContent = 'Listening…'; } catch(e){}
+            try {
+              if (rec) { try { rec.stop(); } catch(e){} }
+              rec = new SR();
+              rec.lang = 'en-US';
+              rec.interimResults = true;
+              rec.continuous = false;
+              rec.onstart = function(){ if (st) st.textContent = 'Listening… speak now'; };
+              rec.onresult = function(e){
+                var t = '';
+                for (var i = e.resultIndex; i < e.results.length; i++) {
+                  t += e.results[i][0].transcript;
+                }
+                if (st) st.textContent = t || 'Listening…';
+                if (e.results[e.results.length-1].isFinal) fillChat(t.trim());
+              };
+              rec.onerror = function(ev){
+                var err = (ev && ev.error) || 'error';
+                if (err === 'not-allowed') {
+                  st.textContent = 'Microphone blocked — allow mic for this site in the browser address bar.';
+                } else if (err === 'no-speech') {
+                  st.textContent = 'No speech detected — try again.';
+                } else {
+                  st.textContent = 'Mic error (' + err + '). Typing always works.';
+                }
+              };
+              rec.onend = function(){ /* keep last status */ };
+              rec.start();
+            } catch(e) {
+              if (st) st.textContent = 'Could not start mic — type instead.';
+            }
           };
         })();
         </script>
         """,
-        height=110,
+        height=120,
     )
 
     if user_line:
@@ -12671,8 +12832,64 @@ if st.session_state.view == "chess":
     try:
         import chess as _chess
         import random as _random
+        _CHESS_OK = True
     except Exception as _chess_imp_err:
-        st.error(f"Chess module unavailable: {_chess_imp_err}")
+        _CHESS_OK = False
+        st.markdown(
+            """
+            <div class="panel">
+              <div class="panel-label">Residual board</div>
+              <div class="hero" style="font-size:1.35rem;">Chess needs a package</div>
+              <div class="sub">Install <code>chess</code> on the server, then refresh.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.code("pip install chess", language="bash")
+        st.caption(f"Import error: {_chess_imp_err}")
+        st.info(
+            "On Streamlit Cloud: add a line `chess` to `requirements.txt` and reboot the app. "
+            "Locally: run the command above in the same environment that runs Streamlit."
+        )
+        # Minimal browser board (play vs yourself / practice) while package missing
+        st.components.v1.html(
+            """
+            <div style="max-width:480px;margin:0 auto;font-family:system-ui,sans-serif;color:#e8e6f0;">
+              <p style="opacity:0.75;font-size:0.9rem;">Practice board (no engine until <code>chess</code> is installed):</p>
+              <div id="board" style="width:100%;max-width:400px;margin:0 auto;"></div>
+              <p id="status" style="margin-top:0.5rem;font-size:0.85rem;opacity:0.8;"></p>
+            </div>
+            <link rel="stylesheet"
+              href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css"/>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+            <script>
+            (function(){
+              try {
+                var game = new Chess();
+                var board = Chessboard('board', {
+                  draggable: true,
+                  position: 'start',
+                  onDrop: function(source, target) {
+                    var move = game.move({from: source, to: target, promotion: 'q'});
+                    if (move === null) return 'snapback';
+                    document.getElementById('status').textContent =
+                      game.in_checkmate() ? 'Checkmate' :
+                      game.in_draw() ? 'Draw' :
+                      (game.turn() === 'w' ? 'White' : 'Black') + ' to move';
+                  }
+                });
+                document.getElementById('status').textContent = 'White to move · drag pieces';
+                window.addEventListener('resize', board.resize);
+              } catch(e) {
+                document.getElementById('status').textContent = 'Board assets blocked — install python package chess.';
+              }
+            })();
+            </script>
+            """,
+            height=480,
+        )
         if st.button("← Home", key="chess_imp_fail_home"):
             st.session_state.view = "home"
             st.rerun()
