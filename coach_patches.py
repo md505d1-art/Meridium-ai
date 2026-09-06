@@ -1,51 +1,36 @@
-"""Custom coaches + AI opponents with portrait images (coaches/*.b64)."""
+"""Custom coaches + AI opponents with illustrated portraits and iconic lines."""
 from __future__ import annotations
-import base64
 import json
 import re
-from pathlib import Path
+
+try:
+    from coaches_portraits import PORTRAITS as _PORTRAITS
+except Exception:
+    _PORTRAITS = {}
 
 _FILE_MAP = {
-    "Gotham Chess": "gotham.b64",
-    "Hikaru": "hikaru.b64",
-    "Magnus": "magnus.b64",
-    "Anna Cramling": "anna.b64",
-    "Botez": "botez.b64",
-    "Fabi": "fabi.b64",
-    "Naroditsky": "danya.b64",
-    "Eric Rosen": "eric.b64",
+    "Gotham Chess": "gotham",
+    "Hikaru": "hikaru",
+    "Magnus": "magnus",
+    "Anna Cramling": "anna",
+    "Botez": "botez",
+    "Fabi": "fabi",
+    "Naroditsky": "danya",
+    "Eric Rosen": "eric",
 }
 
 
-def _load_avatar(name: str) -> str | None:
-    """Load coaches/<file>.b64 as a data URI."""
-    fn = _FILE_MAP.get(name)
-    if not fn:
+def _load_avatar(name: str):
+    key = _FILE_MAP.get(name)
+    if not key:
         return None
-    roots = []
-    try:
-        roots.append(Path(__file__).resolve().parent)
-    except Exception:
-        pass
-    roots.append(Path.cwd())
-    for root in roots:
-        p = root / "coaches" / fn
-        if p.exists():
-            try:
-                raw = p.read_text(encoding="ascii").strip()
-                if raw.startswith("data:"):
-                    return raw
-                return "data:image/png;base64," + raw
-            except Exception:
-                pass
-    return None
+    return _PORTRAITS.get(key)
 
 
 _COACHES = {
     "Soju": {"title": "Soju · Resident Cat Coach", "tagline": "I'll sit here. You play. I'll judge.", "avatar": None, "talks": None},
     "Gotham Chess": {
-        "title": "Gotham Chess · Levy", "tagline": "THE ROOOOOOOOOOOOOOOOOOOOOK",
-        "avatar": "Gotham Chess",
+        "title": "Gotham Chess · Levy", "tagline": "THE ROOOOOOOOOOOOOOOOOOOOOK", "avatar": "Gotham Chess",
         "talks": {
             "Brilliant": ["THAT is how you play chess. Absolute cinema.", "THE ROOOOOOOOOOOOOOOOOOOOOK goes crazy here."],
             "Great": ["Great move. This is the line I showed in the course.", "Clean. Simple. Effective."],
@@ -60,8 +45,7 @@ _COACHES = {
         },
     },
     "Hikaru": {
-        "title": "Hikaru · Speed Demon", "tagline": "Chat, is this real?",
-        "avatar": "Hikaru",
+        "title": "Hikaru · Speed Demon", "tagline": "Chat, is this real?", "avatar": "Hikaru",
         "talks": {
             "Brilliant": ["Chat is this real?? That was actually crazy.", "Okay that was clean. GG."],
             "Great": ["Great move. Speedrun any% vibes.", "Yeah that's the one."],
@@ -76,8 +60,7 @@ _COACHES = {
         },
     },
     "Magnus": {
-        "title": "Magnus · Endgame God", "tagline": "I don't even try that hard.",
-        "avatar": "Magnus",
+        "title": "Magnus · Endgame God", "tagline": "I don't even try that hard.", "avatar": "Magnus",
         "talks": {
             "Brilliant": ["Very nice. I might have played the same.", "Beautiful. Simple and strong."],
             "Great": ["Great. Practical and strong.", "Yes. That works."],
@@ -92,8 +75,7 @@ _COACHES = {
         },
     },
     "Anna Cramling": {
-        "title": "Anna · Positive Energy", "tagline": "You got this!!",
-        "avatar": "Anna Cramling",
+        "title": "Anna · Positive Energy", "tagline": "You got this!!", "avatar": "Anna Cramling",
         "talks": {
             "Brilliant": ["OMG that was BRILLIANT!!", "I love this move so much!!"],
             "Great": ["Great job!! Keep going!!", "Yes!! That's it!!"],
@@ -108,8 +90,7 @@ _COACHES = {
         },
     },
     "Botez": {
-        "title": "Botez · Chaotic Fun", "tagline": "Botez gambit incoming?",
-        "avatar": "Botez",
+        "title": "Botez · Chaotic Fun", "tagline": "Botez gambit incoming?", "avatar": "Botez",
         "talks": {
             "Brilliant": ["NO WAY that was actually brilliant.", "Okay chat that was clean."],
             "Great": ["Great move ngl.", "Yes!!"],
@@ -124,8 +105,7 @@ _COACHES = {
         },
     },
     "Fabi": {
-        "title": "Fabiano · Precision", "tagline": "Calculate everything.",
-        "avatar": "Fabi",
+        "title": "Fabiano · Precision", "tagline": "Calculate everything.", "avatar": "Fabi",
         "talks": {
             "Brilliant": ["Brilliant calculation.", "Very deep. Impressive."],
             "Great": ["Great. Precise.", "Strong practical choice."],
@@ -140,8 +120,7 @@ _COACHES = {
         },
     },
     "Naroditsky": {
-        "title": "Danya · Clear Explanation", "tagline": "Let's break this down.",
-        "avatar": "Naroditsky",
+        "title": "Danya · Clear Explanation", "tagline": "Let's break this down.", "avatar": "Naroditsky",
         "talks": {
             "Brilliant": ["Brilliant. Let me explain why this works...", "Superb calculation."],
             "Great": ["Great practical move.", "Very instructive."],
@@ -156,8 +135,7 @@ _COACHES = {
         },
     },
     "Eric Rosen": {
-        "title": "Eric Rosen · Imaginative", "tagline": "Hello everyone!",
-        "avatar": "Eric Rosen",
+        "title": "Eric Rosen · Imaginative", "tagline": "Hello everyone!", "avatar": "Eric Rosen",
         "talks": {
             "Brilliant": ["Hello everyone! That was a brilliant idea.", "Creative and strong."],
             "Great": ["Great practical decision.", "Nice find."],
@@ -186,10 +164,8 @@ _OPPONENTS = {
 
 
 def apply_coach_to_html(html: str, coach_name: str) -> str:
-    """Mutate chess_widget HTML for the selected coach. Safe JS (no double const)."""
     c = _COACHES.get(coach_name) or _COACHES["Soju"]
     nm = coach_name or "Soju"
-
     if c.get("talks") and "const TALKS = {" in html:
         start = html.find("const TALKS = {")
         if start >= 0:
@@ -204,9 +180,7 @@ def apply_coach_to_html(html: str, coach_name: str) -> str:
             if i < len(html) and html[i] == ";":
                 i += 1
             html = html[:start] + ("const TALKS = " + json.dumps(c["talks"]) + ";") + html[i:]
-
     av = _load_avatar(nm) if nm != "Soju" else None
-
     if nm != "Soju" and av:
         av_js = json.dumps(av)
         name_js = json.dumps(nm + " · coach")
@@ -223,12 +197,7 @@ def apply_coach_to_html(html: str, coach_name: str) -> str:
             j = html.find("};", s)
             if j > 0:
                 html = html[: j + 2] + patch + html[j + 2 :]
-        html = re.sub(
-            r'(id="sojuImg"[^>]*src=")[^"]*(")',
-            r"\1" + av + r"\2",
-            html,
-            count=1,
-        )
+        html = re.sub(r'(id="sojuImg"[^>]*src=")[^"]*(")', r"\1" + av + r"\2", html, count=1)
         html = html.replace(">Soju · board cat<", f"{nm} · coach<", 1)
         html = html.replace("Hint from Soju:", f"Hint from {nm}:")
     return html
@@ -269,15 +238,10 @@ def apply_coach(code: str) -> str:
             if marker in code:
                 code = code.replace(marker, marker + inject_ui, 1)
                 break
-
     old_depth = 'depth = {"Soft": 1, "Steady": 2, "Sharp": 2, "Relentless": 3}.get(level, 2)'
-    new_depth = (
-        old_depth
-        + "\n    try:\n        depth = int(_opp.get(\"depth\", depth))\n    except Exception:\n        pass"
-    )
+    new_depth = old_depth + "\n    try:\n        depth = int(_opp.get(\"depth\", depth))\n    except Exception:\n        pass"
     if old_depth in code and "depth = int(_opp.get" not in code:
         code = code.replace(old_depth, new_depth, 1)
-
     call = (
         "\n        # Coach personality + portrait\n"
         "        try:\n"
