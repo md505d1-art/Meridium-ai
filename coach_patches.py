@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 
+# Embedded portraits so Streamlit Cloud never fails the import
 try:
     from coaches_portraits import PORTRAITS as _PORTRAITS
 except Exception:
@@ -24,7 +25,21 @@ def _load_avatar(name: str):
     key = _FILE_MAP.get(name)
     if not key:
         return None
-    return _PORTRAITS.get(key)
+    av = _PORTRAITS.get(key)
+    if av:
+        return av
+    # fallback: try coaches/{key}.b64
+    try:
+        from pathlib import Path
+        p = Path(__file__).resolve().parent / "coaches" / f"{key}.b64"
+        if p.exists():
+            raw = p.read_text(encoding="utf-8").strip()
+            if raw.startswith("data:"):
+                return raw
+            return "data:image/png;base64," + raw
+    except Exception:
+        pass
+    return None
 
 
 _COACHES = {
@@ -164,8 +179,11 @@ _OPPONENTS = {
 
 
 def apply_coach_to_html(html: str, coach_name: str) -> str:
+    """Replace TALKS + force coach portrait/name so Soju never sticks."""
     c = _COACHES.get(coach_name) or _COACHES["Soju"]
     nm = coach_name or "Soju"
+
+    # 1) Swap TALKS personality
     if c.get("talks") and "const TALKS = {" in html:
         start = html.find("const TALKS = {")
         if start >= 0:
@@ -180,26 +198,88 @@ def apply_coach_to_html(html: str, coach_name: str) -> str:
             if i < len(html) and html[i] == ";":
                 i += 1
             html = html[:start] + ("const TALKS = " + json.dumps(c["talks"]) + ";") + html[i:]
-    av = _load_avatar(nm) if nm != "Soju" else None
-    if nm != "Soju" and av:
-        av_js = json.dumps(av)
-        name_js = json.dumps(nm + " · coach")
-        patch = (
-            "\n  SOJU.idle = SOJU.happy = SOJU.shock = SOJU.think = "
-            + av_js
-            + ";\n  try { sojuImg.src = SOJU.idle; } catch(e){}"
-            + "\n  try { document.querySelector('.soju .name').textContent = "
-            + name_js
-            + "; } catch(e){}\n"
+
+    # 2) Portrait + name (non-Soju only)
+    if nm == "Soju":
+        return html
+
+    av = _load_avatar(nm)
+    if not av:
+        # last-resort solid-color placeholder so user still sees a change
+        label = nm.split()[0][:8].upper()
+        av = (
+            "data:image/svg+xml;utf8,"
+            + "%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E"
+            + "%3Crect width='256' height='256' rx='40' fill='%231e1b4b'/%3E"
+            + f"%3Ctext x='128' y='140' text-anchor='middle' fill='white' font-size='28' font-family='sans-serif'%3E{label}%3C/text%3E"
+            + "%3C/svg%3E"
         )
-        if "const SOJU = {" in html and "SOJU.idle = SOJU.happy" not in html:
-            s = html.find("const SOJU = {")
-            j = html.find("};", s)
-            if j > 0:
-                html = html[: j + 2] + patch + html[j + 2 :]
-        html = re.sub(r'(id="sojuImg"[^>]*src=")[^"]*(")', r"\1" + av + r"\2", html, count=1)
-        html = html.replace(">Soju · board cat<", f"{nm} · coach<", 1)
-        html = html.replace("Hint from Soju:", f"Hint from {nm}:")
+
+    av_js = json.dumps(av)
+    name_js = json.dumps(nm + " · coach")
+    tag_js = json.dumps(c.get("tagline") or "")
+
+    # Overwrite entire SOJU object with coach avatar for all moods
+    if "const SOJU = {" in html:
+        s = html.find("const SOJU = {")
+        j = html.find("};", s)
+        if j > 0:
+            new_soju = (
+                "const SOJU = {\n"
+                f"    idle: {av_js},\n"
+                f"    happy: {av_js},\n"
+                f"    shock: {av_js},\n"
+                f"    think: {av_js}\n"
+                "  };"
+            )
+            html = html[:s] + new_soju + html[j + 2 :]
+
+    # Force <img id="sojuImg" ... src="...">
+    html = re.sub(
+        r'(id=["\']sojuImg["\'][^>]*src=["\'])[^"\']*(["\'])',
+        lambda m: m.group(1) + av + m.group(2),
+        html,
+        count=1,
+    )
+    html = re.sub(
+        r'(src=["\'])[^"\']*(["\'][^>]*id=["\']sojuImg["\'])',
+        lambda m: m.group(1) + av + m.group(2),
+        html,
+        count=1,
+    )
+
+    # Name label in HTML
+    html = html.replace("Soju · board cat", f"{nm} · coach")
+    html = html.replace("Hint from Soju:", f"Hint from {nm}:")
+    html = html.replace('alt="Soju"', f'alt="{nm}"')
+
+    # End-of-script hard force (runs after DOM ready)
+    force_js = (
+        "\n<script>(function(){\n"
+        f"  var AV={av_js};\n"
+        f"  var NM={name_js};\n"
+        f"  var TG={tag_js};\n"
+        "  function apply(){\n"
+        "    try{\n"
+        "      if(typeof SOJU!=='undefined'){ SOJU.idle=SOJU.happy=SOJU.shock=SOJU.think=AV; }\n"
+        "      var img=document.getElementById('sojuImg');\n"
+        "      if(img){ img.src=AV; img.alt=NM; }\n"
+        "      var nameEl=document.querySelector('.soju .name');\n"
+        "      if(nameEl){ nameEl.textContent=NM; }\n"
+        "      var talk=document.getElementById('sojuTalk');\n"
+        "      if(talk && TG){ talk.textContent=TG; }\n"
+        "    }catch(e){}\n"
+        "  }\n"
+        "  apply();\n"
+        "  setTimeout(apply, 30);\n"
+        "  setTimeout(apply, 150);\n"
+        "})();</script>\n"
+    )
+    if "</body>" in html:
+        html = html.replace("</body>", force_js + "</body>", 1)
+    else:
+        html = html + force_js
+
     return html
 
 
@@ -238,12 +318,14 @@ def apply_coach(code: str) -> str:
             if marker in code:
                 code = code.replace(marker, marker + inject_ui, 1)
                 break
+
     old_depth = 'depth = {"Soft": 1, "Steady": 2, "Sharp": 2, "Relentless": 3}.get(level, 2)'
     new_depth = old_depth + "\n    try:\n        depth = int(_opp.get(\"depth\", depth))\n    except Exception:\n        pass"
     if old_depth in code and "depth = int(_opp.get" not in code:
         code = code.replace(old_depth, new_depth, 1)
+
     call = (
-        "\n        # Coach personality + portrait\n"
+        "\n        # Coach personality + portrait (must run after Soju b64 inject)\n"
         "        try:\n"
         "            html = _mer_apply_coach_html(html, st.session_state.get(\"chess_coach\", \"Soju\"))\n"
         "        except Exception:\n"
@@ -256,4 +338,14 @@ def apply_coach(code: str) -> str:
         if marker in code and "_mer_apply_coach_html" not in code:
             code = code.replace(marker, marker + call, 1)
             break
+
+    # Force iframe refresh when coach changes (critical for portrait swap)
+    old_html_call = 'st.components.v1.html(_chess_widget_html(), height=860, scrolling=True)'
+    new_html_call = (
+        'st.components.v1.html(_chess_widget_html(), height=860, scrolling=True, '
+        'key="chess_board_" + str(st.session_state.get("chess_coach","Soju")) + "_" + str(st.session_state.get("chess_opponent","x")) + "_" + str(nonce))'
+    )
+    if old_html_call in code and 'key="chess_board_' not in code:
+        code = code.replace(old_html_call, new_html_call, 1)
+
     return code

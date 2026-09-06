@@ -2,7 +2,7 @@
 from __future__ import annotations
 import base64
 
-def _p(style, bg, accent, secondary, hair, skin):
+def _p(style, bg, accent, secondary, hair, skin, label):
     if style == "gotham":
         x = f'<ellipse cx="128" cy="70" rx="70" ry="45" fill="{hair}"/><rect x="58" y="70" width="140" height="35" fill="{hair}"/><ellipse cx="95" cy="100" rx="18" ry="15" fill="none" stroke="{accent}" stroke-width="3"/><ellipse cx="161" cy="100" rx="18" ry="15" fill="none" stroke="{accent}" stroke-width="3"/><line x1="113" y1="100" x2="143" y2="100" stroke="{accent}" stroke-width="2"/>'
     elif style == "hikaru":
@@ -29,17 +29,19 @@ def _p(style, bg, accent, secondary, hair, skin):
         f'<path d="M136 95 Q148 88 161 95" fill="none" stroke="{hair}" stroke-width="3" stroke-linecap="round"/>'
         f'<path d="M128 112 L124 130 L132 130" fill="none" stroke="#c4a090" stroke-width="2" stroke-linecap="round"/>'
         f'<path d="M112 140 Q128 155 144 140" fill="none" stroke="#c07070" stroke-width="2.5" stroke-linecap="round"/>'
-        f'<circle cx="128" cy="220" r="14" fill="#0c0a12"/><path d="M122 228 L128 212 L134 228 Z" fill="{accent}"/><circle cx="128" cy="214" r="3" fill="{accent}"/></svg>'
+        f'<circle cx="128" cy="220" r="14" fill="#0c0a12"/><path d="M122 228 L128 212 L134 228 Z" fill="{accent}"/><circle cx="128" cy="214" r="3" fill="{accent}"/>'
+        f'<rect x="48" y="228" width="160" height="22" rx="8" fill="rgba(0,0,0,0.55)"/>'
+        f'<text x="128" y="244" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" font-weight="700" fill="#fff" letter-spacing="2">{label}</text></svg>'
     )
     return "data:image/svg+xml;base64," + base64.b64encode(s.encode()).decode()
 
 PORTRAITS = {
-    "gotham": _p("gotham", "#1e1b4b", "#a78bfa", "#312e81", "#2a2030", "#f0d2be"),
-    "hikaru": _p("hikaru", "#0f172a", "#38bdf8", "#1e3a5f", "#1a1514", "#ebc8af"),
-    "magnus": _p("magnus", "#111827", "#fbbf24", "#1f2937", "#d2b478", "#f5dcc8"),
-    "anna": _p("anna", "#4c1d95", "#f9a8d4", "#6b21a8", "#281914", "#fadccd"),
-    "botez": _p("botez", "#831843", "#fb7185", "#9f1239", "#1e1412", "#f5d7c8"),
-    "fabi": _p("fabi", "#1e3a5f", "#93c5fd", "#0c4a6e", "#231c19", "#f0d2be"),
-    "danya": _p("danya", "#164e63", "#67e8f9", "#0e7490", "#2d231e", "#ebcdb4"),
-    "eric": _p("eric", "#3f1d0b", "#fdba74", "#7c2d12", "#322319", "#f5dcc8"),
+    "gotham": _p("gotham", "#1e1b4b", "#a78bfa", "#312e81", "#2a2030", "#f0d2be", "LEVY"),
+    "hikaru": _p("hikaru", "#0f172a", "#38bdf8", "#1e3a5f", "#1a1514", "#ebc8af", "HIKARU"),
+    "magnus": _p("magnus", "#111827", "#fbbf24", "#1f2937", "#d2b478", "#f5dcc8", "MAGNUS"),
+    "anna": _p("anna", "#4c1d95", "#f9a8d4", "#6b21a8", "#281914", "#fadccd", "ANNA"),
+    "botez": _p("botez", "#831843", "#fb7185", "#9f1239", "#1e1412", "#f5d7c8", "BOTEZ"),
+    "fabi": _p("fabi", "#1e3a5f", "#93c5fd", "#0c4a6e", "#231c19", "#f0d2be", "FABI"),
+    "danya": _p("danya", "#164e63", "#67e8f9", "#0e7490", "#2d231e", "#ebcdb4", "DANYA"),
+    "eric": _p("eric", "#3f1d0b", "#fdba74", "#7c2d12", "#322319", "#f5dcc8", "ERIC"),
 }
