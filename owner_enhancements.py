@@ -211,10 +211,32 @@ def apply_owner_enhancements(code: str) -> str:
 
 def apply_chess_page_fixes(code: str) -> str:
     """Small chess-page reliability fixes applied to the bootstrapped app source."""
-    if "Meridium Chess · stable" not in code and 'st.session_state.view == "chess"' in code:
+    if "Meridium Chess · stable" not in code:
+        for old, new in (
+            (
+                'if st.session_state.view == "chess":',
+                'if st.session_state.view == "chess":  # Meridium Chess · stable',
+            ),
+            (
+                "if st.session_state.view == 'chess':",
+                "if st.session_state.view == 'chess':  # Meridium Chess · stable",
+            ),
+        ):
+            if old in code:
+                code = code.replace(old, new, 1)
+                break
+    broken = 'if st.session_state.view == "chess"  # Meridium Chess · stable:'
+    if broken in code:
         code = code.replace(
-            'st.session_state.view == "chess"',
-            'st.session_state.view == "chess"  # Meridium Chess · stable',
+            broken,
+            'if st.session_state.view == "chess":  # Meridium Chess · stable',
+            1,
+        )
+    broken2 = "if st.session_state.view == 'chess'  # Meridium Chess · stable:"
+    if broken2 in code:
+        code = code.replace(
+            broken2,
+            "if st.session_state.view == 'chess':  # Meridium Chess · stable",
             1,
         )
     return code
