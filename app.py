@@ -9,7 +9,7 @@ from remove_call_patches import apply_remove_call
 from online_chess import apply_online
 
 # Bump this to force Streamlit Cloud to re-download the base app after patch changes
-_CACHE_VER = "v7-fix-coach-apply"
+_CACHE_VER = "v8-hide-call-btn"
 
 _GOOD = (
     "https://raw.githubusercontent.com/md505d1-art/Meridium-ai/"
