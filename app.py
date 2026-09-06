@@ -1,8 +1,7 @@
-# Auto-stitched Meridium entrypoint — full source lives in app_parts/
+import gzip, base64
 from pathlib import Path
-_parts_dir = Path(__file__).resolve().parent / "app_parts"
-_code = "".join(
-    p.read_text(encoding="utf-8")
-    for p in sorted(_parts_dir.glob("part_*.txt"))
-)
-exec(compile(_code, str(Path(__file__).resolve().parent / "app.py"), "exec"), globals())
+_root = Path(__file__).resolve().parent
+_parts = sorted(_root.glob("app.gz.b64.part*"))
+_b64 = "".join(p.read_text(encoding="ascii") for p in _parts)
+_code = gzip.decompress(base64.b64decode(_b64)).decode("utf-8")
+exec(compile(_code, str(_root / "app.py"), "exec"), globals())
