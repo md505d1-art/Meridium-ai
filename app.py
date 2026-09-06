@@ -9,7 +9,7 @@ from remove_call_patches import apply_remove_call
 from online_chess import apply_online
 from extra_features import apply_extra_features
 
-_CACHE_VER = "v9-full-feature-pack"
+_CACHE_VER = "v10-interactive-puzzle"
 
 _GOOD = (
     "https://raw.githubusercontent.com/md505d1-art/Meridium-ai/"
