@@ -12827,7 +12827,7 @@ if st.session_state.view == "call_meridium":
     st.stop()
 
 
-# ===== CHESS (no pip — browser engine via CDN) =====
+# ===== CHESS (self-contained — no pip, no CDN board lib) =====
 if st.session_state.view == "chess":
     if st.button("← Home", key="chess_back_home"):
         st.session_state.view = "home"
@@ -12838,19 +12838,18 @@ if st.session_state.view == "chess":
         <div class="panel">
           <div class="panel-label">Residual board</div>
           <div class="hero" style="font-size:1.45rem;">Chess</div>
-          <div class="sub">Play Meridium in the browser · drag pieces · bullet clocks · no server package required.</div>
+          <div class="sub">Click a piece, then a square · play Meridium · clocks optional.</div>
           <div class="ridge"></div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    # Controls drive the embedded board via query-ish session keys
     c1, c2, c3 = st.columns(3)
     with c1:
         tc = st.selectbox(
             "Time control",
-            ["Bullet 1+0", "Bullet 2+1", "Blitz 3+0", "Blitz 5+0", "Rapid 10+0", "Unlimited"],
+            ["Unlimited", "Bullet 1+0", "Bullet 2+1", "Blitz 3+0", "Blitz 5+0", "Rapid 10+0"],
             key="chess_tc_ui",
         )
     with c2:
@@ -12863,78 +12862,108 @@ if st.session_state.view == "chess":
         color = st.selectbox("You play", ["White", "Black"], key="chess_color_ui")
 
     tc_map = {
+        "Unlimited": (0, 0),
         "Bullet 1+0": (60, 0),
         "Bullet 2+1": (120, 1),
         "Blitz 3+0": (180, 0),
         "Blitz 5+0": (300, 0),
         "Rapid 10+0": (600, 0),
-        "Unlimited": (0, 0),
     }
-    base, inc = tc_map.get(tc, (180, 0))
+    base, inc = tc_map.get(tc, (0, 0))
     depth = {"Soft": 1, "Steady": 2, "Sharp": 2, "Relentless": 3}.get(level, 2)
     player_white = "true" if color == "White" else "false"
 
     if st.button("New game", key="chess_new_ui", type="primary"):
-        st.session_state.chess_board_nonce = str(uuid.uuid4())[:8]
+        st.session_state.chess_board_nonce = uuid.uuid4().hex[:8]
         try:
             complete_quest("chess_initiate", silent=True)
         except Exception:
             pass
         st.rerun()
 
-    nonce = st.session_state.get("chess_board_nonce") or "init"
+    nonce = st.session_state.get("chess_board_nonce") or "boot"
 
-    # Full playable board + simple minimax in pure JS (chess.js)
+    # Pure HTML/CSS/JS chess — no external JS libraries required
     st.components.v1.html(
         f"""
 <!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8"/>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css"/>
+<html><head><meta charset="utf-8"/>
 <style>
-  html, body {{ margin:0; padding:0; background: transparent; color:#e8e6f0; font-family: system-ui, sans-serif; }}
-  .wrap {{ max-width: 440px; margin: 0 auto; }}
-  #board {{ width: 100%; max-width: 400px; margin: 0 auto; }}
+  * {{ box-sizing: border-box; }}
+  body {{
+    margin: 0; padding: 12px 8px 16px;
+    background: transparent;
+    color: #e8e6f0;
+    font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+  }}
+  .wrap {{ max-width: 420px; margin: 0 auto; }}
   .bar {{
-    display:flex; justify-content:space-between; align-items:center;
-    margin: 0.6rem 0; font-family: ui-monospace, monospace; font-size: 0.85rem;
+    display: flex; justify-content: space-between; gap: 8px;
+    margin-bottom: 10px; font-family: ui-monospace, monospace; font-size: 13px;
   }}
   .clock {{
-    padding: 0.35rem 0.7rem; border-radius: 10px;
-    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+    flex: 1; text-align: center;
+    padding: 8px 10px; border-radius: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
   }}
-  .clock.active {{ border-color: rgba(74,222,128,0.55); color:#86efac; }}
-  .status {{ opacity: 0.8; font-size: 0.88rem; margin: 0.4rem 0 0.2rem; min-height: 1.2em; }}
+  .clock.on {{ border-color: rgba(74,222,128,0.55); color: #86efac; }}
+  .board {{
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    border: 2px solid rgba(167,139,250,0.4);
+    border-radius: 10px;
+    overflow: hidden;
+    user-select: none;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+  }}
+  .sq {{
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(22px, 5.5vw, 34px);
+    cursor: pointer;
+    line-height: 1;
+  }}
+  .sq.light {{ background: #f0d9b5; }}
+  .sq.dark {{ background: #b58863; }}
+  .sq.sel {{ outline: 3px solid #a78bfa; outline-offset: -3px; }}
+  .sq.mov {{ box-shadow: inset 0 0 0 4px rgba(74,222,128,0.55); }}
+  .sq.chk {{ box-shadow: inset 0 0 0 4px rgba(239,68,68,0.7); }}
+  .status {{
+    margin-top: 10px; min-height: 1.3em;
+    font-size: 14px; opacity: 0.9;
+  }}
   .moves {{
-    font-family: ui-monospace, monospace; font-size: 0.75rem; opacity: 0.7;
-    max-height: 4.5em; overflow-y: auto; line-height: 1.4;
+    margin-top: 6px;
+    font-family: ui-monospace, monospace;
+    font-size: 12px; opacity: 0.65;
+    max-height: 3.6em; overflow-y: auto; line-height: 1.4;
   }}
-  .btnrow {{ display:flex; gap:0.5rem; margin-top:0.55rem; }}
-  button.act {{
-    flex:1; border:1px solid rgba(167,139,250,0.4); background:rgba(167,139,250,0.15);
-    color:#efe8ff; border-radius:12px; padding:0.55rem; font-weight:600; cursor:pointer;
+  .rowbtns {{ display: flex; gap: 8px; margin-top: 10px; }}
+  .rowbtns button {{
+    flex: 1; border: 1px solid rgba(167,139,250,0.4);
+    background: rgba(167,139,250,0.16); color: #f3eefe;
+    border-radius: 12px; padding: 10px; font-weight: 600; cursor: pointer;
   }}
-  button.act:hover {{ background:rgba(167,139,250,0.28); }}
+  .rowbtns button:hover {{ background: rgba(167,139,250,0.28); }}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="bar">
-    <div class="clock" id="clkB">Meridium <span id="timeB">--:--</span></div>
-    <div class="clock" id="clkW">You <span id="timeW">--:--</span></div>
+    <div class="clock" id="clkOpp">Meridium · <span id="tOpp">∞</span></div>
+    <div class="clock" id="clkYou">You · <span id="tYou">∞</span></div>
   </div>
-  <div id="board"></div>
-  <div class="status" id="status">Loading board…</div>
+  <div class="board" id="board"></div>
+  <div class="status" id="status">Starting…</div>
   <div class="moves" id="moves"></div>
-  <div class="btnrow">
-    <button class="act" id="btnUndo" type="button">Undo</button>
-    <button class="act" id="btnHint" type="button">Hint</button>
+  <div class="rowbtns">
+    <button type="button" id="btnUndo">Undo</button>
+    <button type="button" id="btnHint">Hint</button>
   </div>
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
 <script>
 (function() {{
   const PLAYER_WHITE = {player_white};
@@ -12943,209 +12972,525 @@ if st.session_state.view == "chess":
   const DEPTH = {depth};
   const nonce = "{nonce}";
 
-  const game = new Chess();
-  let board = null;
-  let timers = {{ w: BASE, b: BASE }};
-  let active = null; // 'w' | 'b' | null
-  let timerId = null;
+  // -------- Board model --------
+  // 0 empty; white PNBRQK = 1..6; black = 7..12
+  const W=1,P=1,N=2,B=3,R=4,Q=5,K=6, BP=7,BN=8,BB=9,BR=10,BQ=11,BK=12;
+  const GLYPH = {{
+    0:"",1:"♙",2:"♘",3:"♗",4:"♖",5:"♕",6:"♔",
+    7:"♟",8:"♞",9:"♝",10:"♜",11:"♛",12:"♚"
+  }};
+  function isWhite(p) {{ return p >= 1 && p <= 6; }}
+  function isBlack(p) {{ return p >= 7 && p <= 12; }}
+  function colorOf(p) {{ return p === 0 ? null : (isWhite(p) ? "w" : "b"); }}
+  function kind(p) {{
+    if (!p) return null;
+    return [null,"p","n","b","r","q","k","p","n","b","r","q","k"][p];
+  }}
+
+  function startBoard() {{
+    return [
+      BR,BN,BB,BQ,BK,BB,BN,BR,
+      BP,BP,BP,BP,BP,BP,BP,BP,
+      0,0,0,0,0,0,0,0,
+      0,0,0,0,0,0,0,0,
+      0,0,0,0,0,0,0,0,
+      0,0,0,0,0,0,0,0,
+      P,P,P,P,P,P,P,P,
+      R,N,B,Q,K,B,N,R
+    ];
+  }}
+
+  let sq = startBoard();
+  let turn = "w";
+  let selected = null;
+  let legal = [];
+  let history = [];
   let gameOver = false;
-  let premove = null;
+  let timers = {{ w: BASE, b: BASE }};
+  let active = BASE ? "w" : null;
+  let castling = {{ wK:true, wQ:true, bK:true, bQ:true }};
+  let ep = null; // en passant target index or null
 
-  function fmt(s) {{
-    if (!BASE) return "∞";
-    s = Math.max(0, Math.floor(s));
-    const m = Math.floor(s/60), sec = s % 60;
-    return (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+  const boardEl = document.getElementById("board");
+  const statusEl = document.getElementById("status");
+  const movesEl = document.getElementById("moves");
+
+  function idx(r,c) {{ return r*8+c; }}
+  function rc(i) {{ return [i>>3, i&7]; }}
+  function inb(r,c) {{ return r>=0 && r<8 && c>=0 && c<8; }}
+
+  function findKing(side) {{
+    const k = side === "w" ? K : BK;
+    for (let i=0;i<64;i++) if (sq[i]===k) return i;
+    return -1;
   }}
-  function paintClocks() {{
-    document.getElementById("timeW").textContent = fmt(PLAYER_WHITE ? timers.w : timers.b);
-    document.getElementById("timeB").textContent = fmt(PLAYER_WHITE ? timers.b : timers.w);
-    document.getElementById("clkW").classList.toggle("active", active === (PLAYER_WHITE ? "w" : "b"));
-    document.getElementById("clkB").classList.toggle("active", active === (PLAYER_WHITE ? "b" : "w"));
-  }}
-  function setStatus(t) {{ document.getElementById("status").textContent = t; }}
-  function pushMoveLog() {{
-    const h = game.history();
-    let out = [];
-    for (let i = 0; i < h.length; i += 2) {{
-      out.push(((i/2)|0)+1 + ". " + h[i] + (h[i+1] ? " " + h[i+1] : ""));
+
+  function attacked(target, bySide) {{
+    // Generate opponent-style attacks onto target
+    for (let i=0;i<64;i++) {{
+      const p = sq[i];
+      if (!p || colorOf(p) !== bySide) continue;
+      const moves = rawMoves(i, true);
+      if (moves.indexOf(target) >= 0) return true;
     }}
-    document.getElementById("moves").textContent = out.join("  ");
+    return false;
   }}
 
-  // --- tiny evaluation + minimax ---
+  function rawMoves(from, attackOnly) {{
+    const p = sq[from];
+    if (!p) return [];
+    const [r,c] = rc(from);
+    const side = colorOf(p);
+    const k = kind(p);
+    const out = [];
+    const enemy = (t) => {{
+      const q = sq[t];
+      return q && colorOf(q) !== side;
+    }};
+    const empty = (t) => !sq[t];
+    const push = (t) => {{ if (inb(...rc(t)) || (t>=0&&t<64)) out.push(t); }};
+
+    function slide(dirs) {{
+      for (const [dr,dc] of dirs) {{
+        let rr=r+dr, cc=c+dc;
+        while (inb(rr,cc)) {{
+          const t = idx(rr,cc);
+          if (empty(t)) {{ out.push(t); }}
+          else {{ if (enemy(t)) out.push(t); break; }}
+          rr+=dr; cc+=dc;
+        }}
+      }}
+    }}
+
+    if (k === "p") {{
+      const dir = side === "w" ? -1 : 1;
+      const startRow = side === "w" ? 6 : 1;
+      const f1 = idx(r+dir, c);
+      if (!attackOnly && inb(r+dir,c) && empty(f1)) {{
+        out.push(f1);
+        const f2 = idx(r+2*dir, c);
+        if (r === startRow && empty(f2)) out.push(f2);
+      }}
+      for (const dc of [-1,1]) {{
+        const rr=r+dir, cc=c+dc;
+        if (!inb(rr,cc)) continue;
+        const t = idx(rr,cc);
+        if (enemy(t) || (attackOnly && true)) {{
+          if (enemy(t) || attackOnly) out.push(t);
+        }}
+        if (!attackOnly && ep === t && empty(t)) out.push(t);
+      }}
+      // for attack map, count diagonal squares
+      if (attackOnly) {{
+        for (const dc of [-1,1]) {{
+          const rr=r+dir, cc=c+dc;
+          if (inb(rr,cc)) out.push(idx(rr,cc));
+        }}
+      }}
+    }} else if (k === "n") {{
+      for (const [dr,dc] of [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]) {{
+        const rr=r+dr, cc=c+dc;
+        if (!inb(rr,cc)) continue;
+        const t=idx(rr,cc);
+        if (empty(t) || enemy(t) || attackOnly) out.push(t);
+      }}
+    }} else if (k === "b") {{
+      slide([[-1,-1],[-1,1],[1,-1],[1,1]]);
+    }} else if (k === "r") {{
+      slide([[-1,0],[1,0],[0,-1],[0,1]]);
+    }} else if (k === "q") {{
+      slide([[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]]);
+    }} else if (k === "k") {{
+      for (const dr of [-1,0,1]) for (const dc of [-1,0,1]) {{
+        if (!dr && !dc) continue;
+        const rr=r+dr, cc=c+dc;
+        if (!inb(rr,cc)) continue;
+        const t=idx(rr,cc);
+        if (empty(t) || enemy(t) || attackOnly) out.push(t);
+      }}
+      if (!attackOnly) {{
+        // castling
+        if (side === "w" && r === 7 && c === 4) {{
+          if (castling.wK && empty(idx(7,5)) && empty(idx(7,6))) out.push(idx(7,6));
+          if (castling.wQ && empty(idx(7,1)) && empty(idx(7,2)) && empty(idx(7,3))) out.push(idx(7,2));
+        }}
+        if (side === "b" && r === 0 && c === 4) {{
+          if (castling.bK && empty(idx(0,5)) && empty(idx(0,6))) out.push(idx(0,6));
+          if (castling.bQ && empty(idx(0,1)) && empty(idx(0,2)) && empty(idx(0,3))) out.push(idx(0,2));
+        }}
+      }}
+    }}
+    return out;
+  }}
+
+  function legalMoves(from) {{
+    const p = sq[from];
+    if (!p || colorOf(p) !== turn) return [];
+    const side = turn;
+    const opp = side === "w" ? "b" : "w";
+    const candidates = rawMoves(from, false);
+    const out = [];
+    for (const to of candidates) {{
+      const snap = makeMove(from, to, true);
+      const king = findKing(side);
+      const bad = king < 0 || attacked(king, opp);
+      undoMove(snap);
+      if (!bad) out.push(to);
+    }}
+    // filter castling through check
+    return out;
+  }}
+
+  function makeMove(from, to, trial) {{
+    const snap = {{
+      from, to,
+      fromP: sq[from], toP: sq[to],
+      ep, castling: Object.assign({{}}, castling),
+      turn, epWas: ep
+    }};
+    const p = sq[from];
+    const k = kind(p);
+    const side = colorOf(p);
+    // en passant capture
+    if (k === "p" && to === ep && !sq[to]) {{
+      const [tr,tc] = rc(to);
+      const cap = idx(tr + (side === "w" ? 1 : -1), tc);
+      snap.epCap = cap;
+      snap.epCapP = sq[cap];
+      sq[cap] = 0;
+    }}
+    // castling rook move
+    if (k === "k" && Math.abs((from&7) - (to&7)) === 2) {{
+      if (to === idx(7,6)) {{ snap.rookFrom=idx(7,7); snap.rookTo=idx(7,5); sq[idx(7,5)]=sq[idx(7,7)]; sq[idx(7,7)]=0; }}
+      if (to === idx(7,2)) {{ snap.rookFrom=idx(7,0); snap.rookTo=idx(7,3); sq[idx(7,3)]=sq[idx(7,0)]; sq[idx(7,0)]=0; }}
+      if (to === idx(0,6)) {{ snap.rookFrom=idx(0,7); snap.rookTo=idx(0,5); sq[idx(0,5)]=sq[idx(0,7)]; sq[idx(0,7)]=0; }}
+      if (to === idx(0,2)) {{ snap.rookFrom=idx(0,0); snap.rookTo=idx(0,3); sq[idx(0,3)]=sq[idx(0,0)]; sq[idx(0,0)]=0; }}
+    }}
+    sq[to] = sq[from];
+    sq[from] = 0;
+    // promotion
+    if (k === "p") {{
+      const [tr] = rc(to);
+      if (tr === 0 && side === "w") sq[to] = Q;
+      if (tr === 7 && side === "b") sq[to] = BQ;
+    }}
+    // update ep
+    ep = null;
+    if (k === "p" && Math.abs(rc(from)[0]-rc(to)[0]) === 2) {{
+      const mid = idx((rc(from)[0]+rc(to)[0])/2, rc(from)[1]);
+      ep = mid;
+    }}
+    // castling rights
+    if (p === K) {{ castling.wK=false; castling.wQ=false; }}
+    if (p === BK) {{ castling.bK=false; castling.bQ=false; }}
+    if (from === idx(7,0) || to === idx(7,0)) castling.wQ=false;
+    if (from === idx(7,7) || to === idx(7,7)) castling.wK=false;
+    if (from === idx(0,0) || to === idx(0,0)) castling.bQ=false;
+    if (from === idx(0,7) || to === idx(0,7)) castling.bK=false;
+    turn = side === "w" ? "b" : "w";
+    return snap;
+  }}
+
+  function undoMove(snap) {{
+    sq[snap.from] = snap.fromP;
+    sq[snap.to] = snap.toP;
+    if (snap.epCap != null) sq[snap.epCap] = snap.epCapP;
+    if (snap.rookFrom != null) {{
+      sq[snap.rookFrom] = sq[snap.rookTo];
+      sq[snap.rookTo] = 0;
+    }}
+    ep = snap.epWas;
+    castling = snap.castling;
+    turn = snap.turn;
+  }}
+
+  function allLegal(side) {{
+    const moves = [];
+    for (let i=0;i<64;i++) {{
+      if (colorOf(sq[i]) !== side) continue;
+      for (const t of legalMovesForSide(i, side)) moves.push([i,t]);
+    }}
+    return moves;
+  }}
+  function legalMovesForSide(from, side) {{
+    if (colorOf(sq[from]) !== side) return [];
+    const opp = side === "w" ? "b" : "w";
+    const candidates = rawMoves(from, false);
+    const out = [];
+    for (const to of candidates) {{
+      const snap = makeMove(from, to, true);
+      const king = findKing(side);
+      const bad = king < 0 || attacked(king, opp);
+      undoMove(snap);
+      if (!bad) out.push(to);
+    }}
+    return out;
+  }}
+
+  function inCheck(side) {{
+    const king = findKing(side);
+    if (king < 0) return true;
+    return attacked(king, side === "w" ? "b" : "w");
+  }}
+
+  // -------- UI --------
+  function displayIndex(i) {{
+    // orientation
+    if (PLAYER_WHITE) return i;
+    return 63 - i;
+  }}
+  function modelIndex(displayI) {{
+    if (PLAYER_WHITE) return displayI;
+    return 63 - displayI;
+  }}
+
+  function render() {{
+    boardEl.innerHTML = "";
+    for (let di=0; di<64; di++) {{
+      const mi = modelIndex(di);
+      const [r,c] = rc(mi);
+      const el = document.createElement("div");
+      const light = (r + c) % 2 === 1;
+      el.className = "sq " + (light ? "light" : "dark");
+      el.textContent = GLYPH[sq[mi]] || "";
+      if (selected === mi) el.classList.add("sel");
+      if (legal.indexOf(mi) >= 0) el.classList.add("mov");
+      if (gameOver === false && inCheck(turn) && sq[mi] === (turn==="w"?K:BK)) el.classList.add("chk");
+      el.onclick = function() {{ onClick(mi); }};
+      boardEl.appendChild(el);
+    }}
+    paintClocks();
+  }}
+
+  function paintClocks() {{
+    const fmt = (s) => {{
+      if (!BASE) return "∞";
+      s = Math.max(0, s|0);
+      const m = (s/60)|0, sec = s%60;
+      return (m<10?"0":"")+m+":"+(sec<10?"0":"")+sec;
+    }};
+    const youSide = PLAYER_WHITE ? "w" : "b";
+    const oppSide = PLAYER_WHITE ? "b" : "w";
+    document.getElementById("tYou").textContent = fmt(timers[youSide]);
+    document.getElementById("tOpp").textContent = fmt(timers[oppSide]);
+    document.getElementById("clkYou").classList.toggle("on", active === youSide);
+    document.getElementById("clkOpp").classList.toggle("on", active === oppSide);
+  }}
+
+  function logMoves() {{
+    // simple count of ply
+    movesEl.textContent = history.length ? (history.length + " half-moves") : "";
+  }}
+
+  function playerToMove() {{
+    return (PLAYER_WHITE && turn === "w") || (!PLAYER_WHITE && turn === "b");
+  }}
+
+  function endIfNeeded() {{
+    const moves = allLegal(turn);
+    if (moves.length === 0) {{
+      gameOver = true;
+      active = null;
+      if (inCheck(turn)) {{
+        const winner = turn === "w" ? "Black" : "White";
+        statusEl.textContent = "Checkmate — " + winner + " wins";
+      }} else {{
+        statusEl.textContent = "Stalemate";
+      }}
+      return true;
+    }}
+    return false;
+  }}
+
+  function afterMove() {{
+    selected = null;
+    legal = [];
+    if (BASE && active) timers[active] += INC;
+    logMoves();
+    if (endIfNeeded()) {{ render(); return; }}
+    active = BASE ? turn : null;
+    statusEl.textContent = playerToMove() ? (inCheck(turn) ? "Check — your move" : "Your move") : "Meridium is thinking…";
+    render();
+    if (!playerToMove() && !gameOver) {{
+      setTimeout(engineMove, 200);
+    }}
+  }}
+
+  function onClick(mi) {{
+    if (gameOver) return;
+    if (!playerToMove()) return;
+    const p = sq[mi];
+    if (selected == null) {{
+      if (p && colorOf(p) === turn) {{
+        selected = mi;
+        legal = legalMovesForSide(mi, turn);
+      }}
+      render();
+      return;
+    }}
+    if (mi === selected) {{
+      selected = null; legal = []; render(); return;
+    }}
+    if (legal.indexOf(mi) < 0) {{
+      if (p && colorOf(p) === turn) {{
+        selected = mi;
+        legal = legalMovesForSide(mi, turn);
+        render();
+      }}
+      return;
+    }}
+    // play move
+    const snap = makeMove(selected, mi, false);
+    history.push(snap);
+    afterMove();
+  }}
+
+  // -------- Engine --------
   const VAL = {{ p:100, n:320, b:330, r:500, q:900, k:20000 }};
-  function evalBoard() {{
-    if (game.in_checkmate()) return game.turn() === "w" ? -99999 : 99999;
-    if (game.in_draw()) return 0;
+  function evalPos() {{
     let s = 0;
-    const b = game.board();
-    for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {{
-      const p = b[r][c];
+    for (let i=0;i<64;i++) {{
+      const p = sq[i];
       if (!p) continue;
-      const v = VAL[p.type] || 0;
-      s += (p.color === "w" ? v : -v);
-      // center nudge
-      const ctr = (3.5-Math.abs(3.5-c)) + (3.5-Math.abs(3.5-r));
-      s += (p.color === "w" ? 1 : -1) * ctr * 2;
+      const k = kind(p);
+      const v = VAL[k] || 0;
+      const [r,c] = rc(i);
+      const center = (3.5-Math.abs(3.5-c)) + (3.5-Math.abs(3.5-r));
+      if (isWhite(p)) s += v + center*2;
+      else s -= v + center*2;
     }}
     return s;
   }}
   function minimax(depth, alpha, beta, maximizing) {{
-    if (depth === 0 || game.game_over()) return {{ score: evalBoard(), move: null }};
-    const moves = game.moves({{ verbose: true }});
-    // simple ordering: captures first
-    moves.sort((a,b) => (b.captured?1:0) - (a.captured?1:0));
-    let bestMove = moves[0] || null;
+    const moves = allLegal(turn);
+    if (depth === 0 || moves.length === 0) {{
+      if (moves.length === 0) {{
+        if (inCheck(turn)) return maximizing ? -99999 : 99999;
+        return 0;
+      }}
+      return evalPos();
+    }}
+    // order captures roughly
+    moves.sort((a,b) => (sq[b[1]]?1:0) - (sq[a[1]]?1:0));
     if (maximizing) {{
       let best = -1e9;
-      for (const m of moves) {{
-        game.move(m);
-        const res = minimax(depth-1, alpha, beta, false).score;
-        game.undo();
-        if (res > best) {{ best = res; bestMove = m; }}
-        alpha = Math.max(alpha, best);
+      for (const [f,t] of moves) {{
+        const snap = makeMove(f,t,false);
+        const val = minimax(depth-1, alpha, beta, false);
+        undoMove(snap);
+        if (val > best) best = val;
+        if (best > alpha) alpha = best;
         if (beta <= alpha) break;
       }}
-      return {{ score: best, move: bestMove }};
+      return best;
     }} else {{
       let best = 1e9;
-      for (const m of moves) {{
-        game.move(m);
-        const res = minimax(depth-1, alpha, beta, true).score;
-        game.undo();
-        if (res < best) {{ best = res; bestMove = m; }}
-        beta = Math.min(beta, best);
+      for (const [f,t] of moves) {{
+        const snap = makeMove(f,t,false);
+        const val = minimax(depth-1, alpha, beta, true);
+        undoMove(snap);
+        if (val < best) best = val;
+        if (best < beta) beta = best;
         if (beta <= alpha) break;
       }}
-      return {{ score: best, move: bestMove }};
+      return best;
     }}
   }}
   function engineMove() {{
-    if (gameOver || game.game_over()) return;
-    const maximizing = game.turn() === "w";
-    const {{ move }} = minimax(DEPTH, -1e9, 1e9, maximizing);
-    if (!move) return;
-    game.move(move);
-    board.position(game.fen());
-    onAfterMove();
-  }}
-
-  function onAfterMove() {{
-    pushMoveLog();
-    if (BASE && active) {{
-      // increment
-      timers[active] += INC;
+    if (gameOver) return;
+    const moves = allLegal(turn);
+    if (!moves.length) {{ endIfNeeded(); render(); return; }}
+    const maximizing = turn === "w";
+    let bestMove = moves[0];
+    let bestScore = maximizing ? -1e9 : 1e9;
+    // shuffle a bit for variety
+    for (let i=moves.length-1;i>0;i--) {{
+      const j = Math.floor(Math.random()*(i+1));
+      const tmp = moves[i]; moves[i]=moves[j]; moves[j]=tmp;
     }}
-    if (game.in_checkmate()) {{
-      gameOver = true; active = null;
-      const winner = game.turn() === "w" ? "Black" : "White";
-      setStatus("Checkmate — " + winner + " wins");
-      paintClocks();
-      return;
+    const depth = Math.max(1, DEPTH);
+    for (const [f,t] of moves) {{
+      const snap = makeMove(f,t,false);
+      const sc = minimax(depth-1, -1e9, 1e9, !maximizing);
+      undoMove(snap);
+      if (maximizing ? sc > bestScore : sc < bestScore) {{
+        bestScore = sc; bestMove = [f,t];
+      }}
     }}
-    if (game.in_draw()) {{
-      gameOver = true; active = null;
-      setStatus("Draw");
-      paintClocks();
-      return;
-    }}
-    active = game.turn();
-    paintClocks();
-    const playerTurn = (PLAYER_WHITE && active === "w") || (!PLAYER_WHITE && active === "b");
-    setStatus(playerTurn ? "Your move" : "Meridium is thinking…");
-    if (!playerTurn) {{
-      setTimeout(engineMove, 180);
-    }} else if (premove) {{
-      const pm = premove; premove = null;
-      const m = game.move(pm);
-      if (m) {{ board.position(game.fen()); onAfterMove(); }}
-    }}
+    const snap = makeMove(bestMove[0], bestMove[1], false);
+    history.push(snap);
+    afterMove();
   }}
-
-  function tick() {{
-    if (!BASE || !active || gameOver) return;
-    timers[active] -= 1;
-    if (timers[active] <= 0) {{
-      timers[active] = 0;
-      gameOver = true;
-      setStatus("Flag — " + (active === "w" ? "Black" : "White") + " wins on time");
-      active = null;
-    }}
-    paintClocks();
-  }}
-
-  function onDragStart(source, piece) {{
-    if (gameOver || game.game_over()) return false;
-    const playerTurn = (PLAYER_WHITE && game.turn() === "w") || (!PLAYER_WHITE && game.turn() === "b");
-    if (!playerTurn) return false;
-    if (PLAYER_WHITE && piece.search(/^b/) !== -1) return false;
-    if (!PLAYER_WHITE && piece.search(/^w/) !== -1) return false;
-    return true;
-  }}
-  function onDrop(source, target) {{
-    const move = game.move({{ from: source, to: target, promotion: "q" }});
-    if (move === null) return "snapback";
-    onAfterMove();
-  }}
-  function onSnapEnd() {{ board.position(game.fen()); }}
-
-  board = Chessboard("board", {{
-    draggable: true,
-    position: "start",
-    orientation: PLAYER_WHITE ? "white" : "black",
-    pieceTheme: "https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/img/chesspieces/wikipedia/{{piece}}.png",
-    onDragStart: onDragStart,
-    onDrop: onDrop,
-    onSnapEnd: onSnapEnd,
-  }});
-  window.addEventListener("resize", function() {{ try {{ board.resize(); }} catch(e){{}} }});
 
   document.getElementById("btnUndo").onclick = function() {{
-    if (gameOver) return;
-    game.undo();
-    if ((PLAYER_WHITE && game.turn() === "b") || (!PLAYER_WHITE && game.turn() === "w")) game.undo();
-    board.position(game.fen());
-    gameOver = false;
-    active = game.turn();
-    pushMoveLog();
-    setStatus("Your move");
-    paintClocks();
-  }};
-  document.getElementById("btnHint").onclick = function() {{
-    const playerTurn = (PLAYER_WHITE && game.turn() === "w") || (!PLAYER_WHITE && game.turn() === "b");
-    if (!playerTurn || gameOver) return;
-    const maximizing = game.turn() === "w";
-    const {{ move }} = minimax(Math.min(DEPTH, 2), -1e9, 1e9, maximizing);
-    if (move) setStatus("Hint: " + move.from + " → " + move.to + (move.san ? " ("+move.san+")" : ""));
+    if (!history.length || gameOver && history.length < 1) {{
+      // allow undo even after end
+    }}
+    // undo player + engine if needed
+    if (history.length) {{
+      undoMove(history.pop());
+      if (history.length && playerToMove() === false) {{
+        // if still not player, undo again
+      }}
+      // Prefer return to player's turn
+      while (history.length && !((PLAYER_WHITE && turn==="w")||(!PLAYER_WHITE && turn==="b"))) {{
+        undoMove(history.pop());
+      }}
+      gameOver = false;
+      selected = null; legal = [];
+      active = BASE ? turn : null;
+      statusEl.textContent = "Your move";
+      logMoves();
+      render();
+    }}
   }};
 
-  // start clocks + engine if black
-  active = "w";
-  paintClocks();
-  pushMoveLog();
-  if (BASE) timerId = setInterval(tick, 1000);
-  if (!PLAYER_WHITE) {{
-    setStatus("Meridium is thinking…");
-    setTimeout(engineMove, 250);
-  }} else {{
-    setStatus("Your move — drag a piece");
+  document.getElementById("btnHint").onclick = function() {{
+    if (!playerToMove() || gameOver) return;
+    const moves = allLegal(turn);
+    if (!moves.length) return;
+    const maximizing = turn === "w";
+    let best = moves[0], bestScore = maximizing ? -1e9 : 1e9;
+    for (const [f,t] of moves) {{
+      const snap = makeMove(f,t,false);
+      const sc = minimax(1, -1e9, 1e9, !maximizing);
+      undoMove(snap);
+      if (maximizing ? sc > bestScore : sc < bestScore) {{ bestScore = sc; best = [f,t]; }}
+    }}
+    const files = "abcdefgh";
+    const fmt = (i) => files[i&7] + (8-(i>>3));
+    statusEl.textContent = "Hint: " + fmt(best[0]) + " → " + fmt(best[1]);
+    selected = best[0];
+    legal = [best[1]];
+    render();
+  }};
+
+  if (BASE) {{
+    setInterval(function() {{
+      if (!active || gameOver) return;
+      timers[active] -= 1;
+      if (timers[active] <= 0) {{
+        timers[active] = 0;
+        gameOver = true;
+        statusEl.textContent = "Flag — " + (active === "w" ? "Black" : "White") + " wins on time";
+        active = null;
+      }}
+      paintClocks();
+    }}, 1000);
   }}
+
+  // kickoff
+  statusEl.textContent = playerToMove() ? "Your move — click a piece" : "Meridium is thinking…";
+  render();
+  if (!playerToMove()) setTimeout(engineMove, 250);
 }})();
 </script>
-</body>
-</html>
+</body></html>
         """,
-        height=620,
+        height=640,
         scrolling=False,
     )
-
-    st.caption(
-        "Drag pieces to move · promotion auto-queens · clocks run in the board widget. "
-        "No Python chess package needed."
-    )
-    if base and base <= 120:
-        st.caption("Bullet time control selected — win a game to progress the residual bullet quest when economy is online.")
+    st.caption("Click a piece, then a highlighted square. No installs required.")
     st.stop()
 
 
