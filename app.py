@@ -12827,74 +12827,8 @@ if st.session_state.view == "call_meridium":
     st.stop()
 
 
-# ===== CHESS =====
+# ===== CHESS (no pip — browser engine via CDN) =====
 if st.session_state.view == "chess":
-    try:
-        import chess as _chess
-        import random as _random
-        _CHESS_OK = True
-    except Exception as _chess_imp_err:
-        _CHESS_OK = False
-        st.markdown(
-            """
-            <div class="panel">
-              <div class="panel-label">Residual board</div>
-              <div class="hero" style="font-size:1.35rem;">Chess needs a package</div>
-              <div class="sub">Install <code>chess</code> on the server, then refresh.</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        st.code("pip install chess", language="bash")
-        st.caption(f"Import error: {_chess_imp_err}")
-        st.info(
-            "On Streamlit Cloud: add a line `chess` to `requirements.txt` and reboot the app. "
-            "Locally: run the command above in the same environment that runs Streamlit."
-        )
-        # Minimal browser board (play vs yourself / practice) while package missing
-        st.components.v1.html(
-            """
-            <div style="max-width:480px;margin:0 auto;font-family:system-ui,sans-serif;color:#e8e6f0;">
-              <p style="opacity:0.75;font-size:0.9rem;">Practice board (no engine until <code>chess</code> is installed):</p>
-              <div id="board" style="width:100%;max-width:400px;margin:0 auto;"></div>
-              <p id="status" style="margin-top:0.5rem;font-size:0.85rem;opacity:0.8;"></p>
-            </div>
-            <link rel="stylesheet"
-              href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css"/>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
-            <script>
-            (function(){
-              try {
-                var game = new Chess();
-                var board = Chessboard('board', {
-                  draggable: true,
-                  position: 'start',
-                  onDrop: function(source, target) {
-                    var move = game.move({from: source, to: target, promotion: 'q'});
-                    if (move === null) return 'snapback';
-                    document.getElementById('status').textContent =
-                      game.in_checkmate() ? 'Checkmate' :
-                      game.in_draw() ? 'Draw' :
-                      (game.turn() === 'w' ? 'White' : 'Black') + ' to move';
-                  }
-                });
-                document.getElementById('status').textContent = 'White to move · drag pieces';
-                window.addEventListener('resize', board.resize);
-              } catch(e) {
-                document.getElementById('status').textContent = 'Board assets blocked — install python package chess.';
-              }
-            })();
-            </script>
-            """,
-            height=480,
-        )
-        if st.button("← Home", key="chess_imp_fail_home"):
-            st.session_state.view = "home"
-            st.rerun()
-        st.stop()
-
     if st.button("← Home", key="chess_back_home"):
         st.session_state.view = "home"
         st.rerun()
@@ -12904,272 +12838,314 @@ if st.session_state.view == "chess":
         <div class="panel">
           <div class="panel-label">Residual board</div>
           <div class="hero" style="font-size:1.45rem;">Chess</div>
-          <div class="sub">Play Meridium · bullet &amp; premoves · type SAN (e4) or UCI (e2e4).</div>
+          <div class="sub">Play Meridium in the browser · drag pieces · bullet clocks · no server package required.</div>
           <div class="ridge"></div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    # Defaults
-    if "chess_fen" not in st.session_state or not st.session_state.chess_fen:
-        st.session_state.chess_fen = _chess.STARTING_FEN
-    if "chess_player_color" not in st.session_state:
-        st.session_state.chess_player_color = _chess.WHITE
-    if "chess_premove" not in st.session_state:
-        st.session_state.chess_premove = ""
-    if "chess_time_base" not in st.session_state:
-        st.session_state.chess_time_base = 180
-    if "chess_result" not in st.session_state:
-        st.session_state.chess_result = None
-    if "chess_moves" not in st.session_state or not isinstance(st.session_state.chess_moves, list):
-        st.session_state.chess_moves = []
-    if "chess_quest_done" not in st.session_state:
-        st.session_state.chess_quest_done = False
-
-    ccfg1, ccfg2, ccfg3 = st.columns(3)
-    with ccfg1:
-        time_choice = st.selectbox(
+    # Controls drive the embedded board via query-ish session keys
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        tc = st.selectbox(
             "Time control",
             ["Bullet 1+0", "Bullet 2+1", "Blitz 3+0", "Blitz 5+0", "Rapid 10+0", "Unlimited"],
-            key="chess_tc",
+            key="chess_tc_ui",
         )
-    with ccfg2:
-        level = st.selectbox("Meridium strength", ["Soft", "Steady", "Sharp", "Relentless"], key="chess_level")
-    with ccfg3:
-        color_choice = st.selectbox("You play", ["White", "Black"], key="chess_color")
+    with c2:
+        level = st.selectbox(
+            "Meridium strength",
+            ["Soft", "Steady", "Sharp", "Relentless"],
+            key="chess_level_ui",
+        )
+    with c3:
+        color = st.selectbox("You play", ["White", "Black"], key="chess_color_ui")
 
-    def _chess_new_game():
-        st.session_state.chess_fen = _chess.STARTING_FEN
-        st.session_state.chess_player_color = _chess.WHITE if color_choice == "White" else _chess.BLACK
-        st.session_state.chess_premove = ""
-        st.session_state.chess_result = None
-        st.session_state.chess_moves = []
-        st.session_state.chess_quest_done = False
-        tc_map = {
-            "Bullet 1+0": 60, "Bullet 2+1": 120, "Blitz 3+0": 180,
-            "Blitz 5+0": 300, "Rapid 10+0": 600, "Unlimited": 0,
-        }
-        st.session_state.chess_time_base = tc_map.get(time_choice, 180)
-
-    if st.button("New game", key="chess_new", type="primary"):
-        _chess_new_game()
-        st.rerun()
-
-    try:
-        board = _chess.Board(st.session_state.chess_fen)
-    except Exception:
-        st.session_state.chess_fen = _chess.STARTING_FEN
-        board = _chess.Board(st.session_state.chess_fen)
-
-    def _chess_engine_move(bd, strength: str):
-        legal = list(bd.legal_moves)
-        if not legal:
-            return None
-        def score(m):
-            s = 0.0
-            if bd.is_capture(m):
-                s += 30
-            bd.push(m)
-            try:
-                if bd.is_check():
-                    s += 20
-                if bd.is_checkmate():
-                    s += 1000
-            finally:
-                bd.pop()
-            to = m.to_square
-            fl, rk = _chess.square_file(to), _chess.square_rank(to)
-            s += 4 - abs(3.5 - fl) - abs(3.5 - rk)
-            return s
-        ranked = sorted(legal, key=score, reverse=True)
-        pool_n = {"Soft": 8, "Steady": 5, "Sharp": 3, "Relentless": 2}.get(strength, 5)
-        pool = ranked[: max(1, min(pool_n, len(ranked)))]
-        return _random.choice(pool)
-
-    def _chess_parse_move(bd, txt: str):
-        txt = (txt or "").strip()
-        if not txt:
-            return None
-        try:
-            if re.match(r"^[a-h][1-8][a-h][1-8][qrbnQRBN]?$", txt):
-                return _chess.Move.from_uci(txt.lower())
-            return bd.parse_san(txt)
-        except Exception:
-            return None
-
-    player_color = st.session_state.chess_player_color
-
-    # Engine turn (one move, then continue render — no tight loop)
-    if (
-        st.session_state.chess_result is None
-        and not board.is_game_over()
-        and board.turn != player_color
-    ):
-        mv = _chess_engine_move(board, level)
-        if mv is not None:
-            try:
-                san = board.san(mv)
-                board.push(mv)
-                st.session_state.chess_moves = list(st.session_state.chess_moves or []) + [san]
-                st.session_state.chess_fen = board.fen()
-            except Exception:
-                pass
-            # Premove
-            prem = (st.session_state.chess_premove or "").strip()
-            if prem and not board.is_game_over() and board.turn == player_color:
-                pm = _chess_parse_move(board, prem)
-                if pm is not None and pm in board.legal_moves:
-                    try:
-                        st.session_state.chess_moves = list(st.session_state.chess_moves or []) + [board.san(pm)]
-                        board.push(pm)
-                        st.session_state.chess_fen = board.fen()
-                    except Exception:
-                        pass
-                st.session_state.chess_premove = ""
-
-    # Refresh board from fen after possible engine move
-    try:
-        board = _chess.Board(st.session_state.chess_fen)
-    except Exception:
-        board = _chess.Board(_chess.STARTING_FEN)
-
-    # ASCII-safe board (no unicode piece issues in some fonts)
-    PIECE_ASCII = {
-        "P": "P", "N": "N", "B": "B", "R": "R", "Q": "Q", "K": "K",
-        "p": "p", "n": "n", "b": "b", "r": "r", "q": "q", "k": "k",
+    tc_map = {
+        "Bullet 1+0": (60, 0),
+        "Bullet 2+1": (120, 1),
+        "Blitz 3+0": (180, 0),
+        "Blitz 5+0": (300, 0),
+        "Rapid 10+0": (600, 0),
+        "Unlimited": (0, 0),
     }
+    base, inc = tc_map.get(tc, (180, 0))
+    depth = {"Soft": 1, "Steady": 2, "Sharp": 2, "Relentless": 3}.get(level, 2)
+    player_white = "true" if color == "White" else "false"
 
-    def _board_html(bd):
-        cols = "abcdefgh"
-        rows = []
-        for rank in range(7, -1, -1):
-            cells = []
-            for file in range(8):
-                sq = _chess.square(file, rank)
-                piece = bd.piece_at(sq)
-                if piece:
-                    sym = PIECE_ASCII.get(piece.symbol(), piece.symbol())
-                    color = "#1a1a1a" if piece.color == _chess.WHITE else "#f5f5f5"
-                    weight = "700"
-                else:
-                    sym = ""
-                    color = "transparent"
-                    weight = "400"
-                bg = "#b58863" if (file + rank) % 2 == 0 else "#f0d9b5"
-                cells.append(
-                    f'<div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;'
-                    f'background:{bg};font-size:1.15rem;font-weight:{weight};color:{color};'
-                    f'font-family:ui-monospace,monospace;user-select:none;">{sym}</div>'
-                )
-            rows.append(
-                f'<div style="display:flex;align-items:center;">'
-                f'<span style="width:16px;text-align:center;opacity:0.55;font-size:0.65rem;">{rank+1}</span>'
-                f'{"".join(cells)}</div>'
-            )
-        footer = (
-            '<div style="display:flex;padding-left:16px;">'
-            + "".join(
-                f'<span style="width:36px;text-align:center;opacity:0.55;font-size:0.65rem;">{c}</span>'
-                for c in cols
-            )
-            + "</div>"
-        )
-        return (
-            '<div style="display:inline-block;border:2px solid rgba(167,139,250,0.35);'
-            'border-radius:8px;overflow:hidden;line-height:1;">'
-            + "".join(rows) + footer + "</div>"
-        )
-
-    st.markdown(_board_html(board), unsafe_allow_html=True)
-    side = "White" if player_color == _chess.WHITE else "Black"
-    turn = "White" if board.turn == _chess.WHITE else "Black"
-    st.caption(f"Turn: **{turn}** · You: **{side}** · Moves: {len(st.session_state.chess_moves or [])}")
-
-    if board.is_game_over() and st.session_state.chess_result is None:
-        if board.is_checkmate():
-            winner = "Black" if board.turn == _chess.WHITE else "White"
-            st.session_state.chess_result = f"Checkmate — {winner} wins"
-        elif board.is_stalemate():
-            st.session_state.chess_result = "Stalemate"
-        elif board.is_insufficient_material():
-            st.session_state.chess_result = "Draw — insufficient material"
-        else:
-            st.session_state.chess_result = "Game over"
-
-    if st.session_state.chess_result:
-        st.success(st.session_state.chess_result)
-        if not st.session_state.chess_quest_done:
-            st.session_state.chess_quest_done = True
-            try:
-                complete_quest("chess_initiate")
-                player_won = (
-                    "wins" in (st.session_state.chess_result or "")
-                    and (
-                        ("White" in st.session_state.chess_result and player_color == _chess.WHITE)
-                        or ("Black" in st.session_state.chess_result and player_color == _chess.BLACK)
-                    )
-                )
-                if player_won and int(st.session_state.chess_time_base or 0) and int(st.session_state.chess_time_base) <= 120:
-                    complete_quest("chess_bullet")
-            except Exception:
-                pass
-
-    # Move entry
-    m1, m2 = st.columns(2)
-    with m1:
-        with st.form(key="chess_move_form", clear_on_submit=True):
-            move_in = st.text_input("Your move (SAN or UCI)", placeholder="e4 or e2e4")
-            play_clicked = st.form_submit_button("Play move", use_container_width=True)
-            if play_clicked:
-                if board.is_game_over():
-                    st.warning("Game over — start a new game.")
-                elif board.turn != player_color:
-                    st.warning("Not your turn — Meridium is thinking, or start a new game.")
-                else:
-                    mv = _chess_parse_move(board, move_in)
-                    if mv is None or mv not in board.legal_moves:
-                        st.error("Illegal or unparsed move. Try SAN (Nf3) or UCI (g1f3).")
-                    else:
-                        try:
-                            st.session_state.chess_moves = list(st.session_state.chess_moves or []) + [board.san(mv)]
-                            board.push(mv)
-                            st.session_state.chess_fen = board.fen()
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"Move failed: {e}")
-    with m2:
-        cur_pre = st.session_state.get("chess_premove") or ""
-        if cur_pre:
-            st.caption(f"Active premove: `{cur_pre}`")
-        with st.form(key="chess_pre_form", clear_on_submit=True):
-            prem = st.text_input("Premove (SAN or UCI)", placeholder="queued after Meridium")
-            if st.form_submit_button("Set premove", use_container_width=True):
-                st.session_state.chess_premove = (prem or "").strip()
-                st.success(f"Premove: {st.session_state.chess_premove or 'cleared'}")
-                st.rerun()
-
-    # Helper: show a few legal moves
-    if not board.is_game_over() and board.turn == player_color:
+    if st.button("New game", key="chess_new_ui", type="primary"):
+        st.session_state.chess_board_nonce = str(uuid.uuid4())[:8]
         try:
-            samples = []
-            for m in list(board.legal_moves)[:12]:
-                samples.append(board.san(m))
-            if samples:
-                st.caption("Examples of legal moves: " + ", ".join(samples))
+            complete_quest("chess_initiate", silent=True)
         except Exception:
             pass
+        st.rerun()
 
-    if st.session_state.chess_moves:
-        st.caption(" · ".join(st.session_state.chess_moves[-30:]))
+    nonce = st.session_state.get("chess_board_nonce") or "init"
 
-    if st.session_state.get("feat_chess_analysis") and st.session_state.chess_moves:
-        with st.expander("Residual analysis"):
-            last = st.session_state.chess_moves[-1]
-            st.markdown(
-                f"Last move **{last}**. Lightweight residual commentary only — "
-                "full cloud analysis is not hosted inside the shell."
-            )
+    # Full playable board + simple minimax in pure JS (chess.js)
+    st.components.v1.html(
+        f"""
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css"/>
+<style>
+  html, body {{ margin:0; padding:0; background: transparent; color:#e8e6f0; font-family: system-ui, sans-serif; }}
+  .wrap {{ max-width: 440px; margin: 0 auto; }}
+  #board {{ width: 100%; max-width: 400px; margin: 0 auto; }}
+  .bar {{
+    display:flex; justify-content:space-between; align-items:center;
+    margin: 0.6rem 0; font-family: ui-monospace, monospace; font-size: 0.85rem;
+  }}
+  .clock {{
+    padding: 0.35rem 0.7rem; border-radius: 10px;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+  }}
+  .clock.active {{ border-color: rgba(74,222,128,0.55); color:#86efac; }}
+  .status {{ opacity: 0.8; font-size: 0.88rem; margin: 0.4rem 0 0.2rem; min-height: 1.2em; }}
+  .moves {{
+    font-family: ui-monospace, monospace; font-size: 0.75rem; opacity: 0.7;
+    max-height: 4.5em; overflow-y: auto; line-height: 1.4;
+  }}
+  .btnrow {{ display:flex; gap:0.5rem; margin-top:0.55rem; }}
+  button.act {{
+    flex:1; border:1px solid rgba(167,139,250,0.4); background:rgba(167,139,250,0.15);
+    color:#efe8ff; border-radius:12px; padding:0.55rem; font-weight:600; cursor:pointer;
+  }}
+  button.act:hover {{ background:rgba(167,139,250,0.28); }}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <div class="clock" id="clkB">Meridium <span id="timeB">--:--</span></div>
+    <div class="clock" id="clkW">You <span id="timeW">--:--</span></div>
+  </div>
+  <div id="board"></div>
+  <div class="status" id="status">Loading board…</div>
+  <div class="moves" id="moves"></div>
+  <div class="btnrow">
+    <button class="act" id="btnUndo" type="button">Undo</button>
+    <button class="act" id="btnHint" type="button">Hint</button>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+<script>
+(function() {{
+  const PLAYER_WHITE = {player_white};
+  const BASE = {base};
+  const INC = {inc};
+  const DEPTH = {depth};
+  const nonce = "{nonce}";
+
+  const game = new Chess();
+  let board = null;
+  let timers = {{ w: BASE, b: BASE }};
+  let active = null; // 'w' | 'b' | null
+  let timerId = null;
+  let gameOver = false;
+  let premove = null;
+
+  function fmt(s) {{
+    if (!BASE) return "∞";
+    s = Math.max(0, Math.floor(s));
+    const m = Math.floor(s/60), sec = s % 60;
+    return (m < 10 ? "0" : "") + m + ":" + (sec < 10 ? "0" : "") + sec;
+  }}
+  function paintClocks() {{
+    document.getElementById("timeW").textContent = fmt(PLAYER_WHITE ? timers.w : timers.b);
+    document.getElementById("timeB").textContent = fmt(PLAYER_WHITE ? timers.b : timers.w);
+    document.getElementById("clkW").classList.toggle("active", active === (PLAYER_WHITE ? "w" : "b"));
+    document.getElementById("clkB").classList.toggle("active", active === (PLAYER_WHITE ? "b" : "w"));
+  }}
+  function setStatus(t) {{ document.getElementById("status").textContent = t; }}
+  function pushMoveLog() {{
+    const h = game.history();
+    let out = [];
+    for (let i = 0; i < h.length; i += 2) {{
+      out.push(((i/2)|0)+1 + ". " + h[i] + (h[i+1] ? " " + h[i+1] : ""));
+    }}
+    document.getElementById("moves").textContent = out.join("  ");
+  }}
+
+  // --- tiny evaluation + minimax ---
+  const VAL = {{ p:100, n:320, b:330, r:500, q:900, k:20000 }};
+  function evalBoard() {{
+    if (game.in_checkmate()) return game.turn() === "w" ? -99999 : 99999;
+    if (game.in_draw()) return 0;
+    let s = 0;
+    const b = game.board();
+    for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {{
+      const p = b[r][c];
+      if (!p) continue;
+      const v = VAL[p.type] || 0;
+      s += (p.color === "w" ? v : -v);
+      // center nudge
+      const ctr = (3.5-Math.abs(3.5-c)) + (3.5-Math.abs(3.5-r));
+      s += (p.color === "w" ? 1 : -1) * ctr * 2;
+    }}
+    return s;
+  }}
+  function minimax(depth, alpha, beta, maximizing) {{
+    if (depth === 0 || game.game_over()) return {{ score: evalBoard(), move: null }};
+    const moves = game.moves({{ verbose: true }});
+    // simple ordering: captures first
+    moves.sort((a,b) => (b.captured?1:0) - (a.captured?1:0));
+    let bestMove = moves[0] || null;
+    if (maximizing) {{
+      let best = -1e9;
+      for (const m of moves) {{
+        game.move(m);
+        const res = minimax(depth-1, alpha, beta, false).score;
+        game.undo();
+        if (res > best) {{ best = res; bestMove = m; }}
+        alpha = Math.max(alpha, best);
+        if (beta <= alpha) break;
+      }}
+      return {{ score: best, move: bestMove }};
+    }} else {{
+      let best = 1e9;
+      for (const m of moves) {{
+        game.move(m);
+        const res = minimax(depth-1, alpha, beta, true).score;
+        game.undo();
+        if (res < best) {{ best = res; bestMove = m; }}
+        beta = Math.min(beta, best);
+        if (beta <= alpha) break;
+      }}
+      return {{ score: best, move: bestMove }};
+    }}
+  }}
+  function engineMove() {{
+    if (gameOver || game.game_over()) return;
+    const maximizing = game.turn() === "w";
+    const {{ move }} = minimax(DEPTH, -1e9, 1e9, maximizing);
+    if (!move) return;
+    game.move(move);
+    board.position(game.fen());
+    onAfterMove();
+  }}
+
+  function onAfterMove() {{
+    pushMoveLog();
+    if (BASE && active) {{
+      // increment
+      timers[active] += INC;
+    }}
+    if (game.in_checkmate()) {{
+      gameOver = true; active = null;
+      const winner = game.turn() === "w" ? "Black" : "White";
+      setStatus("Checkmate — " + winner + " wins");
+      paintClocks();
+      return;
+    }}
+    if (game.in_draw()) {{
+      gameOver = true; active = null;
+      setStatus("Draw");
+      paintClocks();
+      return;
+    }}
+    active = game.turn();
+    paintClocks();
+    const playerTurn = (PLAYER_WHITE && active === "w") || (!PLAYER_WHITE && active === "b");
+    setStatus(playerTurn ? "Your move" : "Meridium is thinking…");
+    if (!playerTurn) {{
+      setTimeout(engineMove, 180);
+    }} else if (premove) {{
+      const pm = premove; premove = null;
+      const m = game.move(pm);
+      if (m) {{ board.position(game.fen()); onAfterMove(); }}
+    }}
+  }}
+
+  function tick() {{
+    if (!BASE || !active || gameOver) return;
+    timers[active] -= 1;
+    if (timers[active] <= 0) {{
+      timers[active] = 0;
+      gameOver = true;
+      setStatus("Flag — " + (active === "w" ? "Black" : "White") + " wins on time");
+      active = null;
+    }}
+    paintClocks();
+  }}
+
+  function onDragStart(source, piece) {{
+    if (gameOver || game.game_over()) return false;
+    const playerTurn = (PLAYER_WHITE && game.turn() === "w") || (!PLAYER_WHITE && game.turn() === "b");
+    if (!playerTurn) return false;
+    if (PLAYER_WHITE && piece.search(/^b/) !== -1) return false;
+    if (!PLAYER_WHITE && piece.search(/^w/) !== -1) return false;
+    return true;
+  }}
+  function onDrop(source, target) {{
+    const move = game.move({{ from: source, to: target, promotion: "q" }});
+    if (move === null) return "snapback";
+    onAfterMove();
+  }}
+  function onSnapEnd() {{ board.position(game.fen()); }}
+
+  board = Chessboard("board", {{
+    draggable: true,
+    position: "start",
+    orientation: PLAYER_WHITE ? "white" : "black",
+    pieceTheme: "https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/img/chesspieces/wikipedia/{{piece}}.png",
+    onDragStart: onDragStart,
+    onDrop: onDrop,
+    onSnapEnd: onSnapEnd,
+  }});
+  window.addEventListener("resize", function() {{ try {{ board.resize(); }} catch(e){{}} }});
+
+  document.getElementById("btnUndo").onclick = function() {{
+    if (gameOver) return;
+    game.undo();
+    if ((PLAYER_WHITE && game.turn() === "b") || (!PLAYER_WHITE && game.turn() === "w")) game.undo();
+    board.position(game.fen());
+    gameOver = false;
+    active = game.turn();
+    pushMoveLog();
+    setStatus("Your move");
+    paintClocks();
+  }};
+  document.getElementById("btnHint").onclick = function() {{
+    const playerTurn = (PLAYER_WHITE && game.turn() === "w") || (!PLAYER_WHITE && game.turn() === "b");
+    if (!playerTurn || gameOver) return;
+    const maximizing = game.turn() === "w";
+    const {{ move }} = minimax(Math.min(DEPTH, 2), -1e9, 1e9, maximizing);
+    if (move) setStatus("Hint: " + move.from + " → " + move.to + (move.san ? " ("+move.san+")" : ""));
+  }};
+
+  // start clocks + engine if black
+  active = "w";
+  paintClocks();
+  pushMoveLog();
+  if (BASE) timerId = setInterval(tick, 1000);
+  if (!PLAYER_WHITE) {{
+    setStatus("Meridium is thinking…");
+    setTimeout(engineMove, 250);
+  }} else {{
+    setStatus("Your move — drag a piece");
+  }}
+}})();
+</script>
+</body>
+</html>
+        """,
+        height=620,
+        scrolling=False,
+    )
+
+    st.caption(
+        "Drag pieces to move · promotion auto-queens · clocks run in the board widget. "
+        "No Python chess package needed."
+    )
+    if base and base <= 120:
+        st.caption("Bullet time control selected — win a game to progress the residual bullet quest when economy is online.")
     st.stop()
 
 
