@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import re
 
-# Embedded portraits so Streamlit Cloud never fails the import
 try:
     from coaches_portraits import PORTRAITS as _PORTRAITS
 except Exception:
@@ -28,7 +27,6 @@ def _load_avatar(name: str):
     av = _PORTRAITS.get(key)
     if av:
         return av
-    # fallback: try coaches/{key}.b64
     try:
         from pathlib import Path
         p = Path(__file__).resolve().parent / "coaches" / f"{key}.b64"
@@ -183,7 +181,6 @@ def apply_coach_to_html(html: str, coach_name: str) -> str:
     c = _COACHES.get(coach_name) or _COACHES["Soju"]
     nm = coach_name or "Soju"
 
-    # 1) Swap TALKS personality
     if c.get("talks") and "const TALKS = {" in html:
         start = html.find("const TALKS = {")
         if start >= 0:
@@ -199,82 +196,85 @@ def apply_coach_to_html(html: str, coach_name: str) -> str:
                 i += 1
             html = html[:start] + ("const TALKS = " + json.dumps(c["talks"]) + ";") + html[i:]
 
-    # 2) Portrait + name (non-Soju only)
-    if nm == "Soju":
-        return html
+    if nm != "Soju":
+        av = _load_avatar(nm)
+        if not av:
+            label = nm.split()[0][:8].upper()
+            av = (
+                "data:image/svg+xml;utf8,"
+                + "%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E"
+                + "%3Crect width='256' height='256' rx='40' fill='%231e1b4b'/%3E"
+                + f"%3Ctext x='128' y='140' text-anchor='middle' fill='white' font-size='28' font-family='sans-serif'%3E{label}%3C/text%3E"
+                + "%3C/svg%3E"
+            )
 
-    av = _load_avatar(nm)
-    if not av:
-        label = nm.split()[0][:8].upper()
-        av = (
-            "data:image/svg+xml;utf8,"
-            + "%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E"
-            + "%3Crect width='256' height='256' rx='40' fill='%231e1b4b'/%3E"
-            + f"%3Ctext x='128' y='140' text-anchor='middle' fill='white' font-size='28' font-family='sans-serif'%3E{label}%3C/text%3E"
-            + "%3C/svg%3E"
+        av_js = json.dumps(av)
+        name_js = json.dumps(nm + " · coach")
+        tag_js = json.dumps(c.get("tagline") or "")
+
+        if "const SOJU = {" in html:
+            s = html.find("const SOJU = {")
+            j = html.find("};", s)
+            if j > 0:
+                new_soju = (
+                    "const SOJU = {\n"
+                    f"    idle: {av_js},\n"
+                    f"    happy: {av_js},\n"
+                    f"    shock: {av_js},\n"
+                    f"    think: {av_js}\n"
+                    "  };"
+                )
+                html = html[:s] + new_soju + html[j + 2 :]
+
+        html = re.sub(
+            r'(id=["\']sojuImg["\'][^>]*src=["\'])[^"\']*(["\'])',
+            lambda m: m.group(1) + av + m.group(2),
+            html,
+            count=1,
+        )
+        html = re.sub(
+            r'(src=["\'])[^"\']*(["\'][^>]*id=["\']sojuImg["\'])',
+            lambda m: m.group(1) + av + m.group(2),
+            html,
+            count=1,
         )
 
-    av_js = json.dumps(av)
-    name_js = json.dumps(nm + " · coach")
-    tag_js = json.dumps(c.get("tagline") or "")
+        html = html.replace("Soju · board cat", f"{nm} · coach")
+        html = html.replace("Hint from Soju:", f"Hint from {nm}:")
+        html = html.replace('alt="Soju"', f'alt="{nm}"')
 
-    if "const SOJU = {" in html:
-        s = html.find("const SOJU = {")
-        j = html.find("};", s)
-        if j > 0:
-            new_soju = (
-                "const SOJU = {\n"
-                f"    idle: {av_js},\n"
-                f"    happy: {av_js},\n"
-                f"    shock: {av_js},\n"
-                f"    think: {av_js}\n"
-                "  };"
-            )
-            html = html[:s] + new_soju + html[j + 2 :]
+        force_js = (
+            "\n<script>(function(){\n"
+            f"  var AV={av_js};\n"
+            f"  var NM={name_js};\n"
+            f"  var TG={tag_js};\n"
+            "  function apply(){\n"
+            "    try{\n"
+            "      if(typeof SOJU!=='undefined'){ SOJU.idle=SOJU.happy=SOJU.shock=SOJU.think=AV; }\n"
+            "      var img=document.getElementById('sojuImg');\n"
+            "      if(img){ img.src=AV; img.alt=NM; }\n"
+            "      var nameEl=document.querySelector('.soju .name');\n"
+            "      if(nameEl){ nameEl.textContent=NM; }\n"
+            "      var talk=document.getElementById('sojuTalk');\n"
+            "      if(talk && TG){ talk.textContent=TG; }\n"
+            "    }catch(e){}\n"
+            "  }\n"
+            "  apply();\n"
+            "  setTimeout(apply, 30);\n"
+            "  setTimeout(apply, 150);\n"
+            "})();</script>\n"
+        )
+        if "</body>" in html:
+            html = html.replace("</body>", force_js + "</body>", 1)
+        else:
+            html = html + force_js
 
-    html = re.sub(
-        r'(id=["\']sojuImg["\'][^>]*src=["\'])[^"\']*(["\'])',
-        lambda m: m.group(1) + av + m.group(2),
-        html,
-        count=1,
-    )
-    html = re.sub(
-        r'(src=["\'])[^"\']*(["\'][^>]*id=["\']sojuImg["\'])',
-        lambda m: m.group(1) + av + m.group(2),
-        html,
-        count=1,
-    )
-
-    html = html.replace("Soju · board cat", f"{nm} · coach")
-    html = html.replace("Hint from Soju:", f"Hint from {nm}:")
-    html = html.replace('alt="Soju"', f'alt="{nm}"')
-
-    force_js = (
-        "\n<script>(function(){\n"
-        f"  var AV={av_js};\n"
-        f"  var NM={name_js};\n"
-        f"  var TG={tag_js};\n"
-        "  function apply(){\n"
-        "    try{\n"
-        "      if(typeof SOJU!=='undefined'){ SOJU.idle=SOJU.happy=SOJU.shock=SOJU.think=AV; }\n"
-        "      var img=document.getElementById('sojuImg');\n"
-        "      if(img){ img.src=AV; img.alt=NM; }\n"
-        "      var nameEl=document.querySelector('.soju .name');\n"
-        "      if(nameEl){ nameEl.textContent=NM; }\n"
-        "      var talk=document.getElementById('sojuTalk');\n"
-        "      if(talk && TG){ talk.textContent=TG; }\n"
-        "    }catch(e){}\n"
-        "  }\n"
-        "  apply();\n"
-        "  setTimeout(apply, 30);\n"
-        "  setTimeout(apply, 150);\n"
-        "})();</script>\n"
-    )
-    if "</body>" in html:
-        html = html.replace("</body>", force_js + "</body>", 1)
-    else:
-        html = html + force_js
-
+    # Always inject SFX (Soju and other coaches)
+    try:
+        from chess_patches import apply_sfx_to_chess_html
+        html = apply_sfx_to_chess_html(html)
+    except Exception:
+        pass
     return html
 
 
@@ -319,8 +319,6 @@ def apply_coach(code: str) -> str:
     if old_depth in code and "depth = int(_opp.get" not in code:
         code = code.replace(old_depth, new_depth, 1)
 
-    # Apply coach personality + portrait AFTER soju images are injected.
-    # Guard on the CALL, not the import name (import is added in inject_ui).
     call = (
         "\n        # Coach personality + portrait (must run after Soju b64 inject)\n"
         "        try:\n"
@@ -342,7 +340,6 @@ def apply_coach(code: str) -> str:
                 code = code.replace(marker, marker + call, 1)
                 break
 
-    # Safety: strip any bad key= we may have added previously (crashes Streamlit)
     bad = (
         'st.components.v1.html(_chess_widget_html(), height=860, scrolling=True, '
         'key="chess_board_" + str(st.session_state.get("chess_coach","Soju")) + "_" + str(st.session_state.get("chess_opponent","x")) + "_" + str(nonce))'
