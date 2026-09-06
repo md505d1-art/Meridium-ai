@@ -1,6 +1,0 @@
-ne_stage = 0
-                st.session_state.view = "voss_file"
-                st.rerun()
-
-        if lab_is_unlocked() and anomalies_complete():
-            ensure_voss_theme()
