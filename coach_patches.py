@@ -1,1 +1,281 @@
-PLACEHOLDER
+"""Custom coaches + AI opponents with illustrated portraits and iconic lines."""
+from __future__ import annotations
+import base64
+import json
+
+def _portrait(letter: str, bg: str, accent: str, secondary: str) -> str:
+    svg = (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">'
+        f'<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">'
+        f'<stop offset="0%" stop-color="{bg}"/><stop offset="100%" stop-color="{secondary}"/>'
+        f'</linearGradient></defs>'
+        f'<rect width="256" height="256" rx="48" fill="url(#bg)"/>'
+        f'<circle cx="128" cy="128" r="110" fill="{accent}" opacity="0.18"/>'
+        f'<ellipse cx="128" cy="230" rx="90" ry="50" fill="{accent}" opacity="0.35"/>'
+        f'<circle cx="128" cy="108" r="58" fill="{accent}" opacity="0.9"/>'
+        f'<circle cx="128" cy="108" r="48" fill="#0c0a12"/>'
+        f'<text x="128" y="122" text-anchor="middle" font-family="Georgia,serif" font-size="52" font-weight="700" fill="{accent}">{letter}</text>'
+        f'<path d="M118 208 L128 188 L138 208 Z" fill="{accent}" opacity="0.55"/>'
+        f'<circle cx="128" cy="184" r="6" fill="{accent}" opacity="0.7"/>'
+        f'</svg>'
+    )
+    return "data:image/svg+xml;base64," + base64.b64encode(svg.encode()).decode()
+
+_COACHES = {
+    "Soju": {
+        "title": "Soju · Resident Cat Coach",
+        "tagline": "I'll sit here. You play. I'll judge.",
+        "avatar": None,
+        "talks": None,
+    },
+    "Gotham Chess": {
+        "title": "Gotham Chess · Levy",
+        "tagline": "THE ROOOOOOOOOOOOOOOOOOOOOK",
+        "avatar": _portrait("G", "#1e1b4b", "#a78bfa", "#312e81"),
+        "talks": {
+            "Brilliant": ["THAT is how you play chess. Absolute cinema.", "THE ROOOOOOOOOOOOOOOOOOOOOK goes crazy here."],
+            "Great": ["Great move. This is the line I showed in the course.", "Clean. Simple. Effective."],
+            "Best": ["Best move. Engine agrees.", "That's the one. Don't overthink it."],
+            "Excellent": ["Excellent. You're learning.", "Solid improvement."],
+            "Good": ["Good. Playable.", "Good move. Now find the follow-up."],
+            "Okay": ["Okay... could be better.", "It's fine. Not great, not terrible."],
+            "Inaccuracy": ["Inaccuracy. You hung a little something.", "Slight inaccuracy."],
+            "Mistake": ["Mistake. That was not the plan.", "You just gave them free stuff. Why?"],
+            "Miss": ["MISS. The tactic was right there!", "You had mate in two and walked past it."],
+            "Blunder": ["BLUNDER. Absolute disaster.", "That piece was not a free gift."],
+        },
+    },
+    "Hikaru": {
+        "title": "Hikaru · Speed Demon",
+        "tagline": "Chat, is this real?",
+        "avatar": _portrait("H", "#0f172a", "#38bdf8", "#1e3a5f"),
+        "talks": {
+            "Brilliant": ["Chat is this real?? That was actually crazy.", "Okay that was clean. GG."],
+            "Great": ["Great move. Speedrun any% vibes.", "Yeah that's the one."],
+            "Best": ["Best. Obviously.", "Engine move. Nice."],
+            "Excellent": ["Excellent. Keep it up.", "Solid."],
+            "Good": ["Good enough.", "Playable."],
+            "Okay": ["Okay I guess.", "Could be better chat."],
+            "Inaccuracy": ["Slight inaccuracy.", "Not ideal."],
+            "Mistake": ["Mistake. Come on.", "That was free."],
+            "Miss": ["You missed it chat...", "The tactic was screaming."],
+            "Blunder": ["BLUNDER. Chat went silent.", "That was painful."],
+        },
+    },
+    "Magnus": {
+        "title": "Magnus · Endgame God",
+        "tagline": "I don't even try that hard.",
+        "avatar": _portrait("M", "#111827", "#fbbf24", "#1f2937"),
+        "talks": {
+            "Brilliant": ["Very nice. I might have played the same.", "Beautiful. Simple and strong."],
+            "Great": ["Great. Practical and strong.", "Yes. That works."],
+            "Best": ["Best. Of course.", "Correct."],
+            "Excellent": ["Excellent technique.", "Clean."],
+            "Good": ["Good enough.", "Playable."],
+            "Okay": ["It's okay.", "A bit passive."],
+            "Inaccuracy": ["Inaccuracy. Not the most precise.", "Slightly inaccurate."],
+            "Mistake": ["Mistake. Now it is harder.", "That was unnecessary."],
+            "Miss": ["You missed a chance.", "There was more."],
+            "Blunder": ["Blunder. That loses.", "Hard to recover from this."],
+        },
+    },
+    "Anna Cramling": {
+        "title": "Anna · Positive Energy",
+        "tagline": "You got this!!",
+        "avatar": _portrait("A", "#4c1d95", "#f9a8d4", "#6b21a8"),
+        "talks": {
+            "Brilliant": ["OMG that was BRILLIANT!!", "I love this move so much!!"],
+            "Great": ["Great job!! Keep going!!", "Yes!! That's it!!"],
+            "Best": ["Best move!! Perfect!!", "Love it!!"],
+            "Excellent": ["Excellent!! You're improving!!", "So clean!!"],
+            "Good": ["Good!! Solid!!", "Keep it up!!"],
+            "Okay": ["It's okay!! We learn!!", "Next one will be better!!"],
+            "Inaccuracy": ["Small inaccuracy, no worries!!", "We can recover!!"],
+            "Mistake": ["Mistake but it's okay!! Learn from it!!", "Don't tilt!!"],
+            "Miss": ["Aww you missed it!! Next time!!", "Stay positive!!"],
+            "Blunder": ["Blunder... but we keep going!!", "You'll bounce back!!"],
+        },
+    },
+    "Botez": {
+        "title": "Botez · Chaotic Fun",
+        "tagline": "Botez gambit incoming?",
+        "avatar": _portrait("B", "#831843", "#fb7185", "#9f1239"),
+        "talks": {
+            "Brilliant": ["NO WAY that was actually brilliant.", "Okay chat that was clean."],
+            "Great": ["Great move ngl.", "Yes!!"],
+            "Best": ["Best. Obviously.", "Correct."],
+            "Excellent": ["Excellent.", "Solid."],
+            "Good": ["Good.", "Playable."],
+            "Okay": ["Okay...", "Could be better."],
+            "Inaccuracy": ["Inaccuracy. Classic.", "Slightly off."],
+            "Mistake": ["Mistake. We love a blunder arc.", "That was free."],
+            "Miss": ["You missed it!!", "The tactic was right there."],
+            "Blunder": ["BLUNDER. Content.", "That was painful."],
+        },
+    },
+    "Fabi": {
+        "title": "Fabiano · Precision",
+        "tagline": "Calculate everything.",
+        "avatar": _portrait("F", "#1e3a5f", "#93c5fd", "#0c4a6e"),
+        "talks": {
+            "Brilliant": ["Brilliant calculation.", "Very deep. Impressive."],
+            "Great": ["Great. Precise.", "Strong practical choice."],
+            "Best": ["Best. The only move.", "Correct."],
+            "Excellent": ["Excellent technique.", "Clean."],
+            "Good": ["Good.", "Solid."],
+            "Okay": ["Okay. A bit imprecise.", "Could be sharper."],
+            "Inaccuracy": ["Inaccuracy. Not the most accurate.", "Slight error."],
+            "Mistake": ["Mistake. Now the evaluation shifts.", "Calculate deeper."],
+            "Miss": ["You missed a strong continuation.", "Look for tactics."],
+            "Blunder": ["Blunder. Hard to justify.", "That loses material."],
+        },
+    },
+    "Naroditsky": {
+        "title": "Danya · Clear Explanation",
+        "tagline": "Let's break this down.",
+        "avatar": _portrait("D", "#164e63", "#67e8f9", "#0e7490"),
+        "talks": {
+            "Brilliant": ["Brilliant. Let me explain why this works...", "Superb calculation."],
+            "Great": ["Great practical move.", "Very instructive."],
+            "Best": ["Best. Textbook.", "Correct approach."],
+            "Excellent": ["Excellent.", "Solid understanding."],
+            "Good": ["Good.", "Playable."],
+            "Okay": ["Okay. A bit passive.", "Think about the plan."],
+            "Inaccuracy": ["Inaccuracy. The idea is almost right.", "Close."],
+            "Mistake": ["Mistake. Let's see the issue...", "Careful."],
+            "Miss": ["Missed opportunity. The tactic was there.", "Next time."],
+            "Blunder": ["Blunder. Fundamental error.", "Learn from it."],
+        },
+    },
+    "Eric Rosen": {
+        "title": "Eric Rosen · Imaginative",
+        "tagline": "Hello everyone!",
+        "avatar": _portrait("E", "#3f1d0b", "#fdba74", "#7c2d12"),
+        "talks": {
+            "Brilliant": ["Hello everyone! That was a brilliant idea.", "Creative and strong."],
+            "Great": ["Great practical decision.", "Nice find."],
+            "Best": ["Best. Clean.", "Correct."],
+            "Excellent": ["Excellent.", "Nice."],
+            "Good": ["Good.", "Playable."],
+            "Okay": ["Okay.", "Could be more creative."],
+            "Inaccuracy": ["Slight inaccuracy.", "Not the most precise."],
+            "Mistake": ["Mistake. Let's reset.", "Careful."],
+            "Miss": ["Missed a fun idea there.", "Next time."],
+            "Blunder": ["Blunder. Ouch.", "We move on."],
+        },
+    },
+}
+
+_OPPONENTS = {
+    "Beginner Bot": {"depth": 1, "desc": "Simple moves. Perfect for learning."},
+    "Club Player": {"depth": 2, "desc": "Solid club level. Punishes obvious mistakes."},
+    "Strong Club": {"depth": 3, "desc": "Sharp and opportunistic."},
+    "Master Bot": {"depth": 4, "desc": "Deep calculation. Ruthless."},
+    "GothamBot": {"depth": 3, "desc": "Plays like a coach who wants you to improve."},
+    "Hikaru Speed": {"depth": 2, "desc": "Quick, tricky, and annoying."},
+    "Magnus Endgame": {"depth": 4, "desc": "Converts the tiniest advantages."},
+    "Chaos Bot": {"depth": 2, "desc": "Unpredictable and fun."},
+}
+
+def apply_coach(code: str) -> str:
+    inject_ui = (
+        "\n    # === Meridium coaches + AI opponents ===\n"
+        "    _MER_COACHES = " + repr(_COACHES) + "\n"
+        "    _MER_OPPONENTS = " + repr(_OPPONENTS) + "\n"
+        "    if \"chess_coach\" not in st.session_state:\n"
+        "        st.session_state.chess_coach = \"Soju\"\n"
+        "    if \"chess_opponent\" not in st.session_state:\n"
+        "        st.session_state.chess_opponent = \"Club Player\"\n"
+        "    _cc1, _cc2 = st.columns(2)\n"
+        "    with _cc1:\n"
+        "        st.session_state.chess_coach = st.selectbox(\n"
+        "            \"Coach\", list(_MER_COACHES.keys()),\n"
+        "            index=list(_MER_COACHES.keys()).index(st.session_state.chess_coach) if st.session_state.chess_coach in _MER_COACHES else 0,\n"
+        "            key=\"mer_sel_coach\",\n"
+        "        )\n"
+        "    with _cc2:\n"
+        "        st.session_state.chess_opponent = st.selectbox(\n"
+        "            \"AI Opponent\", list(_MER_OPPONENTS.keys()),\n"
+        "            index=list(_MER_OPPONENTS.keys()).index(st.session_state.chess_opponent) if st.session_state.chess_opponent in _MER_OPPONENTS else 1,\n"
+        "            key=\"mer_sel_opp\",\n"
+        "        )\n"
+        "    _coach = _MER_COACHES[st.session_state.chess_coach]\n"
+        "    _opp = _MER_OPPONENTS[st.session_state.chess_opponent]\n"
+        "    st.caption(_coach[\"title\"] + \"  ·  \" + _coach.get(\"tagline\", \"\"))\n"
+        "    st.caption(\"vs \" + st.session_state.chess_opponent + \" (depth \" + str(_opp[\"depth\"]) + \") — \" + _opp[\"desc\"])\n"
+    )
+    if \"mer_sel_coach\" not in code:
+        for marker in [
+            'color = st.selectbox(\"You play\", [\"White\", \"Black\"], key=\"chess_color_ui\")',
+            \"color = st.selectbox('You play', ['White', 'Black'], key='chess_color_ui')\",
+            'if st.session_state.view == \"chess\":',
+        ]:
+            if marker in code:
+                code = code.replace(marker, marker + inject_ui, 1)
+                break
+
+    old_depth = 'depth = {\"Soft\": 1, \"Steady\": 2, \"Sharp\": 2, \"Relentless\": 3}.get(level, 2)'
+    new_depth = (
+        old_depth + \"\\n\"
+        \"    try:\\n\"
+        \"        depth = int(_opp.get(\\\"depth\\\", depth))\\n\"
+        \"    except Exception:\\n\"
+        \"        pass\"
+    )
+    if old_depth in code and \"depth = int(_opp.get\" not in code:
+        code = code.replace(old_depth, new_depth, 1)
+
+    personality = (
+        \"\\n        # Coach personality + portrait (safe TALKS replace + JS SOJU override)\\n\"
+        \"        try:\\n\"
+        \"            _c = _MER_COACHES.get(st.session_state.get(\\\"chess_coach\\\", \\\"Soju\\\"), {})\\n\"
+        \"            _nm = st.session_state.get(\\\"chess_coach\\\", \\\"Soju\\\")\\n\"
+        \"            import json as _json\\n\"
+        \"            if _c.get(\\\"talks\\\") and \\\"const TALKS = {\\\" in html:\\n\"
+        \"                _start = html.find(\\\"const TALKS = {\\\")\\n\"
+        \"                if _start >= 0:\\n\"
+        \"                    _i = _start + len(\\\"const TALKS = {\\\")\\n\"
+        \"                    _depth = 1\\n\"
+        \"                    while _i < len(html) and _depth:\\n\"
+        \"                        if html[_i] == \\\"{\\\":\\n\"
+        \"                            _depth += 1\\n\"
+        \"                        elif html[_i] == \\\"}\\\":\\n\"
+        \"                            _depth -= 1\\n\"
+        \"                        _i += 1\\n\"
+        \"                    if _i < len(html) and html[_i] == \\\";\\\":\\n\"
+        \"                        _i += 1\\n\"
+        \"                    html = html[:_start] + (\\\"const TALKS = \\\" + _json.dumps(_c[\\\"talks\\\"]) + \\\";\\\") + html[_i:]\\n\"
+        \"            if _nm != \\\"Soju\\\" and _c.get(\\\"avatar\\\"):\\n\"
+        \"                _av = _c[\\\"avatar\\\"]\\n\"
+        \"                _av_js = _json.dumps(_av)\\n\"
+        \"                _patch = (\\n\"
+        \"                    \\\"\\\\n  SOJU.idle = SOJU.happy = SOJU.shock = SOJU.think = \\\" + _av_js + \\\";\\\"\\n\"
+        \"                    \\\"\\\\n  try { sojuImg.src = SOJU.idle; } catch(e){}\\\"\\n\"
+        \"                    \\\"\\\\n  try { document.querySelector('.soju .name').textContent = \\\" + _json.dumps(_nm + \\\" · coach\\\") + \\\"; } catch(e){}\\\"\\n\"
+        \"                    \\\"\\\\n\\\"\\n\"
+        \"                )\\n\"
+        \"                if \\\"const SOJU = {\\\" in html and \\\"SOJU.idle = SOJU.happy\\\" not in html:\\n\"
+        \"                    _s = html.find(\\\"const SOJU = {\\\")\\n\"
+        \"                    _j = html.find(\\\"};\\\", _s)\\n\"
+        \"                    if _j > 0:\\n\"
+        \"                        html = html[: _j + 2] + _patch + html[_j + 2 :]\\n\"
+        \"                import re as _re\\n\"
+        \"                html = _re.sub(\\n\"
+        \"                    r'(id=\\\"sojuImg\\\"[^>]*src=\\\")[^\\\"]*(\\\")',\\n\"
+        \"                    r\\\"\\\\1\\\" + _av + r\\\"\\\\2\\\",\\n\"
+        \"                    html,\\n\"
+        \"                    count=1,\\n\"
+        \"                )\\n\"
+        \"                html = html.replace(\\\">Soju · board cat<\\\", f\\\"{_nm} · coach<\\\", 1)\\n\"
+        \"                html = html.replace(\\\"Hint from Soju:\\\", f\\\"Hint from {_nm}:\\\")\\n\"
+        \"        except Exception:\\n\"
+        \"            pass\\n\"
+    )
+    for marker in [
+        'html = html.replace(\"__SOJU_THINK__\", _b64img(\"soju_think.jpg\"))',
+        \"html = html.replace('__SOJU_THINK__', _b64img('soju_think.jpg'))\",
+    ]:
+        if marker in code and \"Coach personality\" not in code:
+            code = code.replace(marker, marker + personality, 1)
+            break
+    return code
