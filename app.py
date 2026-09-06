@@ -1,10 +1,11 @@
-"""Meridium entrypoint — chess board, coaches, Jarvis call."""
+"""Meridium entrypoint — chess board, coaches, opponents, online, call removed."""
 from __future__ import annotations
 import urllib.request
 from pathlib import Path
 from chess_patches import apply_chess
-from call_patches import apply_call
 from coach_patches import apply_coach
+from remove_call_patches import apply_remove_call
+from online_chess import apply_online
 
 _GOOD = (
     "https://raw.githubusercontent.com/md505d1-art/Meridium-ai/"
@@ -21,5 +22,5 @@ else:
         _cache.write_text(_code, encoding="utf-8")
     except Exception:
         pass
-_code = apply_coach(apply_call(apply_chess(_code)))
+_code = apply_online(apply_remove_call(apply_coach(apply_chess(_code))))
 exec(compile(_code, str(_root / "app.py"), "exec"), globals())
