@@ -2,6 +2,8 @@
 from __future__ import annotations
 import base64
 import json
+import re
+
 
 def _portrait(letter: str, bg: str, accent: str, secondary: str) -> str:
     svg = (
@@ -21,16 +23,11 @@ def _portrait(letter: str, bg: str, accent: str, secondary: str) -> str:
     )
     return "data:image/svg+xml;base64," + base64.b64encode(svg.encode()).decode()
 
+
 _COACHES = {
-    "Soju": {
-        "title": "Soju · Resident Cat Coach",
-        "tagline": "I'll sit here. You play. I'll judge.",
-        "avatar": None,
-        "talks": None,
-    },
+    "Soju": {"title": "Soju · Resident Cat Coach", "tagline": "I'll sit here. You play. I'll judge.", "avatar": None, "talks": None},
     "Gotham Chess": {
-        "title": "Gotham Chess · Levy",
-        "tagline": "THE ROOOOOOOOOOOOOOOOOOOOOK",
+        "title": "Gotham Chess · Levy", "tagline": "THE ROOOOOOOOOOOOOOOOOOOOOK",
         "avatar": _portrait("G", "#1e1b4b", "#a78bfa", "#312e81"),
         "talks": {
             "Brilliant": ["THAT is how you play chess. Absolute cinema.", "THE ROOOOOOOOOOOOOOOOOOOOOK goes crazy here."],
@@ -46,8 +43,7 @@ _COACHES = {
         },
     },
     "Hikaru": {
-        "title": "Hikaru · Speed Demon",
-        "tagline": "Chat, is this real?",
+        "title": "Hikaru · Speed Demon", "tagline": "Chat, is this real?",
         "avatar": _portrait("H", "#0f172a", "#38bdf8", "#1e3a5f"),
         "talks": {
             "Brilliant": ["Chat is this real?? That was actually crazy.", "Okay that was clean. GG."],
@@ -63,8 +59,7 @@ _COACHES = {
         },
     },
     "Magnus": {
-        "title": "Magnus · Endgame God",
-        "tagline": "I don't even try that hard.",
+        "title": "Magnus · Endgame God", "tagline": "I don't even try that hard.",
         "avatar": _portrait("M", "#111827", "#fbbf24", "#1f2937"),
         "talks": {
             "Brilliant": ["Very nice. I might have played the same.", "Beautiful. Simple and strong."],
@@ -80,8 +75,7 @@ _COACHES = {
         },
     },
     "Anna Cramling": {
-        "title": "Anna · Positive Energy",
-        "tagline": "You got this!!",
+        "title": "Anna · Positive Energy", "tagline": "You got this!!",
         "avatar": _portrait("A", "#4c1d95", "#f9a8d4", "#6b21a8"),
         "talks": {
             "Brilliant": ["OMG that was BRILLIANT!!", "I love this move so much!!"],
@@ -97,8 +91,7 @@ _COACHES = {
         },
     },
     "Botez": {
-        "title": "Botez · Chaotic Fun",
-        "tagline": "Botez gambit incoming?",
+        "title": "Botez · Chaotic Fun", "tagline": "Botez gambit incoming?",
         "avatar": _portrait("B", "#831843", "#fb7185", "#9f1239"),
         "talks": {
             "Brilliant": ["NO WAY that was actually brilliant.", "Okay chat that was clean."],
@@ -114,8 +107,7 @@ _COACHES = {
         },
     },
     "Fabi": {
-        "title": "Fabiano · Precision",
-        "tagline": "Calculate everything.",
+        "title": "Fabiano · Precision", "tagline": "Calculate everything.",
         "avatar": _portrait("F", "#1e3a5f", "#93c5fd", "#0c4a6e"),
         "talks": {
             "Brilliant": ["Brilliant calculation.", "Very deep. Impressive."],
@@ -131,8 +123,7 @@ _COACHES = {
         },
     },
     "Naroditsky": {
-        "title": "Danya · Clear Explanation",
-        "tagline": "Let's break this down.",
+        "title": "Danya · Clear Explanation", "tagline": "Let's break this down.",
         "avatar": _portrait("D", "#164e63", "#67e8f9", "#0e7490"),
         "talks": {
             "Brilliant": ["Brilliant. Let me explain why this works...", "Superb calculation."],
@@ -148,8 +139,7 @@ _COACHES = {
         },
     },
     "Eric Rosen": {
-        "title": "Eric Rosen · Imaginative",
-        "tagline": "Hello everyone!",
+        "title": "Eric Rosen · Imaginative", "tagline": "Hello everyone!",
         "avatar": _portrait("E", "#3f1d0b", "#fdba74", "#7c2d12"),
         "talks": {
             "Brilliant": ["Hello everyone! That was a brilliant idea.", "Creative and strong."],
@@ -177,11 +167,59 @@ _OPPONENTS = {
     "Chaos Bot": {"depth": 2, "desc": "Unpredictable and fun."},
 }
 
+
+def apply_coach_to_html(html: str, coach_name: str) -> str:
+    """Mutate chess_widget HTML for the selected coach. Safe JS (no double const)."""
+    c = _COACHES.get(coach_name) or _COACHES["Soju"]
+    nm = coach_name or "Soju"
+
+    if c.get("talks") and "const TALKS = {" in html:
+        start = html.find("const TALKS = {")
+        if start >= 0:
+            i = start + len("const TALKS = {")
+            depth = 1
+            while i < len(html) and depth:
+                if html[i] == "{":
+                    depth += 1
+                elif html[i] == "}":
+                    depth -= 1
+                i += 1
+            if i < len(html) and html[i] == ";":
+                i += 1
+            html = html[:start] + ("const TALKS = " + json.dumps(c["talks"]) + ";") + html[i:]
+
+    if nm != "Soju" and c.get("avatar"):
+        av = c["avatar"]
+        av_js = json.dumps(av)
+        name_js = json.dumps(nm + " · coach")
+        patch = (
+            "\n  SOJU.idle = SOJU.happy = SOJU.shock = SOJU.think = "
+            + av_js
+            + ";\n  try { sojuImg.src = SOJU.idle; } catch(e){}"
+            + "\n  try { document.querySelector('.soju .name').textContent = "
+            + name_js
+            + "; } catch(e){}\n"
+        )
+        if "const SOJU = {" in html and "SOJU.idle = SOJU.happy" not in html:
+            s = html.find("const SOJU = {")
+            j = html.find("};", s)
+            if j > 0:
+                html = html[: j + 2] + patch + html[j + 2 :]
+        html = re.sub(
+            r'(id="sojuImg"[^>]*src=")[^"]*(")',
+            r"\1" + av + r"\2",
+            html,
+            count=1,
+        )
+        html = html.replace(">Soju · board cat<", f"{nm} · coach<", 1)
+        html = html.replace("Hint from Soju:", f"Hint from {nm}:")
+    return html
+
+
 def apply_coach(code: str) -> str:
     inject_ui = (
         "\n    # === Meridium coaches + AI opponents ===\n"
-        "    _MER_COACHES = " + repr(_COACHES) + "\n"
-        "    _MER_OPPONENTS = " + repr(_OPPONENTS) + "\n"
+        "    from coach_patches import _COACHES as _MER_COACHES, _OPPONENTS as _MER_OPPONENTS, apply_coach_to_html as _mer_apply_coach_html\n"
         "    if \"chess_coach\" not in st.session_state:\n"
         "        st.session_state.chess_coach = \"Soju\"\n"
         "    if \"chess_opponent\" not in st.session_state:\n"
@@ -204,78 +242,36 @@ def apply_coach(code: str) -> str:
         "    st.caption(_coach[\"title\"] + \"  ·  \" + _coach.get(\"tagline\", \"\"))\n"
         "    st.caption(\"vs \" + st.session_state.chess_opponent + \" (depth \" + str(_opp[\"depth\"]) + \") — \" + _opp[\"desc\"])\n"
     )
-    if \"mer_sel_coach\" not in code:
+    if "mer_sel_coach" not in code:
         for marker in [
-            'color = st.selectbox(\"You play\", [\"White\", \"Black\"], key=\"chess_color_ui\")',
-            \"color = st.selectbox('You play', ['White', 'Black'], key='chess_color_ui')\",
-            'if st.session_state.view == \"chess\":',
+            'color = st.selectbox("You play", ["White", "Black"], key="chess_color_ui")',
+            "color = st.selectbox('You play', ['White', 'Black'], key='chess_color_ui')",
+            'if st.session_state.view == "chess":',
         ]:
             if marker in code:
                 code = code.replace(marker, marker + inject_ui, 1)
                 break
 
-    old_depth = 'depth = {\"Soft\": 1, \"Steady\": 2, \"Sharp\": 2, \"Relentless\": 3}.get(level, 2)'
+    old_depth = 'depth = {"Soft": 1, "Steady": 2, "Sharp": 2, "Relentless": 3}.get(level, 2)'
     new_depth = (
-        old_depth + \"\\n\"
-        \"    try:\\n\"
-        \"        depth = int(_opp.get(\\\"depth\\\", depth))\\n\"
-        \"    except Exception:\\n\"
-        \"        pass\"
+        old_depth
+        + "\n    try:\n        depth = int(_opp.get(\"depth\", depth))\n    except Exception:\n        pass"
     )
-    if old_depth in code and \"depth = int(_opp.get\" not in code:
+    if old_depth in code and "depth = int(_opp.get" not in code:
         code = code.replace(old_depth, new_depth, 1)
 
-    personality = (
-        \"\\n        # Coach personality + portrait (safe TALKS replace + JS SOJU override)\\n\"
-        \"        try:\\n\"
-        \"            _c = _MER_COACHES.get(st.session_state.get(\\\"chess_coach\\\", \\\"Soju\\\"), {})\\n\"
-        \"            _nm = st.session_state.get(\\\"chess_coach\\\", \\\"Soju\\\")\\n\"
-        \"            import json as _json\\n\"
-        \"            if _c.get(\\\"talks\\\") and \\\"const TALKS = {\\\" in html:\\n\"
-        \"                _start = html.find(\\\"const TALKS = {\\\")\\n\"
-        \"                if _start >= 0:\\n\"
-        \"                    _i = _start + len(\\\"const TALKS = {\\\")\\n\"
-        \"                    _depth = 1\\n\"
-        \"                    while _i < len(html) and _depth:\\n\"
-        \"                        if html[_i] == \\\"{\\\":\\n\"
-        \"                            _depth += 1\\n\"
-        \"                        elif html[_i] == \\\"}\\\":\\n\"
-        \"                            _depth -= 1\\n\"
-        \"                        _i += 1\\n\"
-        \"                    if _i < len(html) and html[_i] == \\\";\\\":\\n\"
-        \"                        _i += 1\\n\"
-        \"                    html = html[:_start] + (\\\"const TALKS = \\\" + _json.dumps(_c[\\\"talks\\\"]) + \\\";\\\") + html[_i:]\\n\"
-        \"            if _nm != \\\"Soju\\\" and _c.get(\\\"avatar\\\"):\\n\"
-        \"                _av = _c[\\\"avatar\\\"]\\n\"
-        \"                _av_js = _json.dumps(_av)\\n\"
-        \"                _patch = (\\n\"
-        \"                    \\\"\\\\n  SOJU.idle = SOJU.happy = SOJU.shock = SOJU.think = \\\" + _av_js + \\\";\\\"\\n\"
-        \"                    \\\"\\\\n  try { sojuImg.src = SOJU.idle; } catch(e){}\\\"\\n\"
-        \"                    \\\"\\\\n  try { document.querySelector('.soju .name').textContent = \\\" + _json.dumps(_nm + \\\" · coach\\\") + \\\"; } catch(e){}\\\"\\n\"
-        \"                    \\\"\\\\n\\\"\\n\"
-        \"                )\\n\"
-        \"                if \\\"const SOJU = {\\\" in html and \\\"SOJU.idle = SOJU.happy\\\" not in html:\\n\"
-        \"                    _s = html.find(\\\"const SOJU = {\\\")\\n\"
-        \"                    _j = html.find(\\\"};\\\", _s)\\n\"
-        \"                    if _j > 0:\\n\"
-        \"                        html = html[: _j + 2] + _patch + html[_j + 2 :]\\n\"
-        \"                import re as _re\\n\"
-        \"                html = _re.sub(\\n\"
-        \"                    r'(id=\\\"sojuImg\\\"[^>]*src=\\\")[^\\\"]*(\\\")',\\n\"
-        \"                    r\\\"\\\\1\\\" + _av + r\\\"\\\\2\\\",\\n\"
-        \"                    html,\\n\"
-        \"                    count=1,\\n\"
-        \"                )\\n\"
-        \"                html = html.replace(\\\">Soju · board cat<\\\", f\\\"{_nm} · coach<\\\", 1)\\n\"
-        \"                html = html.replace(\\\"Hint from Soju:\\\", f\\\"Hint from {_nm}:\\\")\\n\"
-        \"        except Exception:\\n\"
-        \"            pass\\n\"
+    call = (
+        "\n        # Coach personality + portrait\n"
+        "        try:\n"
+        "            html = _mer_apply_coach_html(html, st.session_state.get(\"chess_coach\", \"Soju\"))\n"
+        "        except Exception:\n"
+        "            pass\n"
     )
     for marker in [
-        'html = html.replace(\"__SOJU_THINK__\", _b64img(\"soju_think.jpg\"))',
-        \"html = html.replace('__SOJU_THINK__', _b64img('soju_think.jpg'))\",
+        'html = html.replace("__SOJU_THINK__", _b64img("soju_think.jpg"))',
+        "html = html.replace('__SOJU_THINK__', _b64img('soju_think.jpg'))",
     ]:
-        if marker in code and \"Coach personality\" not in code:
-            code = code.replace(marker, marker + personality, 1)
+        if marker in code and "_mer_apply_coach_html" not in code:
+            code = code.replace(marker, marker + call, 1)
             break
     return code
