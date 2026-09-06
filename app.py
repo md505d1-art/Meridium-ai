@@ -1,4 +1,4 @@
-"""Meridium entrypoint — chess coaches/opponents/online, lab rebuild, call removed."""
+"""Meridium entrypoint — full feature pack."""
 from __future__ import annotations
 import urllib.request
 from pathlib import Path
@@ -7,9 +7,9 @@ from chess_patches import apply_chess
 from coach_patches import apply_coach
 from remove_call_patches import apply_remove_call
 from online_chess import apply_online
+from extra_features import apply_extra_features
 
-# Bump this to force Streamlit Cloud to re-download the base app after patch changes
-_CACHE_VER = "v8-hide-call-btn"
+_CACHE_VER = "v9-full-feature-pack"
 
 _GOOD = (
     "https://raw.githubusercontent.com/md505d1-art/Meridium-ai/"
@@ -27,5 +27,7 @@ else:
     except Exception:
         pass
 
-_code = apply_online(apply_remove_call(apply_coach(apply_chess(_code))))
+_code = apply_extra_features(
+    apply_online(apply_remove_call(apply_coach(apply_chess(_code))))
+)
 exec(compile(_code, str(_root / "app.py"), "exec"), globals())
