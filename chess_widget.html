@@ -1,13 +1,864 @@
 <!DOCTYPE html>
-<html><head><meta charset="utf-8"/><title>Meridium Chess — assets missing</title>
+<html><head><meta charset="utf-8"/>
 <style>
-  body { margin: 2rem; font-family: system-ui, sans-serif; background: #0c0c10; color: #e8e6f0; }
-  code { background: rgba(255,255,255,0.08); padding: 0.15rem 0.4rem; border-radius: 6px; }
-  a { color: #a78bfa; }
-</style></head><body>
-  <h1>Chess assets not installed</h1>
-  <p>Replace this file by unzipping <code>meridium_chess_assets.zip</code> next to <code>app.py</code>.</p>
-  <pre>./install_chess_assets.sh meridium_chess_assets.zip
-# or: unzip meridium_chess_assets.zip</pre>
-  <p>You need <code>chess_widget.html</code> plus <code>soju/soju_*.jpg</code> (idle, happy, shock, think).</p>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 10px 8px 14px;
+    background: transparent;
+    color: #e8e6f0;
+    font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+  }
+  .wrap { max-width: 440px; margin: 0 auto; }
+  .bar {
+    display: flex; justify-content: space-between; gap: 8px;
+    margin-bottom: 8px; font-family: ui-monospace, monospace; font-size: 13px;
+  }
+  .clock {
+    flex: 1; text-align: center;
+    padding: 8px 10px; border-radius: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+  .clock.on { border-color: rgba(74,222,128,0.55); color: #86efac; }
+  .board {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    border: 2px solid rgba(167,139,250,0.4);
+    border-radius: 10px;
+    overflow: hidden;
+    user-select: none;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+  }
+  .sq {
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(22px, 5.5vw, 34px);
+    cursor: pointer;
+    line-height: 1;
+    position: relative;
+  }
+  .sq.light { background: #f0d9b5; }
+  .sq.dark { background: #b58863; }
+  .sq.sel { outline: 3px solid #a78bfa; outline-offset: -3px; }
+  .sq.mov { box-shadow: inset 0 0 0 4px rgba(74,222,128,0.55); }
+  .sq.chk { box-shadow: inset 0 0 0 4px rgba(239,68,68,0.7); }
+  .sq.last { box-shadow: inset 0 0 0 3px rgba(250,204,21,0.7); }
+  .status {
+    margin-top: 8px; min-height: 1.3em;
+    font-size: 14px; opacity: 0.95;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px;
+    margin-left: 6px; vertical-align: middle;
+  }
+  .b-Brilliant { background: #22d3ee; color: #082f36; }
+  .b-Great { background: #a78bfa; color: #1e1238; }
+  .b-Best { background: #4ade80; color: #052e16; }
+  .b-Excellent { background: #86efac; color: #052e16; }
+  .b-Good { background: #67e8f9; color: #083344; }
+  .b-Okay { background: #cbd5e1; color: #0f172a; }
+  .b-Inaccuracy { background: #facc15; color: #422006; }
+  .b-Mistake { background: #fb923c; color: #431407; }
+  .b-Miss { background: #f472b6; color: #500724; }
+  .b-Blunder { background: #f87171; color: #450a0a; }
+  .soju {
+    display: flex; gap: 10px; align-items: flex-start;
+    margin-top: 10px; padding: 10px;
+    border-radius: 16px;
+    background: linear-gradient(160deg, rgba(24,18,36,0.92), rgba(10,8,16,0.95));
+    border: 1px solid rgba(196,167,231,0.28);
+  }
+  .soju img {
+    width: 72px; height: 72px; border-radius: 16px;
+    object-fit: cover; flex-shrink: 0;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+  }
+  .soju .meta { min-width: 0; flex: 1; }
+  .soju .name {
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: rgba(196,167,231,0.8); margin-bottom: 4px;
+    font-family: ui-monospace, monospace;
+  }
+  .soju .bubble {
+    font-size: 13.5px; line-height: 1.4; color: #f3eefe;
+  }
+  .moves {
+    margin-top: 8px;
+    font-family: ui-monospace, monospace;
+    font-size: 12px; line-height: 1.55;
+    max-height: 7.2em; overflow-y: auto;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 8px 10px;
+  }
+  .mv { cursor: default; }
+  .rowbtns { display: flex; gap: 8px; margin-top: 10px; }
+  .rowbtns button {
+    flex: 1; border: 1px solid rgba(167,139,250,0.4);
+    background: rgba(167,139,250,0.16); color: #f3eefe;
+    border-radius: 12px; padding: 10px; font-weight: 600; cursor: pointer;
+  }
+  .rowbtns button:hover { background: rgba(167,139,250,0.28); }
+  .analysis {
+    margin-top: 10px; padding: 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(167,139,250,0.28);
+    background: rgba(16,12,28,0.7);
+    display: none;
+  }
+  .analysis.show { display: block; }
+  .analysis h3 {
+    margin: 0 0 8px; font-size: 13px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: #c4b5fd;
+    font-family: ui-monospace, monospace;
+  }
+  .acc {
+    font-size: 28px; font-weight: 800; letter-spacing: -0.03em;
+    color: #faf5ff; margin: 0 0 6px;
+  }
+  .counts { font-size: 12px; color: rgba(226,217,245,0.75); line-height: 1.55; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <div class="clock" id="clkOpp">Meridium · <span id="tOpp">∞</span></div>
+    <div class="clock" id="clkYou">You · <span id="tYou">∞</span></div>
+  </div>
+  <div class="board" id="board"></div>
+  <div class="status" id="status">Starting…</div>
+  <div class="soju">
+    <img id="sojuImg" alt="Soju" src="__SOJU_IDLE__"/>
+    <div class="meta">
+      <div class="name">Soju · board cat</div>
+      <div class="bubble" id="sojuTalk">I'll sit here. You play. I'll judge. Fair.</div>
+    </div>
+  </div>
+  <div class="moves" id="moves"></div>
+  <div class="rowbtns">
+    <button type="button" id="btnUndo">Undo</button>
+    <button type="button" id="btnHint">Hint</button>
+    <button type="button" id="btnAnalyze">Analysis</button>
+  </div>
+  <div class="analysis" id="analysis">
+    <h3>Game analysis</h3>
+    <div class="acc" id="acc">—</div>
+    <div class="counts" id="counts">Play a few moves and Soju will score them.</div>
+  </div>
+</div>
+<script>
+(function() {
+  const PLAYER_WHITE = __PLAYER_WHITE__;
+  const BASE = __BASE__;
+  const INC = __INC__;
+  const DEPTH = __DEPTH__;
+  const nonce = "__NONCE__";
+  const SOJU = {
+    idle: "__SOJU_IDLE__",
+    happy: "__SOJU_HAPPY__",
+    shock: "__SOJU_SHOCK__",
+    think: "__SOJU_THINK__"
+  };
+
+  const W=1,P=1,N=2,B=3,R=4,Q=5,K=6, BP=7,BN=8,BB=9,BR=10,BQ=11,BK=12;
+  const GLYPH = {
+    0:"",1:"♙",2:"♘",3:"♗",4:"♖",5:"♕",6:"♔",
+    7:"♟",8:"♞",9:"♝",10:"♜",11:"♛",12:"♚"
+  };
+  function isWhite(p) { return p >= 1 && p <= 6; }
+  function isBlack(p) { return p >= 7 && p <= 12; }
+  function colorOf(p) { return p === 0 ? null : (isWhite(p) ? "w" : "b"); }
+  function kind(p) {
+    if (!p) return null;
+    return [null,"p","n","b","r","q","k","p","n","b","r","q","k"][p];
+  }
+
+  function startBoard() {
+    return [
+      BR,BN,BB,BQ,BK,BB,BN,BR,
+      BP,BP,BP,BP,BP,BP,BP,BP,
+      0,0,0,0,0,0,0,0,
+      0,0,0,0,0,0,0,0,
+      0,0,0,0,0,0,0,0,
+      0,0,0,0,0,0,0,0,
+      P,P,P,P,P,P,P,P,
+      R,N,B,Q,K,B,N,R
+    ];
+  }
+
+  let sq = startBoard();
+  let turn = "w";
+  let selected = null;
+  let legal = [];
+  let history = [];
+  let annotations = [];
+  let lastFrom = null, lastTo = null;
+  let gameOver = false;
+  let timers = { w: BASE, b: BASE };
+  let active = BASE ? "w" : null;
+  let castling = { wK:true, wQ:true, bK:true, bQ:true };
+  let ep = null;
+
+  const boardEl = document.getElementById("board");
+  const statusEl = document.getElementById("status");
+  const movesEl = document.getElementById("moves");
+  const sojuImg = document.getElementById("sojuImg");
+  const sojuTalk = document.getElementById("sojuTalk");
+
+  function idx(r,c) { return r*8+c; }
+  function rc(i) { return [i>>3, i&7]; }
+  function inb(r,c) { return r>=0 && r<8 && c>=0 && c<8; }
+  function findKing(side) {
+    const k = side === "w" ? K : BK;
+    for (let i=0;i<64;i++) if (sq[i]===k) return i;
+    return -1;
+  }
+  function attacked(target, bySide) {
+    for (let i=0;i<64;i++) {
+      const p = sq[i];
+      if (!p || colorOf(p) !== bySide) continue;
+      const moves = rawMoves(i, true);
+      if (moves.indexOf(target) >= 0) return true;
+    }
+    return false;
+  }
+
+  function rawMoves(from, attackOnly) {
+    const p = sq[from];
+    if (!p) return [];
+    const [r,c] = rc(from);
+    const side = colorOf(p);
+    const k = kind(p);
+    const out = [];
+    const enemy = (t) => { const q = sq[t]; return q && colorOf(q) !== side; };
+    const empty = (t) => !sq[t];
+
+    function slide(dirs) {
+      for (const [dr,dc] of dirs) {
+        let rr=r+dr, cc=c+dc;
+        while (inb(rr,cc)) {
+          const t = idx(rr,cc);
+          if (empty(t)) { out.push(t); }
+          else { if (enemy(t) || attackOnly) { if (enemy(t) || attackOnly) out.push(t); } break; }
+          rr+=dr; cc+=dc;
+        }
+      }
+    }
+
+    if (k === "p") {
+      const dir = side === "w" ? -1 : 1;
+      const startRow = side === "w" ? 6 : 1;
+      if (!attackOnly) {
+        const f1 = idx(r+dir, c);
+        if (inb(r+dir,c) && empty(f1)) {
+          out.push(f1);
+          const f2 = idx(r+2*dir, c);
+          if (r === startRow && empty(f2)) out.push(f2);
+        }
+      }
+      for (const dc of [-1,1]) {
+        const rr=r+dir, cc=c+dc;
+        if (!inb(rr,cc)) continue;
+        const t = idx(rr,cc);
+        if (attackOnly) out.push(t);
+        else if (enemy(t) || (ep === t && empty(t))) out.push(t);
+      }
+    } else if (k === "n") {
+      for (const [dr,dc] of [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]) {
+        const rr=r+dr, cc=c+dc;
+        if (!inb(rr,cc)) continue;
+        const t=idx(rr,cc);
+        if (empty(t) || enemy(t) || attackOnly) out.push(t);
+      }
+    } else if (k === "b") {
+      slide([[-1,-1],[-1,1],[1,-1],[1,1]]);
+    } else if (k === "r") {
+      slide([[-1,0],[1,0],[0,-1],[0,1]]);
+    } else if (k === "q") {
+      slide([[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]]);
+    } else if (k === "k") {
+      for (const dr of [-1,0,1]) for (const dc of [-1,0,1]) {
+        if (!dr && !dc) continue;
+        const rr=r+dr, cc=c+dc;
+        if (!inb(rr,cc)) continue;
+        const t=idx(rr,cc);
+        if (empty(t) || enemy(t) || attackOnly) out.push(t);
+      }
+      if (!attackOnly) {
+        if (side === "w" && r === 7 && c === 4) {
+          if (castling.wK && empty(idx(7,5)) && empty(idx(7,6))) out.push(idx(7,6));
+          if (castling.wQ && empty(idx(7,1)) && empty(idx(7,2)) && empty(idx(7,3))) out.push(idx(7,2));
+        }
+        if (side === "b" && r === 0 && c === 4) {
+          if (castling.bK && empty(idx(0,5)) && empty(idx(0,6))) out.push(idx(0,6));
+          if (castling.bQ && empty(idx(0,1)) && empty(idx(0,2)) && empty(idx(0,3))) out.push(idx(0,2));
+        }
+      }
+    }
+    return out;
+  }
+
+  function makeMove(from, to) {
+    const snap = {
+      from, to,
+      fromP: sq[from], toP: sq[to],
+      ep, castling: Object.assign({}, castling),
+      turn, epWas: ep
+    };
+    const p = sq[from];
+    const k = kind(p);
+    const side = colorOf(p);
+    if (k === "p" && to === ep && !sq[to]) {
+      const [tr,tc] = rc(to);
+      const cap = idx(tr + (side === "w" ? 1 : -1), tc);
+      snap.epCap = cap;
+      snap.epCapP = sq[cap];
+      sq[cap] = 0;
+    }
+    if (k === "k" && Math.abs((from&7) - (to&7)) === 2) {
+      if (to === idx(7,6)) { snap.rookFrom=idx(7,7); snap.rookTo=idx(7,5); sq[idx(7,5)]=sq[idx(7,7)]; sq[idx(7,7)]=0; }
+      if (to === idx(7,2)) { snap.rookFrom=idx(7,0); snap.rookTo=idx(7,3); sq[idx(7,3)]=sq[idx(7,0)]; sq[idx(7,0)]=0; }
+      if (to === idx(0,6)) { snap.rookFrom=idx(0,7); snap.rookTo=idx(0,5); sq[idx(0,5)]=sq[idx(0,7)]; sq[idx(0,7)]=0; }
+      if (to === idx(0,2)) { snap.rookFrom=idx(0,0); snap.rookTo=idx(0,3); sq[idx(0,3)]=sq[idx(0,0)]; sq[idx(0,0)]=0; }
+    }
+    sq[to] = sq[from];
+    sq[from] = 0;
+    if (k === "p") {
+      const [tr] = rc(to);
+      if (tr === 0 && side === "w") sq[to] = Q;
+      if (tr === 7 && side === "b") sq[to] = BQ;
+    }
+    ep = null;
+    if (k === "p" && Math.abs(rc(from)[0]-rc(to)[0]) === 2) {
+      ep = idx((rc(from)[0]+rc(to)[0])/2, rc(from)[1]);
+    }
+    if (p === K) { castling.wK=false; castling.wQ=false; }
+    if (p === BK) { castling.bK=false; castling.bQ=false; }
+    if (from === idx(7,0) || to === idx(7,0)) castling.wQ=false;
+    if (from === idx(7,7) || to === idx(7,7)) castling.wK=false;
+    if (from === idx(0,0) || to === idx(0,0)) castling.bQ=false;
+    if (from === idx(0,7) || to === idx(0,7)) castling.bK=false;
+    turn = side === "w" ? "b" : "w";
+    return snap;
+  }
+
+  function undoMove(snap) {
+    sq[snap.from] = snap.fromP;
+    sq[snap.to] = snap.toP;
+    if (snap.epCap != null) sq[snap.epCap] = snap.epCapP;
+    if (snap.rookFrom != null) {
+      sq[snap.rookFrom] = sq[snap.rookTo];
+      sq[snap.rookTo] = 0;
+    }
+    ep = snap.epWas;
+    castling = snap.castling;
+    turn = snap.turn;
+  }
+
+  function legalMovesForSide(from, side) {
+    if (colorOf(sq[from]) !== side) return [];
+    const opp = side === "w" ? "b" : "w";
+    const candidates = rawMoves(from, false);
+    const out = [];
+    for (const to of candidates) {
+      const snap = makeMove(from, to);
+      const king = findKing(side);
+      const bad = king < 0 || attacked(king, opp);
+      undoMove(snap);
+      if (!bad) out.push(to);
+    }
+    return out;
+  }
+  function allLegal(side) {
+    const moves = [];
+    for (let i=0;i<64;i++) {
+      if (colorOf(sq[i]) !== side) continue;
+      for (const t of legalMovesForSide(i, side)) moves.push([i,t]);
+    }
+    return moves;
+  }
+  function inCheck(side) {
+    const king = findKing(side);
+    if (king < 0) return true;
+    return attacked(king, side === "w" ? "b" : "w");
+  }
+
+  const VAL = { p:100, n:320, b:330, r:500, q:900, k:20000 };
+  const PST = {
+    p: [0,0,0,0,0,0,0,0, 50,50,50,50,50,50,50,50, 10,10,20,30,30,20,10,10, 5,5,10,25,25,10,5,5, 0,0,0,20,20,0,0,0, 5,-5,-10,0,0,-10,-5,5, 5,10,10,-20,-20,10,10,5, 0,0,0,0,0,0,0,0],
+    n: [-50,-40,-30,-30,-30,-30,-40,-50, -40,-20,0,0,0,0,-20,-40, -30,0,10,15,15,10,0,-30, -30,5,15,20,20,15,5,-30, -30,0,15,20,20,15,0,-30, -30,5,10,15,15,10,5,-30, -40,-20,0,5,5,0,-20,-40, -50,-40,-30,-30,-30,-30,-40,-50],
+    b: [-20,-10,-10,-10,-10,-10,-10,-20, -10,0,0,0,0,0,0,-10, -10,0,5,10,10,5,0,-10, -10,5,5,10,10,5,5,-10, -10,0,10,10,10,10,0,-10, -10,10,10,10,10,10,10,-10, -10,5,0,0,0,0,5,-10, -20,-10,-10,-10,-10,-10,-10,-20],
+    r: [0,0,0,0,0,0,0,0, 5,10,10,10,10,10,10,5, -5,0,0,0,0,0,0,-5, -5,0,0,0,0,0,0,-5, -5,0,0,0,0,0,0,-5, -5,0,0,0,0,0,0,-5, -5,0,0,0,0,0,0,-5, 0,0,0,5,5,0,0,0],
+    q: [-20,-10,-10,-5,-5,-10,-10,-20, -10,0,0,0,0,0,0,-10, -10,0,5,5,5,5,0,-10, -5,0,5,5,5,5,0,-5, 0,0,5,5,5,5,0,-5, -10,5,5,5,5,5,0,-10, -10,0,5,0,0,0,0,-10, -20,-10,-10,-5,-5,-10,-10,-20],
+    k: [-30,-40,-40,-50,-50,-40,-40,-30, -30,-40,-40,-50,-50,-40,-40,-30, -30,-40,-40,-50,-50,-40,-40,-30, -30,-40,-40,-50,-50,-40,-40,-30, -20,-30,-30,-40,-40,-30,-30,-20, -10,-20,-20,-20,-20,-20,-20,-10, 20,20,0,0,0,0,20,20, 20,30,10,0,0,10,30,20]
+  };
+
+  function evalPos() {
+    let s = 0;
+    for (let i=0;i<64;i++) {
+      const p = sq[i];
+      if (!p) continue;
+      const k = kind(p);
+      const v = VAL[k] || 0;
+      const table = PST[k];
+      const [r,c] = rc(i);
+      const pstI = isWhite(p) ? i : ((7-r)*8 + c);
+      const pst = table ? table[pstI] : 0;
+      if (isWhite(p)) s += v + pst;
+      else s -= v + pst;
+    }
+    s += allLegal("w").length * 2 - allLegal("b").length * 2;
+    return s;
+  }
+
+  function evalFor(side) {
+    const e = evalPos();
+    return side === "w" ? e : -e;
+  }
+
+  function material() {
+    let s = 0;
+    for (let i=0;i<64;i++) {
+      const p = sq[i];
+      if (!p) continue;
+      const v = VAL[kind(p)] || 0;
+      if (v >= 20000) continue;
+      s += isWhite(p) ? v : -v;
+    }
+    return s;
+  }
+
+  function minimax(depth, alpha, beta, maximizing) {
+    const moves = allLegal(turn);
+    if (depth === 0 || moves.length === 0) {
+      if (moves.length === 0) {
+        if (inCheck(turn)) return maximizing ? -99999 : 99999;
+        return 0;
+      }
+      return evalPos();
+    }
+    moves.sort((a,b) => (sq[b[1]]?1:0) - (sq[a[1]]?1:0));
+    if (maximizing) {
+      let best = -1e9;
+      for (const [f,t] of moves) {
+        const snap = makeMove(f,t);
+        const val = minimax(depth-1, alpha, beta, false);
+        undoMove(snap);
+        if (val > best) best = val;
+        if (best > alpha) alpha = best;
+        if (beta <= alpha) break;
+      }
+      return best;
+    } else {
+      let best = 1e9;
+      for (const [f,t] of moves) {
+        const snap = makeMove(f,t);
+        const val = minimax(depth-1, alpha, beta, true);
+        undoMove(snap);
+        if (val < best) best = val;
+        if (best < beta) beta = best;
+        if (beta <= alpha) break;
+      }
+      return best;
+    }
+  }
+
+  function scoreMove(f, t, side) {
+    const snap = makeMove(f, t);
+    const maximizing = turn === "w";
+    const sc = minimax(Math.max(1, DEPTH) - 1, -1e9, 1e9, maximizing);
+    undoMove(snap);
+    const fromSide = side === "w" ? sc : -sc;
+    return fromSide;
+  }
+
+  function bestAndPlayed(from, to, side) {
+    const moves = allLegal(side);
+    let best = -1e9, second = -1e9, bestMv = moves[0];
+    let played = null;
+    for (const [f,t] of moves) {
+      const sc = scoreMove(f, t, side);
+      if (f === from && t === to) played = sc;
+      if (sc > best) { second = best; best = sc; bestMv = [f,t]; }
+      else if (sc > second) second = sc;
+    }
+    if (played == null) played = best;
+    return { best, second, played, bestMv };
+  }
+
+  const TALKS = {
+    Brilliant: [
+      "That was a Brilliant. I dropped my tuna.",
+      "Sacrificial and still winning. Soju is impressed. Rare.",
+      "!!  I would knock your pieces over in celebration, but I have dignity."
+    ],
+    Great: [
+      "Great move. Only path that kept the position together.",
+      "The only clean line. Whiskers up.",
+      "Great. I would have played it. Eventually. After a nap."
+    ],
+    Best: [
+      "Best move. Fine. I'll allow a head scratch.",
+      "That's the one. Engine-cat agrees.",
+      "Best. Don't get cocky. I still live here."
+    ],
+    Excellent: [
+      "Excellent. Clean as a sunbeam.",
+      "Excellent. Barely any blood in the eval.",
+      "Excellent. I blinked and you still found it."
+    ],
+    Good: [
+      "Good. Not tuna, but good.",
+      "Good move. Keep the rhythm.",
+      "Good. I didn't have to look away."
+    ],
+    Okay: [
+      "Okay. Playable. Not poetry.",
+      "Okay. Could've been sharper.",
+      "Okay. Soju neither purrs nor hisses."
+    ],
+    Inaccuracy: [
+      "Inaccuracy. You left a thread hanging.",
+      "Inaccuracy. I would have sat on a better square.",
+      "Inaccuracy. The position leaked a little."
+    ],
+    Mistake: [
+      "Mistake. Soju facepalms with both paws.",
+      "Mistake. Meridium can smell that.",
+      "Mistake. You gifted a tempo. I noticed."
+    ],
+    Miss: [
+      "Miss. You had the tactic. I saw the knight.",
+      "Miss. The win was sitting right there. Like a laser pointer.",
+      "Miss. I cannot believe you walked past that."
+    ],
+    Blunder: [
+      "Blunder. I am hiding under the board.",
+      "Blunder. That piece was not a toy.",
+      "Blunder. Soju is considering a new roommate."
+    ]
+  };
+
+  function pickTalk(tag) {
+    const arr = TALKS[tag] || TALKS.Okay;
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  function classify(info, matBefore, matAfter, side) {
+    const loss = info.best - info.played;
+    const matSwing = side === "w" ? (matAfter - matBefore) : (matBefore - matAfter);
+    const onlyMove = (info.best - info.second) >= 180;
+    if (loss <= 25 && matSwing <= -250 && info.played >= info.best - 40) return "Brilliant";
+    if (onlyMove && loss <= 20) return "Great";
+    if (loss <= 8) return "Best";
+    if (loss <= 25) return "Excellent";
+    if (loss <= 55) return "Good";
+    if (loss <= 95) return "Okay";
+    if (info.best > 280 && info.played < 40) return "Miss";
+    if (loss <= 180) return "Inaccuracy";
+    if (loss <= 320) return "Mistake";
+    return "Blunder";
+  }
+
+  function sojuMood(tag) {
+    if (tag === "Brilliant" || tag === "Great" || tag === "Best" || tag === "Excellent") {
+      sojuImg.src = SOJU.happy;
+    } else if (tag === "Blunder" || tag === "Miss" || tag === "Mistake") {
+      sojuImg.src = SOJU.shock;
+    } else if (tag === "Inaccuracy" || tag === "Okay") {
+      sojuImg.src = SOJU.think;
+    } else {
+      sojuImg.src = SOJU.idle;
+    }
+    sojuTalk.textContent = pickTalk(tag);
+  }
+
+  function filesq(i) {
+    const files = "abcdefgh";
+    return files[i&7] + (8-(i>>3));
+  }
+  function sanish(from, to, snap) {
+    const k = kind(snap.fromP);
+    const cap = snap.toP || snap.epCapP;
+    if (k === "k" && Math.abs((from&7)-(to&7))===2) return (to&7) > 4 ? "O-O" : "O-O-O";
+    const piece = k === "p" ? "" : k.toUpperCase();
+    return piece + (cap ? (k==="p" ? filesq(from)[0] : "") + "x" : "") + filesq(to);
+  }
+
+  function playerToMove() {
+    return (PLAYER_WHITE && turn === "w") || (!PLAYER_WHITE && turn === "b");
+  }
+  function modelIndex(displayI) { return PLAYER_WHITE ? displayI : 63 - displayI; }
+
+  function render() {
+    boardEl.innerHTML = "";
+    for (let di=0; di<64; di++) {
+      const mi = modelIndex(di);
+      const [r,c] = rc(mi);
+      const el = document.createElement("div");
+      const light = (r + c) % 2 === 1;
+      el.className = "sq " + (light ? "light" : "dark");
+      el.textContent = GLYPH[sq[mi]] || "";
+      if (selected === mi) el.classList.add("sel");
+      if (legal.indexOf(mi) >= 0) el.classList.add("mov");
+      if (!gameOver && inCheck(turn) && sq[mi] === (turn==="w"?K:BK)) el.classList.add("chk");
+      if (mi === lastFrom || mi === lastTo) el.classList.add("last");
+      el.onclick = function() { onClick(mi); };
+      boardEl.appendChild(el);
+    }
+    paintClocks();
+  }
+
+  function paintClocks() {
+    const fmt = (s) => {
+      if (!BASE) return "∞";
+      s = Math.max(0, s|0);
+      const m = (s/60)|0, sec = s%60;
+      return (m<10?"0":"")+m+":"+(sec<10?"0":"")+sec;
+    };
+    const youSide = PLAYER_WHITE ? "w" : "b";
+    const oppSide = PLAYER_WHITE ? "b" : "w";
+    document.getElementById("tYou").textContent = fmt(timers[youSide]);
+    document.getElementById("tOpp").textContent = fmt(timers[oppSide]);
+    document.getElementById("clkYou").classList.toggle("on", active === youSide);
+    document.getElementById("clkOpp").classList.toggle("on", active === oppSide);
+  }
+
+  function logMoves() {
+    let html = "";
+    for (let i = 0; i < annotations.length; i++) {
+      const a = annotations[i];
+      const n = Math.floor(i/2) + 1;
+      if (i % 2 === 0) html += n + ". ";
+      html += '<span class="mv">' + a.san +
+        (a.tag ? ' <span class="badge b-'+a.tag+'">'+a.tag+'</span>' : "") +
+        "</span> ";
+    }
+    movesEl.innerHTML = html || "Moves will land here with Soju's grades.";
+  }
+
+  function endIfNeeded() {
+    const moves = allLegal(turn);
+    if (moves.length === 0) {
+      gameOver = true;
+      active = null;
+      if (inCheck(turn)) {
+        const winner = turn === "w" ? "Black" : "White";
+        statusEl.textContent = "Checkmate — " + winner + " wins";
+        sojuImg.src = SOJU.happy;
+        sojuTalk.textContent = winner === (PLAYER_WHITE ? "White" : "Black")
+          ? "Mate. I knew you had claws."
+          : "Mate against you. I will sit on the keyboard now.";
+      } else {
+        statusEl.textContent = "Stalemate";
+        sojuImg.src = SOJU.think;
+        sojuTalk.textContent = "Stalemate. Nobody gets the tuna. Tragic.";
+      }
+      showAnalysis(true);
+      return true;
+    }
+    return false;
+  }
+
+  function annotateLast(from, to, snap, side) {
+    const matAfter = material();
+    const info = bestAndPlayed(from, to, side);
+    // bestAndPlayed needs the position BEFORE the move. Caller must undo first? 
+    // We'll compute from current by undoing internally if needed.
+    return { from, to, san: sanish(from, to, snap), tag: "Good", info };
+  }
+
+  function gradeMove(from, to, snap, side, matBefore) {
+    // Position is AFTER the move. Undo, analyze, redo.
+    undoMove(snap);
+    const info = bestAndPlayed(from, to, side);
+    const matAfterGuess = material(); // still before
+    const playedSnap = makeMove(from, to);
+    const matAfter = material();
+    const tag = classify(info, matBefore, matAfter, side);
+    return { from, to, san: sanish(from, to, snap), tag, loss: info.best - info.played };
+  }
+
+  function afterMove(from, to, snap, side, matBefore, isPlayer) {
+    selected = null;
+    legal = [];
+    lastFrom = from; lastTo = to;
+    if (BASE && active) timers[active] += INC;
+    const ann = gradeMove(from, to, snap, side, matBefore);
+    annotations.push(ann);
+    logMoves();
+    if (isPlayer) {
+      sojuMood(ann.tag);
+      statusEl.innerHTML = (inCheck(turn) ? "Check. " : "") +
+        'Your move was <span class="badge b-'+ann.tag+'">'+ann.tag+'</span>';
+    } else {
+      statusEl.textContent = playerToMove()
+        ? (inCheck(turn) ? "Check — your move" : "Your move")
+        : "Meridium is thinking…";
+    }
+    if (endIfNeeded()) { render(); return; }
+    active = BASE ? turn : null;
+    render();
+    if (!playerToMove() && !gameOver) setTimeout(engineMove, 160);
+  }
+
+  function onClick(mi) {
+    if (gameOver) return;
+    if (!playerToMove()) return;
+    const p = sq[mi];
+    if (selected == null) {
+      if (p && colorOf(p) === turn) {
+        selected = mi;
+        legal = legalMovesForSide(mi, turn);
+      }
+      render();
+      return;
+    }
+    if (mi === selected) { selected = null; legal = []; render(); return; }
+    if (legal.indexOf(mi) < 0) {
+      if (p && colorOf(p) === turn) {
+        selected = mi;
+        legal = legalMovesForSide(mi, turn);
+        render();
+      }
+      return;
+    }
+    const side = turn;
+    const matBefore = material();
+    const from = selected;
+    const snap = makeMove(from, mi);
+    history.push(snap);
+    afterMove(from, mi, snap, side, matBefore, true);
+  }
+
+  function engineMove() {
+    if (gameOver) return;
+    sojuImg.src = SOJU.think;
+    sojuTalk.textContent = "Meridium is thinking. I am supervising.";
+    const moves = allLegal(turn);
+    if (!moves.length) { endIfNeeded(); render(); return; }
+    const maximizing = turn === "w";
+    let bestMove = moves[0];
+    let bestScore = maximizing ? -1e9 : 1e9;
+    for (let i=moves.length-1;i>0;i--) {
+      const j = Math.floor(Math.random()*(i+1));
+      const tmp = moves[i]; moves[i]=moves[j]; moves[j]=tmp;
+    }
+    const depth = Math.max(1, DEPTH);
+    for (const [f,t] of moves) {
+      const snap = makeMove(f,t);
+      const sc = minimax(depth-1, -1e9, 1e9, turn === "w");
+      undoMove(snap);
+      if (maximizing ? sc > bestScore : sc < bestScore) {
+        bestScore = sc; bestMove = [f,t];
+      }
+    }
+    const side = turn;
+    const matBefore = material();
+    const snap = makeMove(bestMove[0], bestMove[1]);
+    history.push(snap);
+    afterMove(bestMove[0], bestMove[1], snap, side, matBefore, false);
+  }
+
+  function playerAccuracy() {
+    const you = PLAYER_WHITE ? 0 : 1;
+    const mine = annotations.filter((_, i) => (i % 2) === you);
+    if (!mine.length) return null;
+    let score = 0;
+    const weights = {
+      Brilliant: 105, Great: 100, Best: 100, Excellent: 98, Good: 90,
+      Okay: 75, Inaccuracy: 55, Mistake: 30, Miss: 20, Blunder: 5
+    };
+    const counts = {};
+    for (const a of mine) {
+      counts[a.tag] = (counts[a.tag] || 0) + 1;
+      score += weights[a.tag] != null ? weights[a.tag] : 70;
+    }
+    return { acc: Math.round(score / mine.length), counts, n: mine.length };
+  }
+
+  function showAnalysis(open) {
+    const box = document.getElementById("analysis");
+    if (open === true) box.classList.add("show");
+    else box.classList.toggle("show");
+    const r = playerAccuracy();
+    if (!r) {
+      document.getElementById("acc").textContent = "—";
+      document.getElementById("counts").textContent = "No player moves to score yet.";
+      return;
+    }
+    document.getElementById("acc").textContent = r.acc + "% accuracy";
+    const order = ["Brilliant","Great","Best","Excellent","Good","Okay","Inaccuracy","Mistake","Miss","Blunder"];
+    document.getElementById("counts").innerHTML =
+      "Soju graded " + r.n + " of your moves.<br/>" +
+      order.filter(k => r.counts[k]).map(k => k + " × " + r.counts[k]).join(" · ");
+  }
+
+  document.getElementById("btnUndo").onclick = function() {
+    if (!history.length) return;
+    undoMove(history.pop());
+    if (annotations.length) annotations.pop();
+    while (history.length && !playerToMove()) {
+      undoMove(history.pop());
+      if (annotations.length) annotations.pop();
+    }
+    gameOver = false;
+    selected = null; legal = [];
+    lastFrom = lastTo = null;
+    active = BASE ? turn : null;
+    statusEl.textContent = "Your move";
+    sojuImg.src = SOJU.idle;
+    sojuTalk.textContent = "We rewind. I remember everything, though.";
+    logMoves();
+    render();
+  };
+
+  document.getElementById("btnHint").onclick = function() {
+    if (!playerToMove() || gameOver) return;
+    sojuImg.src = SOJU.think;
+    const moves = allLegal(turn);
+    if (!moves.length) return;
+    const maximizing = turn === "w";
+    let best = moves[0], bestScore = maximizing ? -1e9 : 1e9;
+    for (const [f,t] of moves) {
+      const snap = makeMove(f,t);
+      const sc = minimax(1, -1e9, 1e9, turn === "w");
+      undoMove(snap);
+      if (maximizing ? sc > bestScore : sc < bestScore) { bestScore = sc; best = [f,t]; }
+    }
+    sojuTalk.textContent = "Hint from Soju: " + filesq(best[0]) + " → " + filesq(best[1]) + ". Don't waste it.";
+    selected = best[0];
+    legal = [best[1]];
+    render();
+  };
+
+  document.getElementById("btnAnalyze").onclick = function() { showAnalysis(); };
+
+  if (BASE) {
+    setInterval(function() {
+      if (!active || gameOver) return;
+      timers[active] -= 1;
+      if (timers[active] <= 0) {
+        timers[active] = 0;
+        gameOver = true;
+        statusEl.textContent = "Flag — " + (active === "w" ? "Black" : "White") + " wins on time";
+        active = null;
+        showAnalysis(true);
+      }
+      paintClocks();
+    }, 1000);
+  }
+
+  statusEl.textContent = playerToMove() ? "Your move — click a piece. Soju is watching." : "Meridium is thinking…";
+  logMoves();
+  render();
+  if (!playerToMove()) setTimeout(engineMove, 250);
+})();
+</script>
 </body></html>
