@@ -12827,7 +12827,7 @@ if st.session_state.view == "call_meridium":
     st.stop()
 
 
-# ===== CHESS (self-contained — no pip, no CDN board lib) =====
+# ===== CHESS (self-contained — Soju + analysis) =====
 if st.session_state.view == "chess":
     if st.button("← Home", key="chess_back_home"):
         st.session_state.view = "home"
@@ -12838,7 +12838,7 @@ if st.session_state.view == "chess":
         <div class="panel">
           <div class="panel-label">Residual board</div>
           <div class="hero" style="font-size:1.45rem;">Chess</div>
-          <div class="sub">Click a piece, then a square · play Meridium · clocks optional.</div>
+          <div class="sub">Click a piece, then a square. Soju grades every move — brilliant through blunder — and recaps the game.</div>
           <div class="ridge"></div>
         </div>
         """,
@@ -12883,614 +12883,56 @@ if st.session_state.view == "chess":
 
     nonce = st.session_state.get("chess_board_nonce") or "boot"
 
-    # Pure HTML/CSS/JS chess — no external JS libraries required
-    st.components.v1.html(
-        f"""
-<!DOCTYPE html>
-<html><head><meta charset="utf-8"/>
-<style>
-  * {{ box-sizing: border-box; }}
-  body {{
-    margin: 0; padding: 12px 8px 16px;
-    background: transparent;
-    color: #e8e6f0;
-    font-family: system-ui, -apple-system, Segoe UI, sans-serif;
-  }}
-  .wrap {{ max-width: 420px; margin: 0 auto; }}
-  .bar {{
-    display: flex; justify-content: space-between; gap: 8px;
-    margin-bottom: 10px; font-family: ui-monospace, monospace; font-size: 13px;
-  }}
-  .clock {{
-    flex: 1; text-align: center;
-    padding: 8px 10px; border-radius: 12px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.12);
-  }}
-  .clock.on {{ border-color: rgba(74,222,128,0.55); color: #86efac; }}
-  .board {{
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    grid-template-rows: repeat(8, 1fr);
-    border: 2px solid rgba(167,139,250,0.4);
-    border-radius: 10px;
-    overflow: hidden;
-    user-select: none;
-    box-shadow: 0 16px 40px rgba(0,0,0,0.35);
-  }}
-  .sq {{
-    display: flex; align-items: center; justify-content: center;
-    font-size: clamp(22px, 5.5vw, 34px);
-    cursor: pointer;
-    line-height: 1;
-  }}
-  .sq.light {{ background: #f0d9b5; }}
-  .sq.dark {{ background: #b58863; }}
-  .sq.sel {{ outline: 3px solid #a78bfa; outline-offset: -3px; }}
-  .sq.mov {{ box-shadow: inset 0 0 0 4px rgba(74,222,128,0.55); }}
-  .sq.chk {{ box-shadow: inset 0 0 0 4px rgba(239,68,68,0.7); }}
-  .status {{
-    margin-top: 10px; min-height: 1.3em;
-    font-size: 14px; opacity: 0.9;
-  }}
-  .moves {{
-    margin-top: 6px;
-    font-family: ui-monospace, monospace;
-    font-size: 12px; opacity: 0.65;
-    max-height: 3.6em; overflow-y: auto; line-height: 1.4;
-  }}
-  .rowbtns {{ display: flex; gap: 8px; margin-top: 10px; }}
-  .rowbtns button {{
-    flex: 1; border: 1px solid rgba(167,139,250,0.4);
-    background: rgba(167,139,250,0.16); color: #f3eefe;
-    border-radius: 12px; padding: 10px; font-weight: 600; cursor: pointer;
-  }}
-  .rowbtns button:hover {{ background: rgba(167,139,250,0.28); }}
-</style>
-</head>
-<body>
-<div class="wrap">
-  <div class="bar">
-    <div class="clock" id="clkOpp">Meridium · <span id="tOpp">∞</span></div>
-    <div class="clock" id="clkYou">You · <span id="tYou">∞</span></div>
-  </div>
-  <div class="board" id="board"></div>
-  <div class="status" id="status">Starting…</div>
-  <div class="moves" id="moves"></div>
-  <div class="rowbtns">
-    <button type="button" id="btnUndo">Undo</button>
-    <button type="button" id="btnHint">Hint</button>
-  </div>
-</div>
-<script>
-(function() {{
-  const PLAYER_WHITE = {player_white};
-  const BASE = {base};
-  const INC = {inc};
-  const DEPTH = {depth};
-  const nonce = "{nonce}";
+    def _chess_widget_html():
+        import base64 as _b64
+        here = Path(__file__).resolve().parent
+        cwd = Path.cwd()
+        search_roots = [here, here / "assets", cwd, cwd / "assets"]
+        widget = None
+        for root in search_roots:
+            cand = root / "chess_widget.html"
+            if cand.exists():
+                widget = cand
+                break
+        if widget is None:
+            raise FileNotFoundError(
+                "chess_widget.html not found. Put it next to app.py "
+                "(same folder as this file)."
+            )
+        html = widget.read_text(encoding="utf-8")
+        soju_dirs = [
+            widget.parent / "soju",
+            here / "soju",
+            cwd / "soju",
+            here / "assets" / "soju",
+        ]
+        soju_dir = next((d for d in soju_dirs if d.is_dir()), None)
+        if soju_dir is None:
+            raise FileNotFoundError(
+                "soju/ folder not found. Create soju/ next to app.py and add the four portraits."
+            )
+        def _b64img(name):
+            p = soju_dir / name
+            if not p.exists():
+                raise FileNotFoundError(f"Missing Soju asset: soju/{name}")
+            return "data:image/jpeg;base64," + _b64.b64encode(p.read_bytes()).decode()
+        html = html.replace("__PLAYER_WHITE__", player_white)
+        html = html.replace("__BASE__", str(int(base)))
+        html = html.replace("__INC__", str(int(inc)))
+        html = html.replace("__DEPTH__", str(int(depth)))
+        html = html.replace("__NONCE__", str(nonce))
+        html = html.replace("__SOJU_IDLE__", _b64img("soju_idle.jpg"))
+        html = html.replace("__SOJU_HAPPY__", _b64img("soju_happy.jpg"))
+        html = html.replace("__SOJU_SHOCK__", _b64img("soju_shock.jpg"))
+        html = html.replace("__SOJU_THINK__", _b64img("soju_think.jpg"))
+        return html
 
-  // -------- Board model --------
-  // 0 empty; white PNBRQK = 1..6; black = 7..12
-  const W=1,P=1,N=2,B=3,R=4,Q=5,K=6, BP=7,BN=8,BB=9,BR=10,BQ=11,BK=12;
-  const GLYPH = {{
-    0:"",1:"♙",2:"♘",3:"♗",4:"♖",5:"♕",6:"♔",
-    7:"♟",8:"♞",9:"♝",10:"♜",11:"♛",12:"♚"
-  }};
-  function isWhite(p) {{ return p >= 1 && p <= 6; }}
-  function isBlack(p) {{ return p >= 7 && p <= 12; }}
-  function colorOf(p) {{ return p === 0 ? null : (isWhite(p) ? "w" : "b"); }}
-  function kind(p) {{
-    if (!p) return null;
-    return [null,"p","n","b","r","q","k","p","n","b","r","q","k"][p];
-  }}
+    try:
+        st.components.v1.html(_chess_widget_html(), height=860, scrolling=True)
+    except Exception as _chess_html_err:
+        st.error(f"Chess board failed to load: {_chess_html_err}")
 
-  function startBoard() {{
-    return [
-      BR,BN,BB,BQ,BK,BB,BN,BR,
-      BP,BP,BP,BP,BP,BP,BP,BP,
-      0,0,0,0,0,0,0,0,
-      0,0,0,0,0,0,0,0,
-      0,0,0,0,0,0,0,0,
-      0,0,0,0,0,0,0,0,
-      P,P,P,P,P,P,P,P,
-      R,N,B,Q,K,B,N,R
-    ];
-  }}
-
-  let sq = startBoard();
-  let turn = "w";
-  let selected = null;
-  let legal = [];
-  let history = [];
-  let gameOver = false;
-  let timers = {{ w: BASE, b: BASE }};
-  let active = BASE ? "w" : null;
-  let castling = {{ wK:true, wQ:true, bK:true, bQ:true }};
-  let ep = null; // en passant target index or null
-
-  const boardEl = document.getElementById("board");
-  const statusEl = document.getElementById("status");
-  const movesEl = document.getElementById("moves");
-
-  function idx(r,c) {{ return r*8+c; }}
-  function rc(i) {{ return [i>>3, i&7]; }}
-  function inb(r,c) {{ return r>=0 && r<8 && c>=0 && c<8; }}
-
-  function findKing(side) {{
-    const k = side === "w" ? K : BK;
-    for (let i=0;i<64;i++) if (sq[i]===k) return i;
-    return -1;
-  }}
-
-  function attacked(target, bySide) {{
-    // Generate opponent-style attacks onto target
-    for (let i=0;i<64;i++) {{
-      const p = sq[i];
-      if (!p || colorOf(p) !== bySide) continue;
-      const moves = rawMoves(i, true);
-      if (moves.indexOf(target) >= 0) return true;
-    }}
-    return false;
-  }}
-
-  function rawMoves(from, attackOnly) {{
-    const p = sq[from];
-    if (!p) return [];
-    const [r,c] = rc(from);
-    const side = colorOf(p);
-    const k = kind(p);
-    const out = [];
-    const enemy = (t) => {{
-      const q = sq[t];
-      return q && colorOf(q) !== side;
-    }};
-    const empty = (t) => !sq[t];
-    const push = (t) => {{ if (inb(...rc(t)) || (t>=0&&t<64)) out.push(t); }};
-
-    function slide(dirs) {{
-      for (const [dr,dc] of dirs) {{
-        let rr=r+dr, cc=c+dc;
-        while (inb(rr,cc)) {{
-          const t = idx(rr,cc);
-          if (empty(t)) {{ out.push(t); }}
-          else {{ if (enemy(t)) out.push(t); break; }}
-          rr+=dr; cc+=dc;
-        }}
-      }}
-    }}
-
-    if (k === "p") {{
-      const dir = side === "w" ? -1 : 1;
-      const startRow = side === "w" ? 6 : 1;
-      const f1 = idx(r+dir, c);
-      if (!attackOnly && inb(r+dir,c) && empty(f1)) {{
-        out.push(f1);
-        const f2 = idx(r+2*dir, c);
-        if (r === startRow && empty(f2)) out.push(f2);
-      }}
-      for (const dc of [-1,1]) {{
-        const rr=r+dir, cc=c+dc;
-        if (!inb(rr,cc)) continue;
-        const t = idx(rr,cc);
-        if (enemy(t) || (attackOnly && true)) {{
-          if (enemy(t) || attackOnly) out.push(t);
-        }}
-        if (!attackOnly && ep === t && empty(t)) out.push(t);
-      }}
-      // for attack map, count diagonal squares
-      if (attackOnly) {{
-        for (const dc of [-1,1]) {{
-          const rr=r+dir, cc=c+dc;
-          if (inb(rr,cc)) out.push(idx(rr,cc));
-        }}
-      }}
-    }} else if (k === "n") {{
-      for (const [dr,dc] of [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]) {{
-        const rr=r+dr, cc=c+dc;
-        if (!inb(rr,cc)) continue;
-        const t=idx(rr,cc);
-        if (empty(t) || enemy(t) || attackOnly) out.push(t);
-      }}
-    }} else if (k === "b") {{
-      slide([[-1,-1],[-1,1],[1,-1],[1,1]]);
-    }} else if (k === "r") {{
-      slide([[-1,0],[1,0],[0,-1],[0,1]]);
-    }} else if (k === "q") {{
-      slide([[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]]);
-    }} else if (k === "k") {{
-      for (const dr of [-1,0,1]) for (const dc of [-1,0,1]) {{
-        if (!dr && !dc) continue;
-        const rr=r+dr, cc=c+dc;
-        if (!inb(rr,cc)) continue;
-        const t=idx(rr,cc);
-        if (empty(t) || enemy(t) || attackOnly) out.push(t);
-      }}
-      if (!attackOnly) {{
-        // castling
-        if (side === "w" && r === 7 && c === 4) {{
-          if (castling.wK && empty(idx(7,5)) && empty(idx(7,6))) out.push(idx(7,6));
-          if (castling.wQ && empty(idx(7,1)) && empty(idx(7,2)) && empty(idx(7,3))) out.push(idx(7,2));
-        }}
-        if (side === "b" && r === 0 && c === 4) {{
-          if (castling.bK && empty(idx(0,5)) && empty(idx(0,6))) out.push(idx(0,6));
-          if (castling.bQ && empty(idx(0,1)) && empty(idx(0,2)) && empty(idx(0,3))) out.push(idx(0,2));
-        }}
-      }}
-    }}
-    return out;
-  }}
-
-  function legalMoves(from) {{
-    const p = sq[from];
-    if (!p || colorOf(p) !== turn) return [];
-    const side = turn;
-    const opp = side === "w" ? "b" : "w";
-    const candidates = rawMoves(from, false);
-    const out = [];
-    for (const to of candidates) {{
-      const snap = makeMove(from, to, true);
-      const king = findKing(side);
-      const bad = king < 0 || attacked(king, opp);
-      undoMove(snap);
-      if (!bad) out.push(to);
-    }}
-    // filter castling through check
-    return out;
-  }}
-
-  function makeMove(from, to, trial) {{
-    const snap = {{
-      from, to,
-      fromP: sq[from], toP: sq[to],
-      ep, castling: Object.assign({{}}, castling),
-      turn, epWas: ep
-    }};
-    const p = sq[from];
-    const k = kind(p);
-    const side = colorOf(p);
-    // en passant capture
-    if (k === "p" && to === ep && !sq[to]) {{
-      const [tr,tc] = rc(to);
-      const cap = idx(tr + (side === "w" ? 1 : -1), tc);
-      snap.epCap = cap;
-      snap.epCapP = sq[cap];
-      sq[cap] = 0;
-    }}
-    // castling rook move
-    if (k === "k" && Math.abs((from&7) - (to&7)) === 2) {{
-      if (to === idx(7,6)) {{ snap.rookFrom=idx(7,7); snap.rookTo=idx(7,5); sq[idx(7,5)]=sq[idx(7,7)]; sq[idx(7,7)]=0; }}
-      if (to === idx(7,2)) {{ snap.rookFrom=idx(7,0); snap.rookTo=idx(7,3); sq[idx(7,3)]=sq[idx(7,0)]; sq[idx(7,0)]=0; }}
-      if (to === idx(0,6)) {{ snap.rookFrom=idx(0,7); snap.rookTo=idx(0,5); sq[idx(0,5)]=sq[idx(0,7)]; sq[idx(0,7)]=0; }}
-      if (to === idx(0,2)) {{ snap.rookFrom=idx(0,0); snap.rookTo=idx(0,3); sq[idx(0,3)]=sq[idx(0,0)]; sq[idx(0,0)]=0; }}
-    }}
-    sq[to] = sq[from];
-    sq[from] = 0;
-    // promotion
-    if (k === "p") {{
-      const [tr] = rc(to);
-      if (tr === 0 && side === "w") sq[to] = Q;
-      if (tr === 7 && side === "b") sq[to] = BQ;
-    }}
-    // update ep
-    ep = null;
-    if (k === "p" && Math.abs(rc(from)[0]-rc(to)[0]) === 2) {{
-      const mid = idx((rc(from)[0]+rc(to)[0])/2, rc(from)[1]);
-      ep = mid;
-    }}
-    // castling rights
-    if (p === K) {{ castling.wK=false; castling.wQ=false; }}
-    if (p === BK) {{ castling.bK=false; castling.bQ=false; }}
-    if (from === idx(7,0) || to === idx(7,0)) castling.wQ=false;
-    if (from === idx(7,7) || to === idx(7,7)) castling.wK=false;
-    if (from === idx(0,0) || to === idx(0,0)) castling.bQ=false;
-    if (from === idx(0,7) || to === idx(0,7)) castling.bK=false;
-    turn = side === "w" ? "b" : "w";
-    return snap;
-  }}
-
-  function undoMove(snap) {{
-    sq[snap.from] = snap.fromP;
-    sq[snap.to] = snap.toP;
-    if (snap.epCap != null) sq[snap.epCap] = snap.epCapP;
-    if (snap.rookFrom != null) {{
-      sq[snap.rookFrom] = sq[snap.rookTo];
-      sq[snap.rookTo] = 0;
-    }}
-    ep = snap.epWas;
-    castling = snap.castling;
-    turn = snap.turn;
-  }}
-
-  function allLegal(side) {{
-    const moves = [];
-    for (let i=0;i<64;i++) {{
-      if (colorOf(sq[i]) !== side) continue;
-      for (const t of legalMovesForSide(i, side)) moves.push([i,t]);
-    }}
-    return moves;
-  }}
-  function legalMovesForSide(from, side) {{
-    if (colorOf(sq[from]) !== side) return [];
-    const opp = side === "w" ? "b" : "w";
-    const candidates = rawMoves(from, false);
-    const out = [];
-    for (const to of candidates) {{
-      const snap = makeMove(from, to, true);
-      const king = findKing(side);
-      const bad = king < 0 || attacked(king, opp);
-      undoMove(snap);
-      if (!bad) out.push(to);
-    }}
-    return out;
-  }}
-
-  function inCheck(side) {{
-    const king = findKing(side);
-    if (king < 0) return true;
-    return attacked(king, side === "w" ? "b" : "w");
-  }}
-
-  // -------- UI --------
-  function displayIndex(i) {{
-    // orientation
-    if (PLAYER_WHITE) return i;
-    return 63 - i;
-  }}
-  function modelIndex(displayI) {{
-    if (PLAYER_WHITE) return displayI;
-    return 63 - displayI;
-  }}
-
-  function render() {{
-    boardEl.innerHTML = "";
-    for (let di=0; di<64; di++) {{
-      const mi = modelIndex(di);
-      const [r,c] = rc(mi);
-      const el = document.createElement("div");
-      const light = (r + c) % 2 === 1;
-      el.className = "sq " + (light ? "light" : "dark");
-      el.textContent = GLYPH[sq[mi]] || "";
-      if (selected === mi) el.classList.add("sel");
-      if (legal.indexOf(mi) >= 0) el.classList.add("mov");
-      if (gameOver === false && inCheck(turn) && sq[mi] === (turn==="w"?K:BK)) el.classList.add("chk");
-      el.onclick = function() {{ onClick(mi); }};
-      boardEl.appendChild(el);
-    }}
-    paintClocks();
-  }}
-
-  function paintClocks() {{
-    const fmt = (s) => {{
-      if (!BASE) return "∞";
-      s = Math.max(0, s|0);
-      const m = (s/60)|0, sec = s%60;
-      return (m<10?"0":"")+m+":"+(sec<10?"0":"")+sec;
-    }};
-    const youSide = PLAYER_WHITE ? "w" : "b";
-    const oppSide = PLAYER_WHITE ? "b" : "w";
-    document.getElementById("tYou").textContent = fmt(timers[youSide]);
-    document.getElementById("tOpp").textContent = fmt(timers[oppSide]);
-    document.getElementById("clkYou").classList.toggle("on", active === youSide);
-    document.getElementById("clkOpp").classList.toggle("on", active === oppSide);
-  }}
-
-  function logMoves() {{
-    // simple count of ply
-    movesEl.textContent = history.length ? (history.length + " half-moves") : "";
-  }}
-
-  function playerToMove() {{
-    return (PLAYER_WHITE && turn === "w") || (!PLAYER_WHITE && turn === "b");
-  }}
-
-  function endIfNeeded() {{
-    const moves = allLegal(turn);
-    if (moves.length === 0) {{
-      gameOver = true;
-      active = null;
-      if (inCheck(turn)) {{
-        const winner = turn === "w" ? "Black" : "White";
-        statusEl.textContent = "Checkmate — " + winner + " wins";
-      }} else {{
-        statusEl.textContent = "Stalemate";
-      }}
-      return true;
-    }}
-    return false;
-  }}
-
-  function afterMove() {{
-    selected = null;
-    legal = [];
-    if (BASE && active) timers[active] += INC;
-    logMoves();
-    if (endIfNeeded()) {{ render(); return; }}
-    active = BASE ? turn : null;
-    statusEl.textContent = playerToMove() ? (inCheck(turn) ? "Check — your move" : "Your move") : "Meridium is thinking…";
-    render();
-    if (!playerToMove() && !gameOver) {{
-      setTimeout(engineMove, 200);
-    }}
-  }}
-
-  function onClick(mi) {{
-    if (gameOver) return;
-    if (!playerToMove()) return;
-    const p = sq[mi];
-    if (selected == null) {{
-      if (p && colorOf(p) === turn) {{
-        selected = mi;
-        legal = legalMovesForSide(mi, turn);
-      }}
-      render();
-      return;
-    }}
-    if (mi === selected) {{
-      selected = null; legal = []; render(); return;
-    }}
-    if (legal.indexOf(mi) < 0) {{
-      if (p && colorOf(p) === turn) {{
-        selected = mi;
-        legal = legalMovesForSide(mi, turn);
-        render();
-      }}
-      return;
-    }}
-    // play move
-    const snap = makeMove(selected, mi, false);
-    history.push(snap);
-    afterMove();
-  }}
-
-  // -------- Engine --------
-  const VAL = {{ p:100, n:320, b:330, r:500, q:900, k:20000 }};
-  function evalPos() {{
-    let s = 0;
-    for (let i=0;i<64;i++) {{
-      const p = sq[i];
-      if (!p) continue;
-      const k = kind(p);
-      const v = VAL[k] || 0;
-      const [r,c] = rc(i);
-      const center = (3.5-Math.abs(3.5-c)) + (3.5-Math.abs(3.5-r));
-      if (isWhite(p)) s += v + center*2;
-      else s -= v + center*2;
-    }}
-    return s;
-  }}
-  function minimax(depth, alpha, beta, maximizing) {{
-    const moves = allLegal(turn);
-    if (depth === 0 || moves.length === 0) {{
-      if (moves.length === 0) {{
-        if (inCheck(turn)) return maximizing ? -99999 : 99999;
-        return 0;
-      }}
-      return evalPos();
-    }}
-    // order captures roughly
-    moves.sort((a,b) => (sq[b[1]]?1:0) - (sq[a[1]]?1:0));
-    if (maximizing) {{
-      let best = -1e9;
-      for (const [f,t] of moves) {{
-        const snap = makeMove(f,t,false);
-        const val = minimax(depth-1, alpha, beta, false);
-        undoMove(snap);
-        if (val > best) best = val;
-        if (best > alpha) alpha = best;
-        if (beta <= alpha) break;
-      }}
-      return best;
-    }} else {{
-      let best = 1e9;
-      for (const [f,t] of moves) {{
-        const snap = makeMove(f,t,false);
-        const val = minimax(depth-1, alpha, beta, true);
-        undoMove(snap);
-        if (val < best) best = val;
-        if (best < beta) beta = best;
-        if (beta <= alpha) break;
-      }}
-      return best;
-    }}
-  }}
-  function engineMove() {{
-    if (gameOver) return;
-    const moves = allLegal(turn);
-    if (!moves.length) {{ endIfNeeded(); render(); return; }}
-    const maximizing = turn === "w";
-    let bestMove = moves[0];
-    let bestScore = maximizing ? -1e9 : 1e9;
-    // shuffle a bit for variety
-    for (let i=moves.length-1;i>0;i--) {{
-      const j = Math.floor(Math.random()*(i+1));
-      const tmp = moves[i]; moves[i]=moves[j]; moves[j]=tmp;
-    }}
-    const depth = Math.max(1, DEPTH);
-    for (const [f,t] of moves) {{
-      const snap = makeMove(f,t,false);
-      const sc = minimax(depth-1, -1e9, 1e9, !maximizing);
-      undoMove(snap);
-      if (maximizing ? sc > bestScore : sc < bestScore) {{
-        bestScore = sc; bestMove = [f,t];
-      }}
-    }}
-    const snap = makeMove(bestMove[0], bestMove[1], false);
-    history.push(snap);
-    afterMove();
-  }}
-
-  document.getElementById("btnUndo").onclick = function() {{
-    if (!history.length || gameOver && history.length < 1) {{
-      // allow undo even after end
-    }}
-    // undo player + engine if needed
-    if (history.length) {{
-      undoMove(history.pop());
-      if (history.length && playerToMove() === false) {{
-        // if still not player, undo again
-      }}
-      // Prefer return to player's turn
-      while (history.length && !((PLAYER_WHITE && turn==="w")||(!PLAYER_WHITE && turn==="b"))) {{
-        undoMove(history.pop());
-      }}
-      gameOver = false;
-      selected = null; legal = [];
-      active = BASE ? turn : null;
-      statusEl.textContent = "Your move";
-      logMoves();
-      render();
-    }}
-  }};
-
-  document.getElementById("btnHint").onclick = function() {{
-    if (!playerToMove() || gameOver) return;
-    const moves = allLegal(turn);
-    if (!moves.length) return;
-    const maximizing = turn === "w";
-    let best = moves[0], bestScore = maximizing ? -1e9 : 1e9;
-    for (const [f,t] of moves) {{
-      const snap = makeMove(f,t,false);
-      const sc = minimax(1, -1e9, 1e9, !maximizing);
-      undoMove(snap);
-      if (maximizing ? sc > bestScore : sc < bestScore) {{ bestScore = sc; best = [f,t]; }}
-    }}
-    const files = "abcdefgh";
-    const fmt = (i) => files[i&7] + (8-(i>>3));
-    statusEl.textContent = "Hint: " + fmt(best[0]) + " → " + fmt(best[1]);
-    selected = best[0];
-    legal = [best[1]];
-    render();
-  }};
-
-  if (BASE) {{
-    setInterval(function() {{
-      if (!active || gameOver) return;
-      timers[active] -= 1;
-      if (timers[active] <= 0) {{
-        timers[active] = 0;
-        gameOver = true;
-        statusEl.textContent = "Flag — " + (active === "w" ? "Black" : "White") + " wins on time";
-        active = null;
-      }}
-      paintClocks();
-    }}, 1000);
-  }}
-
-  // kickoff
-  statusEl.textContent = playerToMove() ? "Your move — click a piece" : "Meridium is thinking…";
-  render();
-  if (!playerToMove()) setTimeout(engineMove, 250);
-}})();
-</script>
-</body></html>
-        """,
-        height=640,
-        scrolling=False,
-    )
-    st.caption("Click a piece, then a highlighted square. No installs required.")
+    st.caption("Soju sits beside the board. Brilliant · Great · Best · Excellent · Good · Okay · Inaccuracy · Mistake · Miss · Blunder. Open Analysis for accuracy.")
     st.stop()
 
 
