@@ -10,7 +10,7 @@ from online_chess import apply_online
 from extra_features import apply_extra_features
 from owner_enhancements import apply_owner_enhancements, apply_chess_page_fixes
 
-_CACHE_VER = "v14b-syntax-fix-chess-if"
+_CACHE_VER = "v15-sfx-everywhere"
 
 _GOOD = (
     "https://raw.githubusercontent.com/md505d1-art/Meridium-ai/"
