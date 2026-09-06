@@ -210,33 +210,14 @@ def apply_owner_enhancements(code: str) -> str:
 
 
 def apply_chess_page_fixes(code: str) -> str:
-    """Small chess-page reliability fixes applied to the bootstrapped app source."""
-    if "Meridium Chess · stable" not in code:
-        for old, new in (
-            (
-                'if st.session_state.view == "chess":',
-                'if st.session_state.view == "chess":  # Meridium Chess · stable',
-            ),
-            (
-                "if st.session_state.view == 'chess':",
-                "if st.session_state.view == 'chess':  # Meridium Chess · stable",
-            ),
-        ):
-            if old in code:
-                code = code.replace(old, new, 1)
-                break
-    broken = 'if st.session_state.view == "chess"  # Meridium Chess · stable:'
-    if broken in code:
-        code = code.replace(
-            broken,
-            'if st.session_state.view == "chess":  # Meridium Chess · stable',
-            1,
-        )
-    broken2 = "if st.session_state.view == 'chess'  # Meridium Chess · stable:"
-    if broken2 in code:
-        code = code.replace(
-            broken2,
-            "if st.session_state.view == 'chess':  # Meridium Chess · stable",
-            1,
-        )
+    """No-op safety fix. Never rewrite if-lines (that previously broke the chess view)."""
+    # Repair only the historically broken pattern if present in cached source.
+    bad = 'if st.session_state.view == "chess"  # Meridium Chess · stable:'
+    good = 'if st.session_state.view == "chess":  # Meridium Chess · stable'
+    if bad in code:
+        code = code.replace(bad, good)
+    bad2 = "if st.session_state.view == 'chess'  # Meridium Chess · stable:"
+    good2 = "if st.session_state.view == 'chess':  # Meridium Chess · stable"
+    if bad2 in code:
+        code = code.replace(bad2, good2)
     return code
