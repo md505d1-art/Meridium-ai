@@ -1,6 +1,5 @@
 """Fully disable the call feature."""
 def apply_remove_call(code: str) -> str:
-    # Redirect any call view to home
     code = code.replace(
         'if view == "call_meridium":',
         'if view == "call_meridium":\n        st.session_state.view = "home"\n        st.rerun()\n    if False and view == "call_meridium":',
@@ -9,7 +8,6 @@ def apply_remove_call(code: str) -> str:
         "if view == 'call_meridium':",
         "if view == 'call_meridium':\n        st.session_state.view = 'home'\n        st.rerun()\n    if False and view == 'call_meridium':",
     )
-    # Hide / disable call buttons
     for a, b in [
         ('"Call Meridium"', '"Chess (call retired)"'),
         ("'Call Meridium'", "'Chess (call retired)'"),
