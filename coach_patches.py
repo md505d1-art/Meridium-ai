@@ -205,7 +205,6 @@ def apply_coach_to_html(html: str, coach_name: str) -> str:
 
     av = _load_avatar(nm)
     if not av:
-        # last-resort solid-color placeholder so user still sees a change
         label = nm.split()[0][:8].upper()
         av = (
             "data:image/svg+xml;utf8,"
@@ -219,7 +218,6 @@ def apply_coach_to_html(html: str, coach_name: str) -> str:
     name_js = json.dumps(nm + " · coach")
     tag_js = json.dumps(c.get("tagline") or "")
 
-    # Overwrite entire SOJU object with coach avatar for all moods
     if "const SOJU = {" in html:
         s = html.find("const SOJU = {")
         j = html.find("};", s)
@@ -234,7 +232,6 @@ def apply_coach_to_html(html: str, coach_name: str) -> str:
             )
             html = html[:s] + new_soju + html[j + 2 :]
 
-    # Force <img id="sojuImg" ... src="...">
     html = re.sub(
         r'(id=["\']sojuImg["\'][^>]*src=["\'])[^"\']*(["\'])',
         lambda m: m.group(1) + av + m.group(2),
@@ -248,12 +245,10 @@ def apply_coach_to_html(html: str, coach_name: str) -> str:
         count=1,
     )
 
-    # Name label in HTML
     html = html.replace("Soju · board cat", f"{nm} · coach")
     html = html.replace("Hint from Soju:", f"Hint from {nm}:")
     html = html.replace('alt="Soju"', f'alt="{nm}"')
 
-    # End-of-script hard force (runs after DOM ready)
     force_js = (
         "\n<script>(function(){\n"
         f"  var AV={av_js};\n"
@@ -324,28 +319,36 @@ def apply_coach(code: str) -> str:
     if old_depth in code and "depth = int(_opp.get" not in code:
         code = code.replace(old_depth, new_depth, 1)
 
+    # Apply coach personality + portrait AFTER soju images are injected.
+    # Guard on the CALL, not the import name (import is added in inject_ui).
     call = (
         "\n        # Coach personality + portrait (must run after Soju b64 inject)\n"
         "        try:\n"
         "            html = _mer_apply_coach_html(html, st.session_state.get(\"chess_coach\", \"Soju\"))\n"
         "        except Exception:\n"
         "            pass\n"
+        "        try:\n"
+        "            html = html + (\"<!-- coach:\" + str(st.session_state.get(\"chess_coach\", \"Soju\"))"
+        " + \":\" + str(st.session_state.get(\"chess_opponent\", \"x\")) + \" -->\")\n"
+        "        except Exception:\n"
+        "            pass\n"
     )
-    for marker in [
-        'html = html.replace("__SOJU_THINK__", _b64img("soju_think.jpg"))',
-        "html = html.replace('__SOJU_THINK__', _b64img('soju_think.jpg'))",
-    ]:
-        if marker in code and "_mer_apply_coach_html" not in code:
-            code = code.replace(marker, marker + call, 1)
-            break
+    if "html = _mer_apply_coach_html(" not in code:
+        for marker in [
+            'html = html.replace("__SOJU_THINK__", _b64img("soju_think.jpg"))',
+            "html = html.replace('__SOJU_THINK__', _b64img('soju_think.jpg'))",
+        ]:
+            if marker in code:
+                code = code.replace(marker, marker + call, 1)
+                break
 
-    # Force iframe refresh when coach changes (critical for portrait swap)
-    old_html_call = 'st.components.v1.html(_chess_widget_html(), height=860, scrolling=True)'
-    new_html_call = (
+    # Safety: strip any bad key= we may have added previously (crashes Streamlit)
+    bad = (
         'st.components.v1.html(_chess_widget_html(), height=860, scrolling=True, '
         'key="chess_board_" + str(st.session_state.get("chess_coach","Soju")) + "_" + str(st.session_state.get("chess_opponent","x")) + "_" + str(nonce))'
     )
-    if old_html_call in code and 'key="chess_board_' not in code:
-        code = code.replace(old_html_call, new_html_call, 1)
+    good = 'st.components.v1.html(_chess_widget_html(), height=860, scrolling=True)'
+    if bad in code:
+        code = code.replace(bad, good, 1)
 
     return code
