@@ -66,3 +66,59 @@ def apply_chess(code: str) -> str:
     if marker in code:
         code = code.replace(marker, inject, 1)
     return code
+
+
+def apply_sfx_to_chess_html(html: str) -> str:
+    """Inject Meridium Web-Audio SFX into the chess widget HTML."""
+    if "MerSFX" in html and "MerSFX.move" in html:
+        return html
+    try:
+        from pathlib import Path as _P
+        engine = (_P(__file__).resolve().parent / "meridium_sfx.js").read_text(encoding="utf-8")
+    except Exception:
+        engine = ""
+    if not engine:
+        return html
+    if "<script>" in html and "MerSFX" not in html:
+        html = html.replace("<script>", "<script>\n" + engine + "\n", 1)
+    if "MerSFX.capture" not in html:
+        needle = "function afterMove(from, to, snap, side, matBefore, isPlayer) {"
+        inject = (
+            "function afterMove(from, to, snap, side, matBefore, isPlayer) {\n"
+            "    try { var captured = !!(snap && snap.toP); var epCap = snap && snap.epCapP;\n"
+            "      if (captured || epCap) { if (window.MerSFX) MerSFX.capture(); }\n"
+            "      else if (window.MerSFX) MerSFX.move(); } catch(e) {}"
+        )
+        if needle in html:
+            html = html.replace(needle, inject, 1)
+    if "MerSFX.check" not in html:
+        html = html.replace(
+            'statusEl.innerHTML = (inCheck(turn) ? "Check. " : "") +',
+            'try{if(inCheck(turn)&&window.MerSFX)MerSFX.check();}catch(e){} statusEl.innerHTML = (inCheck(turn) ? "Check. " : "") +',
+            1,
+        )
+    if "MerSFX.mate" not in html:
+        html = html.replace(
+            'statusEl.textContent = "Checkmate — " + winner + " wins";',
+            'statusEl.textContent = "Checkmate — " + winner + " wins"; try{if(window.MerSFX)MerSFX.mate();}catch(e){}',
+            1,
+        )
+    if "MerSFX.stalemate" not in html:
+        html = html.replace(
+            'statusEl.textContent = "Stalemate";',
+            'statusEl.textContent = "Stalemate"; try{if(window.MerSFX)MerSFX.stalemate();}catch(e){}',
+            1,
+        )
+    if "MerSFX.select" not in html:
+        html = html.replace(
+            "selected = mi;\n        legal = legalMovesForSide(mi, turn);",
+            "selected = mi;\n        legal = legalMovesForSide(mi, turn); try{if(window.MerSFX)MerSFX.select();}catch(e){}",
+            1,
+        )
+    if "MerSFX.flag" not in html:
+        html = html.replace(
+            'statusEl.textContent = "Flag — " + (active === "w" ? "Black" : "White") + " wins on time";',
+            'statusEl.textContent = "Flag — " + (active === "w" ? "Black" : "White") + " wins on time"; try{if(window.MerSFX)MerSFX.flag();}catch(e){}',
+            1,
+        )
+    return html
