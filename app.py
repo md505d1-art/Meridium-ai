@@ -1,4 +1,4 @@
-"""Meridium entrypoint — loads full app from last known-good commit, applies chess/soju path fix."""
+"""Meridium entrypoint — loads last known-good app.py and applies soju root-path fix."""
 from __future__ import annotations
 
 import urllib.request
@@ -9,7 +9,7 @@ _GOOD = (
     "e4324e37b75bc804cbc3dd2ffe7e08021399a4d2/app.py"
 )
 
-_OLD_SOJU = '''        soju_dirs = [
+_OLD = '''        soju_dirs = [
             widget.parent / "soju",
             here / "soju",
             cwd / "soju",
@@ -36,7 +36,7 @@ _OLD_SOJU = '''        soju_dirs = [
         html = html.replace("__SOJU_THINK__", _b64img("soju_think.jpg"))
         return html'''
 
-_NEW_SOJU = '''        soju_dirs = [
+_NEW = '''        soju_dirs = [
             widget.parent / "soju",
             here / "soju",
             cwd / "soju",
@@ -44,7 +44,6 @@ _NEW_SOJU = '''        soju_dirs = [
         ]
         soju_dir = next((d for d in soju_dirs if d.is_dir()), None)
         def _b64img(name):
-            # soju/soju_idle.jpg OR soju_idle.jpg next to app.py (root upload)
             candidates = []
             if soju_dir is not None:
                 candidates.append(soju_dir / name)
@@ -71,37 +70,20 @@ _NEW_SOJU = '''        soju_dirs = [
                 html = html.replace(placeholder, _b64img(fname))
         return html'''
 
-_cache = Path(__file__).resolve().parent / ".meridium_app_cache.py"
+_root = Path(__file__).resolve().parent
+_cache = _root / ".meridium_app_cache.py"
 
-def _load() -> str:
-    # Prefer cache when present (offline / faster cold start)
-    if _cache.exists() and _cache.stat().st_size > 100_000:
-        code = _cache.read_text(encoding="utf-8")
-    else:
-        with urllib.request.urlopen(_GOOD, timeout=60) as resp:
-            code = resp.read().decode("utf-8")
-        try:
-            _cache.write_text(code, encoding="utf-8")
-        except Exception:
-            pass
-    if _OLD_SOJU in code:
-        code = code.replace(_OLD_SOJU, _NEW_SOJU, 1)
-    # theme_unlocks filename alias
-    code = code.replace(
-        "from theme_unlocks import unlock_and_persist",
-        "from theme_unlocks import unlock_and_persist  # preferred\n"
-        "except Exception:\n"
-        "    try:\n"
-        "        from themes_unlocks import unlock_and_persist\n"
-        "    except Exception:\n"
-        "        raise\n"
-        "try:\n"
-        "    unlock_and_persist  # noqa\n"
-        "except Exception:\n"
-        "    from themes_unlocks import unlock_and_persist  # type: ignore",
-        1,
-    )
-    return code
+if _cache.exists() and _cache.stat().st_size > 100_000:
+    _code = _cache.read_text(encoding="utf-8")
+else:
+    with urllib.request.urlopen(_GOOD, timeout=90) as _resp:
+        _code = _resp.read().decode("utf-8")
+    try:
+        _cache.write_text(_code, encoding="utf-8")
+    except Exception:
+        pass
 
-_code = _load()
-exec(compile(_code, str(Path(__file__).resolve().parent / "app.py"), "exec"), globals())
+if _OLD in _code:
+    _code = _code.replace(_OLD, _NEW, 1)
+
+exec(compile(_code, str(_root / "app.py"), "exec"), globals())
