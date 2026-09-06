@@ -1,34 +1,51 @@
-"""Custom coaches + AI opponents with illustrated portraits and iconic lines."""
+"""Custom coaches + AI opponents with portrait images (coaches/*.b64)."""
 from __future__ import annotations
 import base64
 import json
 import re
+from pathlib import Path
+
+_FILE_MAP = {
+    "Gotham Chess": "gotham.b64",
+    "Hikaru": "hikaru.b64",
+    "Magnus": "magnus.b64",
+    "Anna Cramling": "anna.b64",
+    "Botez": "botez.b64",
+    "Fabi": "fabi.b64",
+    "Naroditsky": "danya.b64",
+    "Eric Rosen": "eric.b64",
+}
 
 
-def _portrait(letter: str, bg: str, accent: str, secondary: str) -> str:
-    svg = (
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">'
-        f'<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">'
-        f'<stop offset="0%" stop-color="{bg}"/><stop offset="100%" stop-color="{secondary}"/>'
-        f'</linearGradient></defs>'
-        f'<rect width="256" height="256" rx="48" fill="url(#bg)"/>'
-        f'<circle cx="128" cy="128" r="110" fill="{accent}" opacity="0.18"/>'
-        f'<ellipse cx="128" cy="230" rx="90" ry="50" fill="{accent}" opacity="0.35"/>'
-        f'<circle cx="128" cy="108" r="58" fill="{accent}" opacity="0.9"/>'
-        f'<circle cx="128" cy="108" r="48" fill="#0c0a12"/>'
-        f'<text x="128" y="122" text-anchor="middle" font-family="Georgia,serif" font-size="52" font-weight="700" fill="{accent}">{letter}</text>'
-        f'<path d="M118 208 L128 188 L138 208 Z" fill="{accent}" opacity="0.55"/>'
-        f'<circle cx="128" cy="184" r="6" fill="{accent}" opacity="0.7"/>'
-        f'</svg>'
-    )
-    return "data:image/svg+xml;base64," + base64.b64encode(svg.encode()).decode()
+def _load_avatar(name: str) -> str | None:
+    """Load coaches/<file>.b64 as a data URI."""
+    fn = _FILE_MAP.get(name)
+    if not fn:
+        return None
+    roots = []
+    try:
+        roots.append(Path(__file__).resolve().parent)
+    except Exception:
+        pass
+    roots.append(Path.cwd())
+    for root in roots:
+        p = root / "coaches" / fn
+        if p.exists():
+            try:
+                raw = p.read_text(encoding="ascii").strip()
+                if raw.startswith("data:"):
+                    return raw
+                return "data:image/png;base64," + raw
+            except Exception:
+                pass
+    return None
 
 
 _COACHES = {
     "Soju": {"title": "Soju · Resident Cat Coach", "tagline": "I'll sit here. You play. I'll judge.", "avatar": None, "talks": None},
     "Gotham Chess": {
         "title": "Gotham Chess · Levy", "tagline": "THE ROOOOOOOOOOOOOOOOOOOOOK",
-        "avatar": _portrait("G", "#1e1b4b", "#a78bfa", "#312e81"),
+        "avatar": "Gotham Chess",
         "talks": {
             "Brilliant": ["THAT is how you play chess. Absolute cinema.", "THE ROOOOOOOOOOOOOOOOOOOOOK goes crazy here."],
             "Great": ["Great move. This is the line I showed in the course.", "Clean. Simple. Effective."],
@@ -44,7 +61,7 @@ _COACHES = {
     },
     "Hikaru": {
         "title": "Hikaru · Speed Demon", "tagline": "Chat, is this real?",
-        "avatar": _portrait("H", "#0f172a", "#38bdf8", "#1e3a5f"),
+        "avatar": "Hikaru",
         "talks": {
             "Brilliant": ["Chat is this real?? That was actually crazy.", "Okay that was clean. GG."],
             "Great": ["Great move. Speedrun any% vibes.", "Yeah that's the one."],
@@ -60,7 +77,7 @@ _COACHES = {
     },
     "Magnus": {
         "title": "Magnus · Endgame God", "tagline": "I don't even try that hard.",
-        "avatar": _portrait("M", "#111827", "#fbbf24", "#1f2937"),
+        "avatar": "Magnus",
         "talks": {
             "Brilliant": ["Very nice. I might have played the same.", "Beautiful. Simple and strong."],
             "Great": ["Great. Practical and strong.", "Yes. That works."],
@@ -76,7 +93,7 @@ _COACHES = {
     },
     "Anna Cramling": {
         "title": "Anna · Positive Energy", "tagline": "You got this!!",
-        "avatar": _portrait("A", "#4c1d95", "#f9a8d4", "#6b21a8"),
+        "avatar": "Anna Cramling",
         "talks": {
             "Brilliant": ["OMG that was BRILLIANT!!", "I love this move so much!!"],
             "Great": ["Great job!! Keep going!!", "Yes!! That's it!!"],
@@ -92,7 +109,7 @@ _COACHES = {
     },
     "Botez": {
         "title": "Botez · Chaotic Fun", "tagline": "Botez gambit incoming?",
-        "avatar": _portrait("B", "#831843", "#fb7185", "#9f1239"),
+        "avatar": "Botez",
         "talks": {
             "Brilliant": ["NO WAY that was actually brilliant.", "Okay chat that was clean."],
             "Great": ["Great move ngl.", "Yes!!"],
@@ -108,7 +125,7 @@ _COACHES = {
     },
     "Fabi": {
         "title": "Fabiano · Precision", "tagline": "Calculate everything.",
-        "avatar": _portrait("F", "#1e3a5f", "#93c5fd", "#0c4a6e"),
+        "avatar": "Fabi",
         "talks": {
             "Brilliant": ["Brilliant calculation.", "Very deep. Impressive."],
             "Great": ["Great. Precise.", "Strong practical choice."],
@@ -124,7 +141,7 @@ _COACHES = {
     },
     "Naroditsky": {
         "title": "Danya · Clear Explanation", "tagline": "Let's break this down.",
-        "avatar": _portrait("D", "#164e63", "#67e8f9", "#0e7490"),
+        "avatar": "Naroditsky",
         "talks": {
             "Brilliant": ["Brilliant. Let me explain why this works...", "Superb calculation."],
             "Great": ["Great practical move.", "Very instructive."],
@@ -140,7 +157,7 @@ _COACHES = {
     },
     "Eric Rosen": {
         "title": "Eric Rosen · Imaginative", "tagline": "Hello everyone!",
-        "avatar": _portrait("E", "#3f1d0b", "#fdba74", "#7c2d12"),
+        "avatar": "Eric Rosen",
         "talks": {
             "Brilliant": ["Hello everyone! That was a brilliant idea.", "Creative and strong."],
             "Great": ["Great practical decision.", "Nice find."],
@@ -188,8 +205,9 @@ def apply_coach_to_html(html: str, coach_name: str) -> str:
                 i += 1
             html = html[:start] + ("const TALKS = " + json.dumps(c["talks"]) + ";") + html[i:]
 
-    if nm != "Soju" and c.get("avatar"):
-        av = c["avatar"]
+    av = _load_avatar(nm) if nm != "Soju" else None
+
+    if nm != "Soju" and av:
         av_js = json.dumps(av)
         name_js = json.dumps(nm + " · coach")
         patch = (
