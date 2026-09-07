@@ -12,7 +12,7 @@ from owner_enhancements import apply_owner_enhancements, apply_chess_page_fixes
 from arg_explore import apply_arg_explore
 from meridium_polish import apply_polish
 
-_CACHE_VER = "v22-themes-fx-drift"
+_CACHE_VER = "v23-void-reliquary"
 
 _GOOD = (
     "https://raw.githubusercontent.com/md505d1-art/Meridium-ai/"
