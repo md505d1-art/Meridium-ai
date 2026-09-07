@@ -9,8 +9,9 @@ from remove_call_patches import apply_remove_call
 from online_chess import apply_online
 from extra_features import apply_extra_features
 from owner_enhancements import apply_owner_enhancements, apply_chess_page_fixes
+from arg_explore import apply_arg_explore
 
-_CACHE_VER = "v18-strip-residual"
+_CACHE_VER = "v19-arg-complex"
 
 _GOOD = (
     "https://raw.githubusercontent.com/md505d1-art/Meridium-ai/"
@@ -29,9 +30,11 @@ else:
         pass
 
 _code = apply_chess_page_fixes(
-    apply_owner_enhancements(
-        apply_extra_features(
-            apply_online(apply_remove_call(apply_coach(apply_chess(_code))))
+    apply_arg_explore(
+        apply_owner_enhancements(
+            apply_extra_features(
+                apply_online(apply_remove_call(apply_coach(apply_chess(_code))))
+            )
         )
     )
 )
