@@ -1,5 +1,6 @@
 """Meridium polish: profile, achievements, onboarding, mobile, PWA, analytics, pulses."""
 from __future__ import annotations
+
 import json
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -191,19 +192,20 @@ PWA_HTML = """
 
 
 def apply_polish(code: str) -> str:
-    if "meridium_polish_applied" in code:
+    if "meridium_polish_applied" in code and "theme_atelier_drift_btn" in code:
         return code
 
     boot = (
         "\n# meridium_polish_applied\n"
         "try:\n"
-        "    from meridium_polish import restore_profile_to_session, sync_session_to_profile, analytics_hit, MOBILE_CSS, PWA_HTML, daily_seed\n"
-        "    from meridium_themes import inject_theme_html, get_user_theme\n"
+        "    from meridium_polish import restore_profile_to_session, analytics_hit, MOBILE_CSS, PWA_HTML\n"
+        "    from meridium_themes import apply_theme_to_app, get_user_theme\n"
         "    restore_profile_to_session(st.session_state)\n"
         "    _uid = (st.session_state.get(\"username\") or \"anon\")\n"
         "    _th = st.session_state.get(\"active_theme\") or get_user_theme(_uid)\n"
         "    st.session_state.active_theme = _th\n"
-        "    st.markdown(MOBILE_CSS + PWA_HTML + inject_theme_html(_th), unsafe_allow_html=True)\n"
+        "    st.markdown(MOBILE_CSS + PWA_HTML, unsafe_allow_html=True)\n"
+        "    apply_theme_to_app(st, _th)\n"
         "    analytics_hit(\"boot\", _uid)\n"
         "except Exception:\n"
         "    pass\n"
@@ -258,6 +260,10 @@ def apply_polish(code: str) -> str:
         "                st.write((\"\u2705 \" if _aid in _have else \"\u2b1c \") + _am[\"name\"] + \" \u2014 \" + _am[\"desc\"])\n"
         "        with st.expander(\"Theme shop\", expanded=False):\n"
         "            render_theme_shop(st, st.session_state)\n"
+        "        if st.button(\"\u25c8 Open Theme atelier\", key=\"home_theme_atelier\", use_container_width=True):\n"
+        "            st.session_state._themes_from = \"home\"\n"
+        "            st.session_state.view = \"themes\"\n"
+        "            st.rerun()\n"
         "        with st.expander(\"Save \u00b7 export / import\", expanded=False):\n"
         "            st.code(export_save(st.session_state), language=\"json\")\n"
         "            _imp = st.text_area(\"Paste save JSON\", key=\"save_import_raw\", height=100)\n"
@@ -269,27 +275,26 @@ def apply_polish(code: str) -> str:
         "    except Exception:\n"
         "        pass\n"
     )
-    for m in ['if st.session_state.view == "home":', "if st.session_state.view == 'home':"]:
-        if m in code and "Theme shop" not in code:
-            code = code.replace(m, m + home_extra, 1)
-            break
+    if "Open Theme atelier" not in code and "Theme shop" not in code:
+        for m in ['if st.session_state.view == "home":', "if st.session_state.view == 'home':"]:
+            if m in code:
+                code = code.replace(m, m + home_extra, 1)
+                break
+    elif "home_theme_atelier" not in code:
+        for m in ['if st.session_state.view == "home":', "if st.session_state.view == 'home':"]:
+            if m in code:
+                extra_btn = (
+                    "\n    if st.button(\"\u25c8 Open Theme atelier\", key=\"home_theme_atelier\", use_container_width=True):\n"
+                    "        st.session_state._themes_from = \"home\"\n"
+                    "        st.session_state.view = \"themes\"\n"
+                    "        st.rerun()\n"
+                )
+                code = code.replace(m, m + extra_btn, 1)
+                break
 
-    if "analytics_summary" not in code and "owner_chess_user" in code:
-        owner_an = (
-            "\n    with st.expander(\"Owner analytics\", expanded=False):\n"
-            "        try:\n"
-            "            from meridium_polish import analytics_summary\n"
-            "            _an = analytics_summary()\n"
-            "            if not _an:\n"
-            "                st.caption(\"No events yet.\")\n"
-            "            else:\n"
-            "                for _k, _v in sorted(_an.items(), key=lambda x: -x[1])[:30]:\n"
-            "                    st.write(f\"**{_k}** \u00b7 {_v}\")\n"
-            "        except Exception as _ae:\n"
-            "            st.caption(str(_ae))\n"
-        )
-        needle = 'with st.expander("\U0001f3e2 Complex admin"'
-        if needle in code:
-            code = code.replace(needle, owner_an + "\n    " + needle, 1)
-
+    try:
+        from meridium_themes import apply_theme_shop_routes
+        code = apply_theme_shop_routes(code)
+    except Exception:
+        pass
     return code
