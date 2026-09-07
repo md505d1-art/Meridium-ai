@@ -10,8 +10,9 @@ from online_chess import apply_online
 from extra_features import apply_extra_features
 from owner_enhancements import apply_owner_enhancements, apply_chess_page_fixes
 from arg_explore import apply_arg_explore
+from meridium_polish import apply_polish
 
-_CACHE_VER = "v20-fix-owner-indent"
+_CACHE_VER = "v21-polish-themes-lobby"
 
 _GOOD = (
     "https://raw.githubusercontent.com/md505d1-art/Meridium-ai/"
@@ -30,10 +31,12 @@ else:
         pass
 
 _code = apply_chess_page_fixes(
-    apply_arg_explore(
-        apply_owner_enhancements(
-            apply_extra_features(
-                apply_online(apply_remove_call(apply_coach(apply_chess(_code))))
+    apply_polish(
+        apply_arg_explore(
+            apply_owner_enhancements(
+                apply_extra_features(
+                    apply_online(apply_remove_call(apply_coach(apply_chess(_code))))
+                )
             )
         )
     )
