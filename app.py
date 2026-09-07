@@ -11,7 +11,7 @@ from extra_features import apply_extra_features
 from owner_enhancements import apply_owner_enhancements, apply_chess_page_fixes
 from arg_explore import apply_arg_explore
 
-_CACHE_VER = "v19-arg-complex"
+_CACHE_VER = "v20-fix-owner-indent"
 
 _GOOD = (
     "https://raw.githubusercontent.com/md505d1-art/Meridium-ai/"
