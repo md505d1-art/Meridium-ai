@@ -1,126 +1,156 @@
-"""Meridium themes (packed)."""
+"""Meridium theme shop — atmospheric animated themes."""
 from __future__ import annotations
-import zlib, base64
+
+import json
 from pathlib import Path
-_src = zlib.decompress(base64.b64decode("".join((
-    "eNrFXFtv40h2fvevqJUxK9GiZJKSbLXU8qKnp3u8m+7ZwbixvYFtCCWyKLFNkVqSsqV1DOQpyFMQIAGS"
-    "hwB5zWPum5sTID9l/oDzE3JOVZHiVXJPu2fbbUssVp06dS7fOXUha7XaWxY4lrOck2jG5oyEM39Bvv/j"
-    "vyQzZzprOfMFNSNCPWdOI2YRGs39cDGDJqaoH7ZrtdqeHfhzMh7by2gZsPGYQDM/wGaeH9HI8b1wb0+W"
-    "fQh9T9Rf0GjmOpO48rdwube3T1pP9w+oveODspjteA5nZEBenp2RxlkUMDp3nYj41ywACbBQIU3yizNi"
-    "Uu+ahuT1r5+Yl713p6/evjojI3K7R+BfDZiiSzeqDWQBL/TonEHJRitfyVrqpg7wamKdly6jHrFocEWu"
-    "Hd9lEZnQkKVrLgJ27bAbrLyvU10z+vLunfioBdTx1uOrtR/55Xx8hxXIH/AKJSy8oV7EAo94YCwR+d/f"
-    "EStwrh1vSpAwXtv+lBc7YQRVwWaWnsWCah4No5Pn0WO+N458YLKcxW/gPnnH75dw+JZOmRdRckjMNUoL"
-    "GAHj5byGoGrX8ViIF4ulG4L1O1MvrOZOowUJWowtxr4Jmijn7iu4T37J75dw92KyDkMycZcMeQicEGU3"
-    "WU4mruAq9O0ILHIZRo5ZyRdwRbtaji+6DPyAjj1wrVk5Zy94DfINr1HC29cBY15LWpa5DCJQqRCV79JA"
-    "qLyaJd0oiIrNJywYh/RqGdByll5hDXImapSw9Jq6LkpowSLqcl5uaDAn1jK84ow53hWZ0d9W+kCXGlon"
-    "L6kQIcocX/uOVc7VGa9AfoUVytzwu3ck9Pwb5GDuez5+zmhgEWZNWbUx8X85Vqa+azFvPPOXQTkrX/MK"
-    "5BQrlLBytvT4+JEFymXp+iAud5uqurSjGXmZmGtUFTpxOR8v8T5BcCj3OfCxFZm668UsJLZUGvA0RZMi"
-    "ixnGEL8SBTQDPS3H0YIugCNX4E05U99iFSIhqVQ86E2cEInYCmNVYkK264OSY1lVas0AgNJTdn23t7cH"
-    "OE7GZhiObT9o8KA4dqwBAZxRSOsEPwdiCLXaiylIIAyda0aSANSKaDBlGFwhMPFoipX3yUt/DtY0AAQN"
-    "TEbspeu26GIBEG9eTQMfYJQA7EF3BOi4G3LE9D30VBaEnBCGhLGgMUIW9mbR3FXJxLfWKmmH0YvFQiXn"
-    "Fo1oK2IAM9aoxgt/BUN+GZOqXap7FXW+dH3zKl2RhMzESNueYwhANW1Ybpm+6wcDEgXUCxc0AGQmPxHx"
-    "H7Q2BHHmezllFOPFJblNkakkQO72ZrzBJ5OxnOs8jXe+707oxxCJlQk51FWYBP5c8E8pqMkV9Hil5KQ7"
-    "IBjNaNCaBtRygJ2GftSz2FQl+5oNiNwn2hfwHROBjkZ6/EIztb7eJbqmfaHkVAG8pLwgmyk8IdO8iwLj"
-    "fY0zHkwntNFXdUM1uqrW7iqyCAr0I7VjQNlRT1HUrUT2tWNtoh/J0QO4GIx0e/zCNLqdfuno8wN5tVpQ"
-    "nrpcCrdxWRCpJDETFMgNm4xqkPE6tmPyrLdEQ5x7Q9NUQ4ffjgYD0LVs39DAD6CnAdEXK8gAXMeSg+5D"
-    "Ey1uZvTLm7Vw+EvIcw0DmudqACdW4C9atuNG2ANkHkFD1xarIq1VK5xRy78ZEI1gDdLFP5wR6B5/2p1e"
-    "XmozXSUzA3474CTS2fdZnzG7n/ENhN8UfeRUP4rJ611N1Y9hnAZ20s12Am4F4v9yGUUAfyeQK/EvpWIG"
-    "MQGlYyRy3HusjI+g737cd6e3Q8Z6tyDj6lEXfCqT2X5WHOjEOEC1Lri78IS+1jf60hO0I13Tyz0hrdPU"
-    "+Gy7y8zj3OBzepWWI+uqvMToY4kGiGRpskRUsXP9Vqm5oDhJbKsFayn7Au120ZP6QsMqgbwWUlxeyYgr"
-    "Gb2eegzI8+wZuqihlHhSxtjAnXsqN5p+wWgSkfXwZ7tF5Q1qGxJVyKPIf7en7JCO0S0feH/nwGHMfZUj"
-    "0vH2CJKZKT2ltaPoqLuxdgb55gImczTCIEdaOpo75xWBpStAVKo+Hbyh8s5IYmhm7D84GewmcdR4lP8k"
-    "pnBsWR3b3IaJYIz9WCe9IwClZ2C2fR4EfyAe9hEOj7iJPhYNDbBpXVeNnlHoOA11mm3YbLtdP3v2rGDZ"
-    "WfvIzVg/Kx4m+uxqR5od61PvAh5KfUJW9DH6pMd2JwtBRX0aCbiAOFGseq/zSQEOMKejSd97dIDjeQf0"
-    "3e+UBrhEp6Zt5bAqr7DcfP5HUZhB9Z6hCYV1hQN2k6z2YxRmMxNccGdSkoJFkJneUfVO51N88Ijrq/sx"
-    "Tsh7PkJEPtrmhBBAddvYka4cfXR0yQ+gB+bTUzs9YKXX+0Ej6OzKqfo7gCK7YPOUZrev9fCn0n5UAnRd"
-    "OmEwg4ao4WUSIquLP7mx2dBby6Zzx10PyNJp4QIRtDSZSs5ev4WL1ndsunRpoJK3zHN9lSQ1cpRcFkHK"
-    "3sJbjjcFA21rBptvS5QyA6P4U+XrPfzZqcv9noE/27WnPV4A5SPNazu7JvYj5Q393hekF2cNmBHhnICH"
-    "zm4uaegaO5MGwKy+ZgrM6tFOH/ALWknM0j4Gs0yr07UeP5HifvdMVztHPzTMVI4JJs66ZsKXY9OwStJj"
-    "aTye77FqvJqwyQ4o0IpT2Ezi2s1OHJ911aMerhaUzU2zZpVZ4XxaDNG1/hYMSemzSy3W35E08BnJvmGY"
-    "vR77RNcij4QKA3JkuhsN9CPa6VZBymRiH5dMybILFAXlfjJY5FeJf5ScRLf1vi5zkg41mBFPCqAY5gsf"
-    "4d8WO+rTHUmkVurdnd4nZCTdHsb0splrZUDv8FUovdPfmkQ+xscN7ZNzEkinOoaYfPd2rdgYZZDyiEEa"
-    "1Xhyx/8GLFoGnljrbU9ZlGwFqKLsPFnzvVTiXYMP4dhe7dgzeCn2oyHcQNLjMvL615CBrFnALL51zbcA"
-    "cGOgsfAdNPsWuwbrDDn0Kqn9hLMZxTahSW0bQiovxcVyMiIB1mrYS48v3DcUFHIUrOV69TUNCDSAepZv"
-    "LudAHIf3ymX49cv1z61GfQ7d2qtW4PtRXRnyVo5NGtBKwabtgM2B14a8hQSxapqiGTAaMUm0Ubec65gQ"
-    "1mw72H2mm9TNMFq7rG2G4TtwFqy38EO+2T+wnRWzhnx5Z6ANswIaoICGv205YFmrAUxPn2lDFKjtgqvN"
-    "HAuSjmF9w7C5hVtxZCBm2MxyK2/G96qZpRMwvmXEEn5vHCuaDRA9hjOG21Lie3rooHjmWS9njms1TNl/"
-    "wiXu8WRqYJOUDsxoBQyYqE3EPeCnUTeseqrGe5WcqonphaPzS0h+NGgEKAuoOqeeydqefxNrNjYhcIbQ"
-    "+S0o/Ja8513wocC3G5C2f9N2PIDY91g2JKe8ghhgrsYpLxxKB5N3qGW9QgW+ccKIQaVGXXRWV2WvyjDp"
-    "fjMSfvgCxT0e86/jMYgxdg7pBvgBprpwIco0aknFmkpiDwXH5aLHnS3pNnzYfkAa2Isz0obOcwifQ6fZ"
-    "VDaCay+W4awRb/+sBuQtjWZtyCItf95QDkDM63zZaRzVXOYBNBnN7G29jzMQgIx+/kYX2XXMK2iUv9U2"
-    "BF6l5GK7NETFaDkF2gGdswaoVom5Bmtpw1ho8B0zI74F8F49lZQIOTzkRz0m0Fcoi5D8FJWLDbnDvOER"
-    "9Os4gGrq6QEiNpDaEJqigl9i/DiL/AXUqRf3PpR6VXW9rDou325aIDu247pn6IjA3nSYFJWODG8CHvtX"
-    "LG5R32ziGDgb7onsuh63yJnDxgpAlVMwebSNzVYgVlygS8XVzp3LYXIXe8fE4710oEWbKzdbYcKmjofn"
-    "p8DieQGi7Tu/sWiv1EV7LQuRjChs6e0e3mgukCV5W4yxoWxIQw3SxC7B0IbwsSKtEQEj2tRAkMdaJ+S0"
-    "aWjg7XgxIi1DE/VHeUOPfZkkn2A48lDQ3oZmphV5jnNdraskxtofpuqKwhOipWSa17HUmCEMAjVWb4qG"
-    "h8B2s77RHakwBtF3qzUsss/P6MiUk/jBJNzbyoScTPbRMLWjTc+liqSB2Xh/gOvwgMQHmGqp5Ai3TeAD"
-    "dwA3tttQHkXoWBIy4LO7g1DAfrOEHOwFP/wHoPCaYwJHBlknzny21UOQ5NVwtyuNmmj44vjViJxLk8+5"
-    "Tl/gKK8lMbQEKAEIcTmkk4M7yGfvlFJYezymJUfEtuo03g/Vy0BgDSNZPz8drpujjpK3rjV0qKc75EKa"
-    "QgpCJq4/SUNpVBZ2DyEj0JIu41Fi08YKiAcqZOI5rJkGVgaUv+OrIAkoYzNN5Y1TUACN8riMST6YTeEO"
-    "TGwyUklBbwn4BlYOfiG9U9fwGxwY+KvkHY6PDS3ZkB6hEnSnlHdBxg7WDQ6OwN8EJ+sdcMMIHa8RKdzb"
-    "E6oJNekWxypBXE9GgPQQNgS1FDHTDxsRRNROjmBVtNiQAhr9ylghLL0yTrwBerxKIUZUhQBNfZMPAO9T"
-    "RUXQfyNA/w2A/pDjKxScnCpYPtLyynhihOCbg1sSq95T5lVBMUHqxlDSLWZOKqF4R+8VUKbTy2RVPwxr"
-    "HufhABDyMCgJZ858ngTNclzqy7MMIt6B4XXRgo2CO2yNHHJVlHtJjweM98JReBgRJduiyFNnQ2kGdwR8"
-    "PMwRp2h1SHZoMdJjXMQ0CTMX/BNsH4xIiloiKRI5TlMmOVye0MmK20QxR3qOG9FJinTa1B+fIz2xm4mN"
-    "1oyfPbHNdtJRKdY/zg3ABPjn8574zOi+Urs8jOK0E01O65Mmb3vAr3pZfSawBw1SFBImVsDB6vno/XDV"
-    "HMG0YNO57AU6gZ6aG5WusBPeZ3TQ0Ju8Y7B7RTKhHBj9FI3MvzwVg7QIxoweAEoqiSZpcAZLXKf4vtsr"
-    "qQOwpmUhHcPsUGrLD1mZ/CBaw9iQ5S+M0WikkZ9JJ+kJ/9D57oZ2rNTJIHafLk9TxQQnHbSK/gbUy9zl"
-    "Mxmw2HKuDhQjTYVg0XvaYJFPL3txsDgqBIte0syP8iSPVBKEg9wUp6WhUaA1xy15sOkUg033KYLNU0Ny"
-    "SK9ZHo35HpkL+WVuFhrgE0FYGCRrUTsmS8cQxZ5pVQBeGQ7iuIWDR1yHX5DfEU9Kt+A75xFs0A+q5sJF"
-    "2Ieb3L/5nANvw9hE7SAsnyzHkWDUkmFg9CMGAbEebDur2JFc31+QaL3ws94lvmxWxKqdrKaSWj5Xk3fk"
-    "kpnYs39MzOEk5tmFo5/P6ZR9RSOK2JcNQDiZgept3DKosG9rY9ejbs6wr6F5I5cFasofaRu1WWDuI/jT"
-    "1MWHcTm6HmJps3M56hRSYmR6sYw2HANzfBr0mWbVYnv8cwbzbiqYF9f0ctNHPpfqieQQ0IzouXxRXB1V"
-    "L/elPB9nYn0599o1kZtWTELj0NbNzkQ/dhEQEm8L8m4y9yO2e30Hc069p4ldo6qpXkcrwdlVYo58kAdG"
-    "00FQ6TV5gHifS4mSyslstOmgrFNNUOhHO6aKmAPjhB9nOVuw8TMFc74Rn18XgnwijDNjG+ApaLw/1PuK"
-    "SvD0Ou5DlC4XYSsR9Hk1EfBzET29/zGjAfZSf7j/h4f7f3y4/6eH+39+uP+Xh/t/fbj/3cP9vz3c//vD"
-    "/X883P/nw/1/PdzfP9z/98P9/2h6fXfsLVsjAlfoysXovBlWLjxn6MhTANnWvsd3kfhBtWSPvMrmhFgq"
-    "o7yJi6tcKuc5sfFC2RDQ8bIYuHE7q2HOVOLwvQneEyAnXCjZEJi6g6GQ/PSn2QzpRGs/w9OMcb1RGotl"
-    "WbP5mY0yXs7dssnTf9r0sl+6wYNZoFFIArNZYsmSBE7LFzMaskL2+aMtVTxljvmIZUuZZPJcT3yD5Gv7"
-    "AmY20ADvmxRzW0Nd3RpZytc4dwNwiu3tCerOBQiueD5XKF2E6KQXIYzf2yIEbk6P53SRfSwu+5QZXlU9"
-    "LoMXVQ8X8M/qk+Xisvogs/hSeeBUXFWeUBRXVSfN+MWWA0vym1r2pGDt8IB4PrFX5ODwwsscPomog9P7"
-    "2oUHJcSkkTlrMIUfLfJCH8wQUFZ+bd/QwIuPbNRVgvvldxfenQJGBlTTZ1n4vngzUVXuVEuthosg2LM8"
-    "ziJugXs7HhvjY6Y7Tra8XrouOX339g1fhhcvZmhu3r/QJmfUZhxITH++8D08tdG+1ttIOjnYYoYYwgvP"
-    "3yr85gd+L3vKRpHznxdu6BPEbN6v40U+kUc64wMU5GYGmXWw9Dx8MNjxQsdi4EloycKEA8easjhGPA/N"
-    "wFlEJ9sP0kh2x9DneLxJRaDLzdkHyQaoLFPQTvj6WdWNQcL7sHh0p+zUDn/HRIuLpuU61+yRp3dCSTF3"
-    "DoafbYlJhJtjMIVe4hp45oQfPeFJDMgmOcHS5ocx0odXQk43bdx3e9xo954fxqLfzG5/cfbLb1rMM31Q"
-    "GeoXrShEc0Jft2LLGePbSKBn/Ghby/kibECpktWu+JI+GMKVB3PemIKSdhobmHj+k69++fLdH377iqCt"
-    "njyXf2FIJ8/nLKIiyWLRqLaM7Fa/dngC5oPCO+FPZ6PD3d7OaQCehOeWIP7gkW9tmDr5ljqDXDi2dHcH"
-    "IuHkQDaiVyR5sncrxnKXGOvth/BuI77nh7watEF+OVRzxwY1uOuxcKDIH8NlI4w2p2I23v0NOOnmYXds"
-    "Jd8qI1wbffolBaf3IWfA/AGdK/FkcJRBAnvIAci+GlIIKDTBRiVpF0btIlg0xDPv4ozRCOaYMGCfv5Rg"
-    "9Jq6ECx5c7Yy2SIir/gHHshKiO7zdxig8Ako5Qo8zyNcvkmNDO+Sj7hqw64J5RLHGuXcoX5yW4SuRHtg"
-    "YksPrXYM3fs3XACjd8GSbcZbzbR48DwM9+KX6qDAQ35oCoQvXknDDyHiysnYcoIGVyHmJYIIei/PUsZj"
-    "yEHYeKzgwpjvIhTEGHUIOoDmQoFWe36FdMS9kHMK8WUFfY79qxTj0lMsaV6uTy1pXYuA2aFgxHLMSDCC"
-    "OUKaS+g0VbuNHlhiQQBhizbvHAhmxSL7516PnYe4HMmQCZzEcNRA25DOqewyDy7lFN3b+K0QuC6aGRj/"
-    "O+BDy/lLhvXGrtEq7ZvAiZjgNwVevAo+zwooEI0MmC8XBvOYsQjuIVyMlyFkJ7z7Bn7FN22UxHLeLW5N"
-    "FxSZFovgjicRMS0Fvfj2TuGFYpg1JePZsSS38LIdiHbwJngC8rLDhLSKfJ1Lni4TKHIsuUZaptn4XO/S"
-    "w5diMNlf2AhBJ0XxuWCag+RlHyHEheSlWgQ8iCBQ0mtIr+gEsANfybUIfPH+EAhaPlccdfFg0rUfpAWN"
-    "hBvibVPtK7aGocaMOd4HmNFJxh+Rob1hU2quAThdBGvBArPhazEiJDCehMEN6F3Usqh3UdsOe5JbQBEr"
-    "VvkY30vGow7E56yGUbK4EhYK26rFkpaWRD3uMPjap0UjVbSXh+na/v4++f6v/lS+MwwSG9dhgfQYjCuU"
-    "i7xReyNecZW8C028qolPVsS0JJ5hpN5TBJMiZwFxj0l65hJ5jlmmkC/GBiXYLnG+OHGV76MhgX8jcjWL"
-    "23eJ0uN5ONQE1QOH3hT3Q/BIaQNaATwYKWSUa248grrLuRc2DCWzgfoBPA0CL1BiHiSZAe7jAJlzID/A"
-    "LprEuMwhLU92RuL07dk5tL7M3L5xohnv9/zD5aCwjcqfIoDWSETIKX4Vj4qv4jGMVNwvi7ul+7Jgl5Zz"
-    "LcL3qC7PVfeOFqth9kEBXFAbihSsNfGjyJ8PsFKtgmgqM6t4+cItH86dKh/FU6pJiccRSp7nj3/5IuKW"
-    "9skTUhrBZyk3z/anXtwxrEOeB5I4ST0+k/5XnngU625XgV07OLhF/Z3X0SXrl3cHB+Vai72LVxZvbLos"
-    "VuRutGB8KQg9aIQWWagFoR8oiodeyq2g9iom9P3f/EUNGySUGb4HTtwXaFwhIHCykS1DM/vN+BYYuauo"
-    "ajkhYrg1ijupEHnIxsnbm8b8yHyF0HnGsF6wEXiEA8Je8yF4fpQfRsiAoIUVSjQ3KKVbEmq53yvltcPz"
-    "LHrxUFmik9IsOWO4+E7IOE6MF2D5MDWX74YM1545DkXkw3gDgRBT0kpaFfUb8dyuYFZbs+hCRl3aZdQO"
-    "l6YJfYLRv0hCw4Bkzb+mVLUOGEyGGkrJlAtD3xiwJYJUAie05bH65zy2k68Cx47iB76acT7BA0aT7/mK"
-    "CRmnz1/BmQRusCBpzjL0jS2kNZ5EXg1Bn3e9l8uhsXBPBib5uBn8F0ws6FSoKKGDYXqzsoWLVTlnvagV"
-    "AvAFoD362kUVc1ihynWUQbykxXtMK0taB67msTaXz4jIPsKLWlUzqaX4dhyTv8WlAULtCFIRS2gAZ4sz"
-    "H8ZxCFbtLYkMqnxe4kPfE2m/GFk9xixMlbyUeOoZwdS+/+u/xyfEl1IaNTF8sG0kXqunFgwz7epxu7po"
-    "V8+0q6dgoV5NVsnMqjbM8tUV6llb7AYxqWA78QEEaMnwPXa4dEihnt2aYOJcDwkXc6a+Y/GHlYBOGxs2"
-    "BBdKjiY+OoUvnuWKwCfjhDLES+ESFcg31PGEVlS1nSCMEv2CTjDsYZKHYsj08SHDRW1jEqAY4DHLEEjr"
-    "Az6aUMSTHBlcziUfcD1VL0mDLCZrnw8+XEKdjT81RfGHQTavmsBs9movvdBJLf6+QG6QAS4WA2sT37/C"
-    "SC2FJObKCRRM5kKPtW2aRnpbFB3fzvh9yvdL/P///vbP/o4IBAi3eXY5KMQdXtSynp9x449HgLLmOSTI"
-    "5kL7WSwQwMhTcMfN5NS8tCF8L5E4+GqNO2tcUq/lgjW6Yblf8btZTymGnKttRqyU5VNX5WZcQoyb8lW5"
-    "KRfM+QrNObESac1XOWsuWPS7VFCbgVW68hw08FkXehxJQw1r9QrLFM3KDFMYZJl1pM2j3LzywexP/px8"
-    "CYEgF8PC8YQXbrHRKvsslOO86KImVxrGmERdiBnkRQ3lusWOy204qYLJWmXbbLImkwyZrBWm7WrJcoGa"
-    "m+FW9jTmj71VDDudeV6UTpwrGsZrBImscEkALirZqFgCh5LqNhXrFzmOytvnM1JCQ+iMbTUYFgR+AIPL"
-    "pE8QXW2ckQ5gkOBgkDE2gI5S3inyhnvcFaiGgEWzWUoqUyn3GJFR1Ab17ASktq2NSFLqg9ykZXs/aO0f"
-    "2Q02yfRSRFlajbIpIEs2h6iaIEsTsQRFDmW6UgFoyQQEZmvZHlLUESIlyu3lU+//Byc61jA="
-)))).decode()
-try:
-    (Path(__file__).resolve().parent / "_meridium_themes_impl.py").write_text(_src, encoding="utf-8")
-except Exception:
-    pass
-exec(compile(_src, "meridium_themes_impl", "exec"), globals())
+
+from meridium_theme_fx import theme_engine_html, _css_for
+
+THEMES = {
+    "default": {"name": "Meridium Default", "desc": "Clean dark violet base", "preview": "#1a1028"},
+    "rainy_kyoto": {"name": "Rainy Kyoto", "desc": "Lantern night \u00b7 driving rain \u00b7 fog \u00b7 thunder", "preview": "#1a2238"},
+    "neon_tokyo": {"name": "Neon Tokyo", "desc": "Magenta / cyan district \u00b7 scanlines", "preview": "#1a0a28"},
+    "deep_ocean": {"name": "Deep Ocean", "desc": "Abyss blue \u00b7 rising bubbles", "preview": "#0a2a40"},
+    "aurora_north": {"name": "Aurora North", "desc": "Green-violet curtains \u00b7 polar night", "preview": "#0a1228"},
+    "ember_sakura": {"name": "Ember Sakura", "desc": "Falling petals \u00b7 warm dusk", "preview": "#4a2030"},
+    "static_void": {"name": "Static Void", "desc": "CRT snow \u00b7 mono", "preview": "#111111"},
+    "golden_hour": {"name": "Golden Hour", "desc": "Sun haze \u00b7 amber light", "preview": "#4a3020"},
+    "cyber_rain": {"name": "Cyber Rain", "desc": "Matrix glyphs \u00b7 green phosphor", "preview": "#021a0a"},
+    "paper_lantern": {"name": "Paper Lantern", "desc": "Warm floating lights", "preview": "#2a2218"},
+}
+
+
+def _data_dir() -> Path:
+    d = Path(__file__).resolve().parent / "data"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def load_theme_prefs() -> dict:
+    p = _data_dir() / "theme_prefs.json"
+    try:
+        if p.exists():
+            return json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    return {}
+
+
+def save_theme_prefs(prefs: dict) -> None:
+    try:
+        (_data_dir() / "theme_prefs.json").write_text(json.dumps(prefs, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
+
+def get_user_theme(username: str) -> str:
+    return (load_theme_prefs().get(username) or {}).get("theme") or "default"
+
+
+def set_user_theme(username: str, theme_id: str) -> None:
+    prefs = load_theme_prefs()
+    prefs.setdefault(username, {})["theme"] = theme_id
+    save_theme_prefs(prefs)
+
+
+def unlocked_themes(ss, username: str) -> list:
+    return list(THEMES.keys())
+
+
+def inject_theme_html(theme_id: str) -> str:
+    return f"<style id=\"meridium-theme\">{_css_for(theme_id)}</style>"
+
+
+def apply_theme_to_app(st, theme_id: str) -> None:
+    try:
+        html = theme_engine_html(theme_id or "default")
+        st.components.v1.html(html, height=0, scrolling=False)
+    except Exception:
+        try:
+            st.markdown(f"<style id='meridium-theme'>{_css_for(theme_id)}</style>", unsafe_allow_html=True)
+        except Exception:
+            pass
+
+
+def render_theme_shop(st, ss) -> None:
+    user = (ss.get("username") or "anon").strip() or "anon"
+    st.markdown("### \u25c8 Theme atelier")
+    st.caption("Living atmospheres \u00b7 rain, neon, aurora, petals \u00b7 equip one")
+    cur = ss.get("active_theme") or get_user_theme(user)
+    ids = list(THEMES.keys())
+    for row in range(0, len(ids), 2):
+        cols = st.columns(2)
+        for j, tid in enumerate(ids[row:row + 2]):
+            meta = THEMES[tid]
+            with cols[j]:
+                color = meta.get("preview", "#222")
+                st.markdown(
+                    f"<div style='height:56px;border-radius:14px;margin-bottom:6px;"
+                    f"background:linear-gradient(135deg,{color},#0a0a0a);"
+                    f"border:1px solid rgba(255,255,255,0.12);'></div>",
+                    unsafe_allow_html=True,
+                )
+                st.markdown(f"**{meta['name']}**")
+                st.caption(meta["desc"])
+                equipped = cur == tid
+                if st.button(
+                    "Equipped \u2713" if equipped else "Equip theme",
+                    key=f"theme_eq_{tid}",
+                    disabled=equipped,
+                    use_container_width=True,
+                    type="primary" if not equipped else "secondary",
+                ):
+                    set_user_theme(user, tid)
+                    ss["active_theme"] = tid
+                    try:
+                        from meridium_polish import sync_session_to_profile
+                        sync_session_to_profile(ss)
+                    except Exception:
+                        pass
+                    st.success(f"Atmosphere: {meta['name']}")
+                    st.rerun()
+
+
+def apply_theme_shop_routes(code: str) -> str:
+    if "theme_atelier_drift_btn" in code:
+        return code
+    drift_btn = (
+        "\n    if st.button(\"\u25c8 Theme atelier\", key=\"theme_atelier_drift_btn\", use_container_width=True):\n"
+        "        st.session_state._themes_from = \"drift\"\n"
+        "        st.session_state.view = \"themes\"\n"
+        "        st.rerun()\n"
+    )
+    for needle in ('key="drift_to_menu"', "key='drift_to_menu'"):
+        if needle in code and "theme_atelier_drift_btn" not in code:
+            idx = code.find(needle)
+            j = code.find("st.rerun()", idx)
+            if j > 0:
+                j = code.find("\n", j) + 1
+                code = code[:j] + drift_btn + code[j:]
+            break
+    if 'view == "themes"' not in code:
+        handler = (
+            "\nif st.session_state.view == \"themes\":\n"
+            "    if st.button(\"\u2190 Back\", key=\"themes_back\"):\n"
+            "        st.session_state.view = st.session_state.get(\"_themes_from\") or \"home\"\n"
+            "        st.rerun()\n"
+            "    try:\n"
+            "        from meridium_themes import render_theme_shop, apply_theme_to_app, get_user_theme\n"
+            "        _th = st.session_state.get(\"active_theme\") or get_user_theme(st.session_state.get(\"username\") or \"anon\")\n"
+            "        apply_theme_to_app(st, _th)\n"
+            "        render_theme_shop(st, st.session_state)\n"
+            "    except Exception as _te:\n"
+            "        st.error(\"Theme atelier offline: \" + str(_te))\n"
+            "    st.stop()\n"
+        )
+        for a in (
+            'if st.session_state.view == "drift":',
+            "if st.session_state.view == 'drift':",
+            'if st.session_state.view == "home":',
+        ):
+            if a in code:
+                code = code.replace(a, handler + "\n" + a, 1)
+                break
+        else:
+            code = code + handler
+    return code
