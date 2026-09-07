@@ -192,6 +192,36 @@ def apply_owner_enhancements(code: str) -> str:
             st.session_state.voss_cutscene_stage = 0
             st.session_state.view = "voss_file"
             st.rerun()
+
+    with st.expander("🏢 Complex admin", expanded=False):
+        st.caption("ARG wing controls")
+        _cd_label = st.text_input("Countdown label", key="owner_countdown_label", value="Site reveal")
+        _cd_hours = st.number_input("Hours from now", min_value=1, max_value=168, value=24, key="owner_cd_hrs")
+        if st.button("Start countdown", key="owner_cd_go"):
+            try:
+                from arg_explore import countdown_set
+                from datetime import datetime, timezone, timedelta
+                end = (datetime.now(timezone.utc) + timedelta(hours=int(_cd_hours))).isoformat()
+                countdown_set(_cd_label, end)
+                st.success("Countdown set.")
+            except Exception as _e:
+                st.error(str(_e))
+        if st.button("Clear anonymous wall", key="owner_wall_clear"):
+            try:
+                from arg_explore import wall_clear
+                wall_clear()
+                st.success("Wall cleared.")
+            except Exception as _e:
+                st.error(str(_e))
+        if st.button("Toggle quiet mode", key="owner_quiet_toggle"):
+            try:
+                from arg_explore import _load_json, _save_json
+                cur = _load_json("site_effects.json", {})
+                cur["quiet_mode"] = not cur.get("quiet_mode")
+                _save_json("site_effects.json", cur)
+                st.success("Quiet mode: " + str(cur["quiet_mode"]))
+            except Exception as _e:
+                st.error(str(_e))
 '''
 
     marker = '    st.stop()\n\n\nif st.session_state.view == "owner_room":'
