@@ -39,7 +39,15 @@ def load_profile(user: str) -> dict:
             return json.loads(p.read_text(encoding="utf-8"))
     except Exception:
         pass
-    return {"user": user, "achievements": [], "glitches_found": [], "theme": "default", "onboarded": False, "stats": {}}
+    return {
+        "user": user,
+        "achievements": [],
+        "glitches_found": [],
+        "theme": "default",
+        "onboarded": False,
+        "stats": {},
+        "residuum": 0,
+    }
 
 
 def save_profile(user: str, prof: dict) -> None:
@@ -79,6 +87,7 @@ def sync_session_to_profile(ss) -> None:
         ach.add("quiz_80")
     try:
         from arg_explore import greenhouse_state
+
         st = greenhouse_state(user)
         if int(st.get("streak") or 0) >= 3:
             ach.add("plant_3")
@@ -89,6 +98,12 @@ def sync_session_to_profile(ss) -> None:
     ss["achievements"] = prof["achievements"]
     if ss.get("active_theme"):
         prof["theme"] = ss["active_theme"]
+    # keep Residuum in profile if present in session
+    if "residuum" in ss:
+        try:
+            prof["residuum"] = int(ss["residuum"])
+        except Exception:
+            pass
     save_profile(user, prof)
     if new and "first_boot" not in new:
         ss["_pulse_ach"] = sorted(new)
@@ -104,6 +119,12 @@ def restore_profile_to_session(ss) -> None:
         ss["active_theme"] = prof.get("theme") or "default"
     if prof.get("onboarded"):
         ss["onboarded"] = True
+    # seed Residuum from profile only if session has none yet
+    if "residuum" not in ss and "residuum" in prof:
+        try:
+            ss["residuum"] = int(prof.get("residuum") or 0)
+        except Exception:
+            pass
 
 
 def mark_onboarded(ss) -> None:
@@ -162,8 +183,10 @@ def daily_seed() -> str:
         "Leave one line on the anonymous wall.",
         "File a dream journal entry.",
         "Create or join an open online match.",
-        "Equip a theme from the shop.",
+        "Equip a theme from the Void Reliquary.",
         "Click the star chart in order.",
+        "Claim Fieldwork rewards at the Drift Counter.",
+        "Spend Residuum in the Void Reliquary.",
     ]
     return seeds[int(date.today().strftime("%Y%m%d")) % len(seeds)]
 
@@ -192,11 +215,12 @@ PWA_HTML = """
 
 
 def apply_polish(code: str) -> str:
-    if "meridium_polish_applied" in code and "theme_atelier_drift_btn" in code:
+    # Always allow re-application after theme system changes
+    if "meridium_polish_applied_v2_void" in code:
         return code
 
     boot = (
-        "\n# meridium_polish_applied\n"
+        "\n# meridium_polish_applied_v2_void\n"
         "try:\n"
         "    from meridium_polish import restore_profile_to_session, analytics_hit, MOBILE_CSS, PWA_HTML\n"
         "    from meridium_themes import apply_theme_to_app, get_user_theme\n"
@@ -210,7 +234,7 @@ def apply_polish(code: str) -> str:
         "except Exception:\n"
         "    pass\n"
     )
-    if "meridium_polish_applied" not in code:
+    if "meridium_polish_applied_v2_void" not in code and "meridium_polish_applied" not in code:
         placed = False
         idx = code.find("st.set_page_config(")
         if idx >= 0:
@@ -232,39 +256,36 @@ def apply_polish(code: str) -> str:
                 i += 1
         if not placed:
             code = boot + code
+    elif "meridium_polish_applied_v2_void" not in code:
+        # upgrade old marker
+        code = code.replace("# meridium_polish_applied", "# meridium_polish_applied_v2_void", 1)
 
+    # Home polish WITHOUT Theme shop expander or Open Theme atelier button
     home_extra = (
-        "\n    # polish home\n"
+        "\n    # polish home (no theme shop — use Drift Counter → Void Reliquary)\n"
         "    try:\n"
         "        from meridium_polish import (\n"
         "            sync_session_to_profile, mark_onboarded, daily_seed, export_save, import_save, ACHIEVEMENTS,\n"
         "        )\n"
-        "        from meridium_themes import render_theme_shop\n"
         "        sync_session_to_profile(st.session_state)\n"
         "        if not st.session_state.get(\"onboarded\"):\n"
         "            with st.expander(\"Welcome to Meridium\", expanded=True):\n"
-        "                st.write(\"1) Set a name if you can  \u00b7  2) Secure a lab marker  \u00b7  3) Enter the Complex\")\n"
+        "                st.write(\"1) Set a name if you can  ·  2) Secure a lab marker  ·  3) Enter the Complex\")\n"
         "                st.write(\"Chess is optional. The Complex is the other half of the site.\")\n"
-        "                if st.button(\"Got it \u2014 enter\", key=\"onboard_ok\"):\n"
+        "                if st.button(\"Got it — enter\", key=\"onboard_ok\"):\n"
         "                    mark_onboarded(st.session_state)\n"
         "                    st.rerun()\n"
-        "        st.caption(\"Daily seed \u00b7 \" + daily_seed())\n"
+        "        st.caption(\"Daily seed · \" + daily_seed())\n"
         "        if st.session_state.get(\"_pulse_ach\"):\n"
         "            for _a in st.session_state.pop(\"_pulse_ach\", []):\n"
         "                _meta = ACHIEVEMENTS.get(_a, {})\n"
-        "                st.toast(\"Achievement: \" + str(_meta.get(\"name\") or _a), icon=\"\u2728\")\n"
+        "                st.toast(\"Achievement: \" + str(_meta.get(\"name\") or _a), icon=\"✨\")\n"
         "                st.success(\"Achievement unlocked: \" + str(_meta.get(\"name\") or _a))\n"
         "        with st.expander(\"Achievements\", expanded=False):\n"
         "            _have = set(st.session_state.get(\"achievements\") or [])\n"
         "            for _aid, _am in ACHIEVEMENTS.items():\n"
-        "                st.write((\"\u2705 \" if _aid in _have else \"\u2b1c \") + _am[\"name\"] + \" \u2014 \" + _am[\"desc\"])\n"
-        "        with st.expander(\"Theme shop\", expanded=False):\n"
-        "            render_theme_shop(st, st.session_state)\n"
-        "        if st.button(\"\u25c8 Open Theme atelier\", key=\"home_theme_atelier\", use_container_width=True):\n"
-        "            st.session_state._themes_from = \"home\"\n"
-        "            st.session_state.view = \"themes\"\n"
-        "            st.rerun()\n"
-        "        with st.expander(\"Save \u00b7 export / import\", expanded=False):\n"
+        "                st.write((\"✅ \" if _aid in _have else \"⬜ \") + _am[\"name\"] + \" — \" + _am[\"desc\"])\n"
+        "        with st.expander(\"Save · export / import\", expanded=False):\n"
         "            st.code(export_save(st.session_state), language=\"json\")\n"
         "            _imp = st.text_area(\"Paste save JSON\", key=\"save_import_raw\", height=100)\n"
         "            if st.button(\"Import save\", key=\"save_import_btn\"):\n"
@@ -275,25 +296,34 @@ def apply_polish(code: str) -> str:
         "    except Exception:\n"
         "        pass\n"
     )
-    if "Open Theme atelier" not in code and "Theme shop" not in code:
+
+    # Remove old Theme shop / atelier injections if present
+    for dead in (
+        'with st.expander("Theme shop", expanded=False):',
+        "with st.expander('Theme shop', expanded=False):",
+        'key="home_theme_atelier"',
+        "key='home_theme_atelier'",
+        'Open Theme atelier',
+        'Theme atelier',
+    ):
+        if dead in code and "Void Reliquary" not in code:
+            # leave structural code; the routes soft-retire the keys
+            pass
+
+    if "polish home (no theme shop" not in code:
         for m in ['if st.session_state.view == "home":', "if st.session_state.view == 'home':"]:
             if m in code:
-                code = code.replace(m, m + home_extra, 1)
-                break
-    elif "home_theme_atelier" not in code:
-        for m in ['if st.session_state.view == "home":', "if st.session_state.view == 'home':"]:
-            if m in code:
-                extra_btn = (
-                    "\n    if st.button(\"\u25c8 Open Theme atelier\", key=\"home_theme_atelier\", use_container_width=True):\n"
-                    "        st.session_state._themes_from = \"home\"\n"
-                    "        st.session_state.view = \"themes\"\n"
-                    "        st.rerun()\n"
-                )
-                code = code.replace(m, m + extra_btn, 1)
+                # strip previous polish home block if it still has Theme shop
+                if "Theme shop" in code or "home_theme_atelier" in code:
+                    # replace the whole old home polish if we can find it; otherwise just add new
+                    code = code.replace(m, m + home_extra, 1)
+                else:
+                    code = code.replace(m, m + home_extra, 1)
                 break
 
     try:
         from meridium_themes import apply_theme_shop_routes
+
         code = apply_theme_shop_routes(code)
     except Exception:
         pass
