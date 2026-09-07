@@ -20,6 +20,7 @@ def _patch_owner_grants_coaches(code: str) -> str:
         code = code.replace(needle2, inject2, 1)
     return code
 
+
 def apply_owner_enhancements(code: str) -> str:
     """Inject Chess admin tab + Events/cutscenes into the owner desk."""
 
@@ -209,9 +210,49 @@ def apply_owner_enhancements(code: str) -> str:
     return code
 
 
+def strip_residual_ui(code: str) -> str:
+    """Remove residual terminal / radio / daily signal UI from patched app code."""
+    markers = ("💻 Residual terminal", "📻 Residual radio", "📡 Daily residual signal")
+    if not any(m in code for m in markers) and "term_cmd" not in code:
+        return code
+    lines = code.splitlines(keepends=True)
+    out = []
+    i = 0
+    while i < len(lines):
+        ln = lines[i]
+        if "📡 Daily residual signal" in ln:
+            i += 1
+            continue
+        if "💻 Residual terminal" in ln or "📻 Residual radio" in ln:
+            indent = ln[: len(ln) - len(ln.lstrip())]
+            out.append(indent + "pass  # residual UI removed\n")
+            base = len(ln) - len(ln.lstrip(" \t"))
+            i += 1
+            while i < len(lines):
+                nxt = lines[i]
+                if not nxt.strip():
+                    i += 1
+                    continue
+                nindent = len(nxt) - len(nxt.lstrip(" \t"))
+                if nindent > base:
+                    i += 1
+                    continue
+                break
+            continue
+        if "term_cmd" in ln or "term_log" in ln:
+            i += 1
+            continue
+        if "help · scan · dossier" in ln:
+            i += 1
+            continue
+        out.append(ln)
+        i += 1
+    return "".join(out)
+
+
 def apply_chess_page_fixes(code: str) -> str:
-    """No-op safety fix. Never rewrite if-lines (that previously broke the chess view)."""
-    # Repair only the historically broken pattern if present in cached source.
+    """Strip residual UI + safety fix for chess if-line."""
+    code = strip_residual_ui(code)
     bad = 'if st.session_state.view == "chess"  # Meridium Chess · stable:'
     good = 'if st.session_state.view == "chess":  # Meridium Chess · stable'
     if bad in code:
