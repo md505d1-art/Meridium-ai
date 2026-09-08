@@ -1,6 +1,8 @@
-"""Meridium entrypoint — resilient boot."""
+"""Meridium entrypoint — stable boot (cache in /tmp, no watcher loops)."""
 from __future__ import annotations
 
+import os
+import tempfile
 import urllib.request
 from pathlib import Path
 from typing import Optional
@@ -16,7 +18,7 @@ from meridium_polish import apply_polish
 from meridium_hub import apply_learning_hub
 from meridium_nadir import apply_nadir_v2
 
-_CACHE_VER = "v27-boot-resilient"
+_CACHE_VER = "v28-stable"
 _GOOD = (
     "https://raw.githubusercontent.com/md505d1-art/Meridium-ai/"
     "e4324e37b75bc804cbc3dd2ffe7e08021399a4d2/app.py"
@@ -26,7 +28,13 @@ _CDN = (
     "e4324e37b75bc804cbc3dd2ffe7e08021399a4d2/app.py"
 )
 _root = Path(__file__).resolve().parent
-_cache = _root / (".meridium_app_cache_" + _CACHE_VER + ".py")
+
+_tmp = Path(tempfile.gettempdir()) / "meridium_cache"
+try:
+    _tmp.mkdir(parents=True, exist_ok=True)
+except Exception:
+    _tmp = Path(tempfile.gettempdir())
+_cache = _tmp / (".meridium_app_cache_" + _CACHE_VER + ".py")
 
 
 def _from_chunks() -> Optional[str]:
@@ -39,7 +47,7 @@ def _from_chunks() -> Optional[str]:
             if not p.exists():
                 break
             t = p.read_text(encoding="utf-8").strip()
-            if t.startswith("PLACEHOLDER") or len(t) < 100:
+            if t.startswith("PLACEHOLDER") or t.startswith("SKIP") or len(t) < 500:
                 return None
             parts.append(t)
         if len(parts) < 3:
@@ -51,13 +59,21 @@ def _from_chunks() -> Optional[str]:
 
 def _fetch(url: str) -> Optional[str]:
     try:
-        with urllib.request.urlopen(url, timeout=90) as r:
+        req = urllib.request.Request(url, headers={"User-Agent": "MeridiumBoot/28"})
+        with urllib.request.urlopen(req, timeout=90) as r:
             text = r.read().decode("utf-8")
         if len(text) > 100_000:
             return text
     except Exception:
         return None
     return None
+
+
+def _save_cache(text: str) -> None:
+    try:
+        _cache.write_text(text, encoding="utf-8")
+    except Exception:
+        pass
 
 
 def _load_base() -> str:
@@ -74,26 +90,20 @@ def _load_base() -> str:
         pass
     text = _from_chunks()
     if text and len(text) > 100_000:
-        try:
-            _cache.write_text(text, encoding="utf-8")
-        except Exception:
-            pass
+        _save_cache(text)
         return text
     last_err = None
     for url in (_GOOD, _CDN):
         try:
             text = _fetch(url)
             if text:
-                try:
-                    _cache.write_text(text, encoding="utf-8")
-                except Exception:
-                    pass
+                _save_cache(text)
                 return text
         except Exception as e:
             last_err = e
     try:
         caches = sorted(
-            _root.glob(".meridium_app_cache_*.py"),
+            _tmp.glob(".meridium_app_cache_*.py"),
             key=lambda p: p.stat().st_mtime,
             reverse=True,
         )
@@ -112,7 +122,7 @@ except Exception as load_err:
     st.set_page_config(page_title="Meridium", page_icon="\u25c8", layout="wide")
     st.error("Meridium could not load its core app code.")
     st.exception(load_err)
-    st.info("Reboot the Streamlit app after deploy. Ensure the app can reach GitHub/jsDelivr.")
+    st.info("Reboot the app after deploy. Core must be reachable from GitHub or jsDelivr.")
     st.stop()
 
 try:
@@ -138,4 +148,4 @@ except Exception as patch_err:
     st.exception(patch_err)
     st.stop()
 
-exec(compile(_code, str(_root / "app.py"), "exec"), globals())
+exec(compile(_code, str(_root / "app_runtime.py"), "exec"), globals())
