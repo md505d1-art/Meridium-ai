@@ -1,4 +1,4 @@
-"""Meridium entrypoint — full feature pack + owner/lab fixes."""
+"""Meridium entrypoint — full feature pack + learning hub + UI v2."""
 from __future__ import annotations
 import urllib.request
 from pathlib import Path
@@ -11,8 +11,9 @@ from extra_features import apply_extra_features
 from owner_enhancements import apply_owner_enhancements, apply_chess_page_fixes
 from arg_explore import apply_arg_explore
 from meridium_polish import apply_polish
+from meridium_hub import apply_learning_hub
 
-_CACHE_VER = "v23-void-reliquary"
+_CACHE_VER = "v24-learning-hub-ui"
 
 _GOOD = (
     "https://raw.githubusercontent.com/md505d1-art/Meridium-ai/"
@@ -31,11 +32,13 @@ else:
         pass
 
 _code = apply_chess_page_fixes(
-    apply_polish(
-        apply_arg_explore(
-            apply_owner_enhancements(
-                apply_extra_features(
-                    apply_online(apply_remove_call(apply_coach(apply_chess(_code))))
+    apply_learning_hub(
+        apply_polish(
+            apply_arg_explore(
+                apply_owner_enhancements(
+                    apply_extra_features(
+                        apply_online(apply_remove_call(apply_coach(apply_chess(_code))))
+                    )
                 )
             )
         )
