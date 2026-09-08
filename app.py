@@ -1,11 +1,11 @@
-"""Meridium classic + features — cached boot for speed."""
+"""Meridium classic + features — cached boot v36."""
 from __future__ import annotations
 
 import tempfile
 import urllib.request
 from pathlib import Path
 
-_CACHE_VER = "v35-fast"
+_CACHE_VER = "v36-study-lang"
 _GOOD = (
     "https://raw.githubusercontent.com/md505d1-art/Meridium-ai/"
     "e4324e37b75bc804cbc3dd2ffe7e08021399a4d2/app.py"
@@ -60,7 +60,7 @@ def _load() -> str:
     text = None
     for url in (_GOOD, _CDN):
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "Meridium/35"})
+            req = urllib.request.Request(url, headers={"User-Agent": "Meridium/36"})
             with urllib.request.urlopen(req, timeout=90) as r:
                 text = r.read().decode("utf-8", errors="replace")
             if text and len(text) > 100000:
