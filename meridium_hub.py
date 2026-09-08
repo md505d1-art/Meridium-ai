@@ -1,4 +1,4 @@
-"""Meridium Learning + Lore + UI hub — wires Study, Gambits, Languages, Lore, UI redesign."""
+"""Meridium Learning + Lore + UI hub."""
 from __future__ import annotations
 
 
@@ -36,16 +36,16 @@ def apply_learning_hub(code: str) -> str:
             code = boot + code
 
     nav = (
-        "\n        if st.button(\"\ud83d\udcda  Study\", use_container_width=True, key=\"bm_study\"):\n"
+        "\n        if st.button(\"Study\", use_container_width=True, key=\"bm_study\"):\n"
         "            st.session_state.view = \"study\"\n"
         "            st.rerun()\n"
-        "        if st.button(\"\u265f  Gambits\", use_container_width=True, key=\"bm_gambits\"):\n"
+        "        if st.button(\"Gambits\", use_container_width=True, key=\"bm_gambits\"):\n"
         "            st.session_state.view = \"gambits\"\n"
         "            st.rerun()\n"
-        "        if st.button(\"\ud83d\udde3\ufe0f  Languages\", use_container_width=True, key=\"bm_languages\"):\n"
+        "        if st.button(\"Languages\", use_container_width=True, key=\"bm_languages\"):\n"
         "            st.session_state.view = \"languages\"\n"
         "            st.rerun()\n"
-        "        if st.button(\"\ud83d\udcd6  Lore\", use_container_width=True, key=\"bm_lore_pack\"):\n"
+        "        if st.button(\"Lore\", use_container_width=True, key=\"bm_lore_pack\"):\n"
         "            st.session_state.view = \"lore_pack\"\n"
         "            st.rerun()\n"
     )
@@ -61,7 +61,7 @@ def apply_learning_hub(code: str) -> str:
 
     handlers = (
         "\nif st.session_state.view == \"study\":\n"
-        "    if st.button(\"\u2190 Home\", key=\"study_back\"):\n"
+        "    if st.button(\"Back to Home\", key=\"study_back\"):\n"
         "        st.session_state.view = \"home\"\n"
         "        st.rerun()\n"
         "    try:\n"
@@ -71,7 +71,7 @@ def apply_learning_hub(code: str) -> str:
         "        st.error(\"Study hub offline: \" + str(_e))\n"
         "    st.stop()\n"
         "\nif st.session_state.view == \"gambits\":\n"
-        "    if st.button(\"\u2190 Home\", key=\"gambits_back\"):\n"
+        "    if st.button(\"Back to Home\", key=\"gambits_back\"):\n"
         "        st.session_state.view = \"home\"\n"
         "        st.rerun()\n"
         "    try:\n"
@@ -81,7 +81,7 @@ def apply_learning_hub(code: str) -> str:
         "        st.error(\"Gambit Academy offline: \" + str(_e))\n"
         "    st.stop()\n"
         "\nif st.session_state.view == \"languages\":\n"
-        "    if st.button(\"\u2190 Home\", key=\"lang_back\"):\n"
+        "    if st.button(\"Back to Home\", key=\"lang_back\"):\n"
         "        st.session_state.view = \"home\"\n"
         "        st.rerun()\n"
         "    try:\n"
@@ -91,7 +91,7 @@ def apply_learning_hub(code: str) -> str:
         "        st.error(\"Language Lab offline: \" + str(_e))\n"
         "    st.stop()\n"
         "\nif st.session_state.view == \"lore_pack\":\n"
-        "    if st.button(\"\u2190 Home\", key=\"lore_pack_back\"):\n"
+        "    if st.button(\"Back to Home\", key=\"lore_pack_back\"):\n"
         "        st.session_state.view = \"home\"\n"
         "        st.rerun()\n"
         "    try:\n"
@@ -115,12 +115,12 @@ def apply_learning_hub(code: str) -> str:
 
     if "drift_to_void_reliquary" not in code:
         inject = (
-            "\n        if st.button(\"\u25c8 Enter Void Reliquary\", key=\"drift_to_void_reliquary\", "
+            "\n        if st.button(\"Enter Void Reliquary\", key=\"drift_to_void_reliquary\", "
             "use_container_width=True):\n"
             "            st.session_state._themes_from = \"drift\"\n"
             "            st.session_state.view = \"themes\"\n"
             "            st.rerun()\n"
-            "        st.caption(\"Atmospheres \u00b7 Residuum \u00b7 living themes\")\n"
+            "        st.caption(\"Atmospheres / Residuum / living themes\")\n"
             "        st.divider()\n"
         )
         needle = (
@@ -134,4 +134,5 @@ def apply_learning_hub(code: str) -> str:
                 1,
             )
 
+    code = "".join(ch for ch in code if not (0xD800 <= ord(ch) <= 0xDFFF))
     return code
