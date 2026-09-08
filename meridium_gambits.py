@@ -1,64 +1,54 @@
-"""Meridium Gambit Trainer (packed)."""
+"""Meridium Chess Gambit Trainer."""
 from __future__ import annotations
-import zlib, base64
+import json
 from pathlib import Path
-_src = zlib.decompress(base64.b64decode("".join([
-    "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"
-]))).decode()
-try:
-    (Path(__file__).resolve().parent / "_meridium_gambits_impl.py").write_text(_src, encoding="utf-8")
-except Exception:
-    pass
-exec(compile(_src, "meridium_gambits_impl", "exec"), globals())
+
+def _load():
+    p = Path(__file__).resolve().parent / "gambits_data.json"
+    return json.loads(p.read_text(encoding="utf-8"))
+
+GAMBITS = _load()
+
+def list_gambits(side=None):
+    out = [(k, g) for k, g in GAMBITS.items() if not side or g.get("side") == side]
+    return sorted(out, key=lambda x: x[1]["name"])
+
+def render_gambit_trainer(st, ss) -> None:
+    st.markdown("### \u265f Gambit Academy")
+    st.caption("Learn the ideas, drill the main line \u00b7 major gambits catalogue")
+    side = st.radio("Side", ["All", "White", "Black"], horizontal=True, key="gambit_side_f")
+    items = list_gambits(None if side == "All" else side)
+    names = {k: g["name"] for k, g in items}
+    choice = st.selectbox("Gambit", list(names.keys()), format_func=lambda k: f"{names[k]} ({GAMBITS[k].get('eco','')})")
+    g = GAMBITS[choice]
+    st.markdown(f"**{g['name']}** \u00b7 {g.get('eco','')} \u00b7 **{g['side']}**")
+    st.info(g["idea"])
+    st.markdown("**Core moves**")
+    st.code(" ".join(g.get("moves") or []), language=None)
+    line = g.get("main_line") or g.get("moves") or []
+    st.markdown("**Main line drill**")
+    st.code(" ".join(line), language=None)
+    ss.setdefault("gambit_idx", 0)
+    ss.setdefault("gambit_id", choice)
+    if ss.get("gambit_id") != choice:
+        ss["gambit_id"] = choice
+        ss["gambit_idx"] = 0
+    idx = int(ss.get("gambit_idx") or 0)
+    if idx >= len(line):
+        st.success("Line complete.")
+        if st.button("Reset drill", key="gambit_reset"):
+            ss["gambit_idx"] = 0
+            st.rerun()
+        return
+    so_far = " ".join(line[:idx]) if idx else "(start)"
+    st.caption(f"After: {so_far}")
+    expected = line[idx]
+    guess = st.text_input(f"Move {idx+1} (SAN)", key=f"gambit_guess_{choice}_{idx}", placeholder="e.g. Nf3")
+    if st.button("Check move", key=f"gambit_check_{idx}"):
+        norm = lambda s: (s or "").strip().replace("0-0-0", "O-O-O").replace("0-0", "O-O")
+        if norm(guess) == norm(expected):
+            ss["gambit_idx"] = idx + 1
+            st.success(f"Correct: {expected}")
+            st.rerun()
+        else:
+            st.error(f"Main line continues with **{expected}**")
