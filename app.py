@@ -1,13 +1,7 @@
-"""Meridium — stable shell. Every module is isolated."""
+"""Meridium stable shell v32 — zero boot imports beyond streamlit."""
 from __future__ import annotations
 
 import streamlit as st
-
-try:
-    import meridium_bootstrap_fix as _bf
-    _bf.apply()
-except Exception:
-    pass
 
 st.set_page_config(page_title="Meridium", page_icon="\u25c8", layout="wide")
 
@@ -21,31 +15,22 @@ st.markdown(
     <style>
       .stApp {
         background: radial-gradient(ellipse at top, #1a1028 0%, #07060c 55%, #05040a 100%) !important;
-      }
-      h1, h2, h3 { letter-spacing: 0.06em; }
-      .mer-card {
-        border: 1px solid rgba(160,140,220,0.25);
-        border-radius: 14px;
-        padding: 1rem 1.1rem;
-        background: rgba(20,16,32,0.65);
-        margin-bottom: 0.75rem;
+        color: #e8e0f0;
       }
       section[data-testid="stSidebar"] {
-        background: rgba(10,8,18,0.95);
+        background: #0a0812 !important;
+      }
+      .mer-card {
+        border: 1px solid rgba(160,140,220,0.28);
+        border-radius: 14px;
+        padding: 1rem 1.15rem;
+        background: rgba(20,16,32,0.7);
+        margin: 0.5rem 0 1rem 0;
       }
     </style>
     """,
     unsafe_allow_html=True,
 )
-
-try:
-    from meridium_themes import apply_theme_to_app, get_user_theme
-    _uid = st.session_state.get("username") or "anon"
-    _th = st.session_state.get("active_theme") or get_user_theme(_uid)
-    st.session_state.active_theme = _th
-    apply_theme_to_app(st, _th)
-except Exception:
-    pass
 
 
 def go(v: str) -> None:
@@ -53,12 +38,27 @@ def go(v: str) -> None:
     st.rerun()
 
 
+def safe_render(title: str, import_name: str, fn_name: str) -> None:
+    st.header(title)
+    if st.button("Back to Home", key="back_" + import_name):
+        go("home")
+    try:
+        mod = __import__(import_name, fromlist=[fn_name])
+        fn = getattr(mod, fn_name)
+        fn(st, st.session_state)
+    except Exception as e:
+        st.error(title + " failed to load.")
+        st.code(type(e).__name__ + ": " + str(e))
+        with st.expander("Details"):
+            st.exception(e)
+
+
 view = st.session_state.get("view") or "home"
 
 with st.sidebar:
     st.markdown("### Meridium")
-    st.caption("stable v31")
-    for label, key in [
+    st.caption("v32 stable")
+    nav = [
         ("Home", "home"),
         ("Study", "study"),
         ("Gambits", "gambits"),
@@ -69,7 +69,8 @@ with st.sidebar:
         ("Lab", "lab"),
         ("Chess", "chess"),
         ("Online", "online"),
-    ]:
+    ]
+    for label, key in nav:
         if st.button(label, use_container_width=True, key="nav_" + key):
             go(key)
 
@@ -77,130 +78,80 @@ if view == "home":
     st.title("Meridium")
     st.caption("Personal intelligence system")
     st.markdown(
-        '<div class="mer-card">Shell online. Pick a module from the sidebar.</div>',
+        '<div class="mer-card">Shell is online. Use the sidebar to open modules.</div>',
         unsafe_allow_html=True,
     )
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        if st.button("Study", use_container_width=True, key="home_study"):
-            go("study")
-    with c2:
-        if st.button("Languages", use_container_width=True, key="home_lang"):
-            go("languages")
-    with c3:
-        if st.button("Nadir", use_container_width=True, key="home_nadir"):
-            go("nadir")
-    with c4:
-        if st.button("Themes", use_container_width=True, key="home_themes"):
-            go("themes")
-    with st.expander("System status"):
-        mods = [
-            ("meridium_study", "Study"),
-            ("meridium_gambits", "Gambits"),
-            ("meridium_languages", "Languages"),
-            ("meridium_lore_pack", "Lore"),
-            ("meridium_nadir", "Nadir"),
-            ("meridium_themes", "Themes"),
-            ("lab_view", "Lab"),
+    cols = st.columns(4)
+    shortcuts = [("Study", "study"), ("Languages", "languages"), ("Nadir", "nadir"), ("Themes", "themes")]
+    for col, (label, key) in zip(cols, shortcuts):
+        with col:
+            if st.button(label, use_container_width=True, key="home_" + key):
+                go(key)
+    with st.expander("Module health check"):
+        checks = [
+            "meridium_study",
+            "meridium_gambits",
+            "meridium_languages",
+            "meridium_lore_pack",
+            "meridium_nadir",
+            "meridium_themes",
+            "meridium_theme_fx",
+            "lab_view",
+            "gambits_data.json",
         ]
-        for mod, label in mods:
+        for name in checks:
             try:
-                __import__(mod)
-                st.write("OK \u00b7 " + label)
+                if name.endswith(".json"):
+                    from pathlib import Path
+                    p = Path(__file__).resolve().parent / name
+                    st.write(("OK \u00b7 " if p.exists() else "MISSING \u00b7 ") + name)
+                else:
+                    __import__(name)
+                    st.write("OK \u00b7 " + name)
             except Exception as e:
-                st.write("DOWN \u00b7 " + label + " \u00b7 " + type(e).__name__)
+                st.write("FAIL \u00b7 " + name + " \u00b7 " + type(e).__name__ + ": " + str(e)[:80])
 
 elif view == "study":
-    st.header("Study")
-    if st.button("Back", key="back_study"):
-        go("home")
-    try:
-        from meridium_study import render_study_hub
-        render_study_hub(st, st.session_state)
-    except Exception as e:
-        st.error("Study module error")
-        st.exception(e)
+    safe_render("Study", "meridium_study", "render_study_hub")
 
 elif view == "gambits":
-    st.header("Gambit Academy")
-    if st.button("Back", key="back_gambits"):
-        go("home")
-    try:
-        from meridium_gambits import render_gambit_trainer
-        render_gambit_trainer(st, st.session_state)
-    except Exception as e:
-        st.error("Gambits module error")
-        st.exception(e)
+    safe_render("Gambit Academy", "meridium_gambits", "render_gambit_trainer")
 
 elif view == "languages":
-    st.header("Language Lab")
-    if st.button("Back", key="back_lang"):
-        go("home")
-    try:
-        from meridium_languages import render_languages
-        render_languages(st, st.session_state)
-    except Exception as e:
-        st.error("Languages module error")
-        st.exception(e)
+    safe_render("Language Lab", "meridium_languages", "render_languages")
 
 elif view == "lore":
-    st.header("Lore")
-    if st.button("Back", key="back_lore"):
-        go("home")
-    try:
-        from meridium_lore_pack import render_lore_pack
-        render_lore_pack(st, st.session_state)
-    except Exception as e:
-        st.error("Lore module error")
-        st.exception(e)
+    safe_render("Lore", "meridium_lore_pack", "render_lore_pack")
 
 elif view == "nadir":
-    st.header("Project Nadir")
-    if st.button("Back", key="back_nadir"):
-        go("home")
-    try:
-        from meridium_nadir import render_nadir_v2
-        render_nadir_v2(st, st.session_state)
-    except Exception as e:
-        st.error("Nadir module error")
-        st.exception(e)
+    safe_render("Project Nadir", "meridium_nadir", "render_nadir_v2")
 
 elif view == "themes":
-    st.header("Void Reliquary")
-    if st.button("Back", key="back_themes"):
-        go("home")
-    try:
-        from meridium_themes import render_theme_shop
-        render_theme_shop(st, st.session_state)
-    except Exception as e:
-        st.error("Themes module error")
-        st.exception(e)
+    safe_render("Void Reliquary", "meridium_themes", "render_theme_shop")
 
 elif view == "lab":
     st.header("Observation Lab")
-    if st.button("Back", key="back_lab"):
+    if st.button("Back to Home", key="back_lab"):
         go("home")
     try:
         from lab_view import render_lab
         render_lab()
     except Exception as e:
-        st.error("Lab module error")
+        st.error("Lab failed to load.")
+        st.code(type(e).__name__ + ": " + str(e))
         st.exception(e)
 
 elif view == "chess":
     st.header("Chess")
-    if st.button("Back", key="back_chess"):
+    if st.button("Back to Home", key="back_chess"):
         go("home")
-    st.info(
-        "Full Soju chess board is part of the classic core. "
-        "Use Gambits for openings while the classic board path is restored."
-    )
-    if st.button("Open Gambit Academy"):
+    st.info("Full board returns with the classic core. Use Gambits for opening practice.")
+    if st.button("Open Gambits"):
         go("gambits")
 
 elif view == "online":
     st.header("Online")
-    if st.button("Back", key="back_online"):
+    if st.button("Back to Home", key="back_online"):
         go("home")
     st.info("Online matchmaking returns with the classic core.")
 
