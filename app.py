@@ -3,6 +3,12 @@ from __future__ import annotations
 
 import streamlit as st
 
+try:
+    import meridium_bootstrap_fix as _bf
+    _bf.apply()
+except Exception:
+    pass
+
 st.set_page_config(page_title="Meridium", page_icon="\u25c8", layout="wide")
 
 if "view" not in st.session_state:
