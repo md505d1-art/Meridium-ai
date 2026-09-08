@@ -1,20 +1,98 @@
-"""Meridium hub — Study + Languages nav; Gambits in Chess; Lore in Lab/Nadir."""
+"""Meridium hub v3 — Study + Languages with inline fallbacks; Gambits in Chess only."""
 from __future__ import annotations
+
+_STUDY = """
+if st.session_state.get("view") == "study":
+    if st.button("Back", key="study_back_v3"):
+        st.session_state.view = "home"
+        st.rerun()
+    _ok = False
+    try:
+        from meridium_study import render_study_hub
+        render_study_hub(st, st.session_state)
+        _ok = True
+    except Exception as _e:
+        st.warning("Built-in study (" + type(_e).__name__ + ")")
+    if not _ok:
+        st.markdown("### GCSE Study")
+        _subs = ["Mathematics", "English Language", "Biology", "Chemistry", "Physics", "History", "Geography", "Computer Science"]
+        _boards = ["AQA", "Edexcel", "OCR", "WJEC", "Eduqas", "CCEA"]
+        _s = st.selectbox("Subject", _subs, key="fb_study_sub")
+        _b = st.selectbox("Exam board", _boards, key="fb_study_board")
+        st.info(_s + " \u00b7 " + _b)
+        for _t in ["Review notes", "Practice questions", "Mark scheme", "Timed paper"]:
+            st.checkbox(_t, key="fb_tp_" + _t.replace(" ", "_"))
+        st.markdown("[AQA past papers](https://www.aqa.org.uk/find-past-papers-and-mark-schemes)")
+        st.text_area("Notes", key="fb_study_notes")
+    st.stop()
+"""
+
+_LANG = """
+if st.session_state.get("view") == "languages":
+    if st.button("Back", key="lang_back_v3"):
+        st.session_state.view = "home"
+        st.rerun()
+    _ok = False
+    try:
+        from meridium_languages import render_languages
+        render_languages(st, st.session_state)
+        _ok = True
+    except Exception as _e:
+        st.warning("Built-in languages (" + type(_e).__name__ + ")")
+    if not _ok:
+        st.markdown("### Language Lab")
+        if "lang_xp" not in st.session_state:
+            st.session_state.lang_xp = 0
+        if "lang_hearts" not in st.session_state:
+            st.session_state.lang_hearts = 5
+        c1, c2, c3 = st.columns(3)
+        c1.metric("XP", st.session_state.lang_xp)
+        c2.metric("Hearts", st.session_state.lang_hearts)
+        c3.metric("Streak", st.session_state.get("lang_streak") or 0)
+        _course = st.selectbox("Course", ["Spanish", "Czech", "Russian", "French", "ASL"], key="fb_lang_course")
+        _pack = {
+            "Spanish": [("hello", "hola"), ("thanks", "gracias"), ("yes", "si"), ("no", "no")],
+            "Czech": [("hello", "ahoj"), ("thanks", "dekuji"), ("yes", "ano"), ("no", "ne")],
+            "Russian": [("hello", "privet"), ("thanks", "spasibo"), ("yes", "da"), ("no", "net")],
+            "French": [("hello", "bonjour"), ("thanks", "merci"), ("yes", "oui"), ("no", "non")],
+            "ASL": [("HELLO", "Open hand at forehead outward"), ("THANKS", "Fingers from chin forward")],
+        }
+        _i = int(st.session_state.get("lang_i") or 0)
+        _items = _pack.get(_course) or _pack["Spanish"]
+        _i = _i % len(_items)
+        _p, _a = _items[_i]
+        st.info("Translate: **" + _p + "**")
+        _g = st.text_input("Answer", key="fb_lang_ans")
+        if st.button("Check", key="fb_lang_check"):
+            if (_g or "").strip().lower() == _a.lower() or _a.lower() in (_g or "").lower():
+                st.session_state.lang_xp = int(st.session_state.lang_xp) + 10
+                st.session_state.lang_i = _i + 1
+                st.success("Correct +10 XP")
+                st.rerun()
+            else:
+                st.session_state.lang_hearts = max(0, int(st.session_state.lang_hearts) - 1)
+                st.error("Answer: " + _a)
+        if st.button("Next", key="fb_lang_next"):
+            st.session_state.lang_i = _i + 1
+            st.rerun()
+    st.stop()
+"""
 
 
 def apply_learning_hub(code: str) -> str:
-    if "meridium_learning_hub_v2" in code and "bm_study" in code:
-        return code
+    for k in ("bm_gambits", "bm_lore_pack", "bm_lore", "sidebar_gambits", "sidebar_lore"):
+        code = code.replace('key="' + k + '"', 'key="__rm_' + k + '"')
+        code = code.replace("key='" + k + "'", "key='__rm_" + k + "'")
 
-    boot = (
-        "\n# meridium_learning_hub_v2\n"
-        "try:\n"
-        "    from meridium_ui_v2 import inject_ui\n"
-        "    inject_ui(st)\n"
-        "except Exception:\n"
-        "    pass\n"
-    )
-    if "meridium_learning_hub_v2" not in code and "meridium_learning_hub_v1" not in code:
+    if "meridium_learning_hub_v3" not in code:
+        boot = (
+            "\n# meridium_learning_hub_v3\n"
+            "try:\n"
+            "    from meridium_ui_v2 import inject_ui\n"
+            "    inject_ui(st)\n"
+            "except Exception:\n"
+            "    pass\n"
+        )
         idx = code.find("st.set_page_config(")
         if idx >= 0:
             depth = 0
@@ -32,16 +110,16 @@ def apply_learning_hub(code: str) -> str:
                         break
                 i += 1
 
-    nav = (
-        "\n        if st.button(\"Study\", use_container_width=True, key=\"bm_study\"):\n"
-        "            st.session_state.view = \"study\"\n"
-        "            st.rerun()\n"
-        "        if st.button(\"Languages\", use_container_width=True, key=\"bm_languages\"):\n"
-        "            st.session_state.view = \"languages\"\n"
-        "            st.rerun()\n"
-    )
-    if "bm_study" not in code:
-        for n2 in ('key="bm_chess"', "key='bm_chess'", 'key="bm_chat"'):
+    if 'key="bm_study"' not in code:
+        nav = (
+            "\n        if st.button(\"Study\", use_container_width=True, key=\"bm_study\"):\n"
+            "            st.session_state.view = \"study\"\n"
+            "            st.rerun()\n"
+            "        if st.button(\"Languages\", use_container_width=True, key=\"bm_languages\"):\n"
+            "            st.session_state.view = \"languages\"\n"
+            "            st.rerun()\n"
+        )
+        for n2 in ('key="bm_chess"', "key='bm_chess'", 'key="bm_chat"', 'key="bm_drift"'):
             if n2 in code:
                 i = code.find(n2)
                 k = code.find("st.rerun()", i)
@@ -50,60 +128,36 @@ def apply_learning_hub(code: str) -> str:
                     code = code[:k] + nav + code[k:]
                 break
 
-    for dead_key in ("bm_gambits", "bm_lore_pack"):
-        if dead_key in code and "retired_" + dead_key not in code:
-            code = code.replace('key="' + dead_key + '"', 'key="retired_' + dead_key + '"')
-
-    handlers = (
-        "\nif st.session_state.view == \"study\":\n"
-        "    if st.button(\"Back\", key=\"study_back\"):\n"
-        "        st.session_state.view = \"home\"\n"
-        "        st.rerun()\n"
-        "    try:\n"
-        "        from meridium_study import render_study_hub\n"
-        "        render_study_hub(st, st.session_state)\n"
-        "    except Exception as _e:\n"
-        "        st.error(\"Study offline: \" + str(_e))\n"
-        "        st.exception(_e)\n"
-        "    st.stop()\n"
-        "\nif st.session_state.view == \"languages\":\n"
-        "    if st.button(\"Back\", key=\"lang_back\"):\n"
-        "        st.session_state.view = \"home\"\n"
-        "        st.rerun()\n"
-        "    try:\n"
-        "        from meridium_languages import render_languages\n"
-        "        render_languages(st, st.session_state)\n"
-        "    except Exception as _e:\n"
-        "        st.error(\"Languages offline: \" + str(_e))\n"
-        "        st.exception(_e)\n"
-        "    st.stop()\n"
-    )
-    if 'view == "study"' not in code:
+    if "study_back_v3" not in code:
+        block = _STUDY + "\n" + _LANG + "\n"
+        placed = False
         for a in (
             'if st.session_state.view == "home":',
             "if st.session_state.view == 'home':",
+            'if st.session_state.get("view") == "home":',
         ):
             if a in code:
-                code = code.replace(a, handlers + "\n" + a, 1)
+                code = code.replace(a, block + a, 1)
+                placed = True
                 break
-        else:
-            code = code + handlers
+        if not placed:
+            code = code + "\n" + block
 
-    if "chess_learn_gambits" not in code:
+    if "chess_learn_gambits_v3" not in code:
         chess_inject = (
-            "\n    # chess_learn_gambits\n"
+            "\n    # chess_learn_gambits_v3\n"
             "    _chess_mode = st.radio(\n"
             "        \"Chess mode\",\n"
             "        [\"Play\", \"Learn gambits\"],\n"
             "        horizontal=True,\n"
-            "        key=\"chess_mode_toggle\",\n"
+            "        key=\"chess_mode_toggle_v3\",\n"
             "    )\n"
             "    if _chess_mode == \"Learn gambits\":\n"
             "        try:\n"
             "            from meridium_gambits import render_gambit_trainer\n"
             "            render_gambit_trainer(st, st.session_state)\n"
             "        except Exception as _ge:\n"
-            "            st.error(\"Gambit trainer offline: \" + str(_ge))\n"
+            "            st.error(\"Gambits offline: \" + str(_ge))\n"
             "        st.stop()\n"
         )
         for needle in (
@@ -116,15 +170,15 @@ def apply_learning_hub(code: str) -> str:
                 code = code[:end] + chess_inject + code[end:]
                 break
 
-    if "lab_lore_pack" not in code:
+    if "lab_lore_pack_v3" not in code:
         lab_inject = (
-            "\n    # lab_lore_pack\n"
+            "\n    # lab_lore_pack_v3\n"
             "    with st.expander(\"Archive chapters / Lore\", expanded=False):\n"
             "        try:\n"
             "            from meridium_lore_pack import render_lore_pack\n"
             "            render_lore_pack(st, st.session_state)\n"
-            "        except Exception as _le:\n"
-            "            st.caption(\"Lore offline: \" + str(_le))\n"
+            "        except Exception:\n"
+            "            st.caption(\"Lore offline\")\n"
         )
         for needle in (
             'if st.session_state.view == "lab":',
@@ -135,28 +189,6 @@ def apply_learning_hub(code: str) -> str:
                 end = code.find("\n", idx) + 1
                 code = code[:end] + lab_inject + code[end:]
                 break
-
-    if "drift_to_void_reliquary" not in code:
-        inject = (
-            "\n        if st.button(\"Enter Void Reliquary\", key=\"drift_to_void_reliquary\", "
-            "use_container_width=True):\n"
-            "            st.session_state._themes_from = \"drift\"\n"
-            "            st.session_state.view = \"themes\"\n"
-            "            st.rerun()\n"
-            "        st.caption(\"Atmospheres / Residuum\")\n"
-            "        st.divider()\n"
-        )
-        needle = (
-            "with t_shop:\n"
-            "        st.caption(\"Spend Residuum on palettes, type, lore, and latent modules.\")"
-        )
-        if needle in code:
-            code = code.replace(
-                needle,
-                "with t_shop:\n" + inject
-                + "        st.caption(\"Spend Residuum on palettes, type, lore, and latent modules.\")",
-                1,
-            )
 
     code = "".join(ch for ch in code if not (0xD800 <= ord(ch) <= 0xDFFF))
     return code
