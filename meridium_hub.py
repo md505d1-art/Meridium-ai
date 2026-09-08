@@ -3,7 +3,6 @@ from __future__ import annotations
 
 
 def apply_learning_hub(code: str) -> str:
-    """Inject views + nav for study, gambits, languages, lore; inject UI v2 boot."""
     if "meridium_learning_hub_v1" in code and "bm_study" in code and "drift_to_void_reliquary" in code:
         return code
 
@@ -130,7 +129,9 @@ def apply_learning_hub(code: str) -> str:
         if needle in code:
             code = code.replace(
                 needle,
-                "with t_shop:\n" + inject + "        st.caption(\"Spend Residuum on palettes, type, lore, and latent modules.\")",
+                "with t_shop:\n"
+                + inject
+                + "        st.caption(\"Spend Residuum on palettes, type, lore, and latent modules.\")",
                 1,
             )
 
