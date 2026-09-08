@@ -4,7 +4,7 @@ from __future__ import annotations
 
 def apply_learning_hub(code: str) -> str:
     """Inject views + nav for study, gambits, languages, lore; inject UI v2 boot."""
-    if "meridium_learning_hub_v1" in code:
+    if "meridium_learning_hub_v1" in code and "bm_study" in code and "drift_to_void_reliquary" in code:
         return code
 
     boot = (
@@ -50,16 +50,13 @@ def apply_learning_hub(code: str) -> str:
         "            st.rerun()\n"
     )
     if "bm_study" not in code:
-        for needle in ('key="bm_chat"', "key='bm_chat'"):
-            if needle in code:
-                for n2 in ('key="bm_chess"', "key='bm_chess'", needle):
-                    if n2 in code:
-                        i = code.find(n2)
-                        k = code.find("st.rerun()", i)
-                        if k > 0:
-                            k = code.find("\n", k) + 1
-                            code = code[:k] + nav + code[k:]
-                        break
+        for n2 in ('key="bm_chess"', "key='bm_chess'", 'key="bm_chat"'):
+            if n2 in code:
+                i = code.find(n2)
+                k = code.find("st.rerun()", i)
+                if k > 0:
+                    k = code.find("\n", k) + 1
+                    code = code[:k] + nav + code[k:]
                 break
 
     handlers = (
@@ -115,5 +112,26 @@ def apply_learning_hub(code: str) -> str:
                 break
         else:
             code = code + handlers
+
+    if "drift_to_void_reliquary" not in code:
+        inject = (
+            "\n        if st.button(\"\u25c8 Enter Void Reliquary\", key=\"drift_to_void_reliquary\", "
+            "use_container_width=True):\n"
+            "            st.session_state._themes_from = \"drift\"\n"
+            "            st.session_state.view = \"themes\"\n"
+            "            st.rerun()\n"
+            "        st.caption(\"Atmospheres \u00b7 Residuum \u00b7 living themes\")\n"
+            "        st.divider()\n"
+        )
+        needle = (
+            "with t_shop:\n"
+            "        st.caption(\"Spend Residuum on palettes, type, lore, and latent modules.\")"
+        )
+        if needle in code:
+            code = code.replace(
+                needle,
+                "with t_shop:\n" + inject + "        st.caption(\"Spend Residuum on palettes, type, lore, and latent modules.\")",
+                1,
+            )
 
     return code

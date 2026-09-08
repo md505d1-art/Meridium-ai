@@ -14,7 +14,7 @@ from meridium_polish import apply_polish
 from meridium_hub import apply_learning_hub
 from meridium_nadir import apply_nadir_v2
 
-_CACHE_VER = "v25-nadir-lang"
+_CACHE_VER = "v26-error-fixes"
 
 _GOOD = (
     "https://raw.githubusercontent.com/md505d1-art/Meridium-ai/"
