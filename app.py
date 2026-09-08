@@ -1,4 +1,4 @@
-"""Meridium entrypoint — full feature pack + learning hub + UI v2."""
+"""Meridium entrypoint — learning hub + Nadir v2 + UI."""
 from __future__ import annotations
 import urllib.request
 from pathlib import Path
@@ -12,8 +12,9 @@ from owner_enhancements import apply_owner_enhancements, apply_chess_page_fixes
 from arg_explore import apply_arg_explore
 from meridium_polish import apply_polish
 from meridium_hub import apply_learning_hub
+from meridium_nadir import apply_nadir_v2
 
-_CACHE_VER = "v24-learning-hub-ui"
+_CACHE_VER = "v25-nadir-lang"
 
 _GOOD = (
     "https://raw.githubusercontent.com/md505d1-art/Meridium-ai/"
@@ -32,12 +33,14 @@ else:
         pass
 
 _code = apply_chess_page_fixes(
-    apply_learning_hub(
-        apply_polish(
-            apply_arg_explore(
-                apply_owner_enhancements(
-                    apply_extra_features(
-                        apply_online(apply_remove_call(apply_coach(apply_chess(_code))))
+    apply_nadir_v2(
+        apply_learning_hub(
+            apply_polish(
+                apply_arg_explore(
+                    apply_owner_enhancements(
+                        apply_extra_features(
+                            apply_online(apply_remove_call(apply_coach(apply_chess(_code))))
+                        )
                     )
                 )
             )

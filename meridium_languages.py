@@ -1,9 +1,6 @@
 """Meridium Languages — ASL-first + multi-language scaffold."""
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
 ASL_FINGERSPELL = {
     "A": "Fist, thumb along the side",
     "B": "Flat hand, fingers up, thumb tucked across palm",
@@ -82,16 +79,44 @@ SPOKEN = {
         "goodbye": "\u518d\u89c1 (z\u00e0iji\u00e0n)", "my name is": "\u6211\u53eb\u2026",
         "how are you?": "\u4f60\u597d\u5417?",
     },
+    "Czech": {
+        "hello": "ahoj / dobr\u00fd den",
+        "thank you": "d\u011bkuji",
+        "yes": "ano",
+        "no": "ne",
+        "please": "pros\u00edm",
+        "goodbye": "na shledanou",
+        "my name is": "jmenuji se\u2026",
+        "how are you?": "jak se m\u00e1\u0161?",
+        "good morning": "dobr\u00e9 r\u00e1no",
+        "excuse me": "promi\u0148te",
+        "I don't understand": "nerozum\u00edm",
+        "help": "pomoc",
+    },
+    "Russian": {
+        "hello": "\u043f\u0440\u0438\u0432\u0435\u0442 (privet) / \u0437\u0434\u0440\u0430\u0432\u0441\u0442\u0432\u0443\u0439\u0442\u0435 (zdravstvuyte)",
+        "thank you": "\u0441\u043f\u0430\u0441\u0438\u0431\u043e (spasibo)",
+        "yes": "\u0434\u0430 (da)",
+        "no": "\u043d\u0435\u0442 (net)",
+        "please": "\u043f\u043e\u0436\u0430\u043b\u0443\u0439\u0441\u0442\u0430 (pozhaluysta)",
+        "goodbye": "\u0434\u043e \u0441\u0432\u0438\u0434\u0430\u043d\u0438\u044f (do svidaniya)",
+        "my name is": "\u043c\u0435\u043d\u044f \u0437\u043e\u0432\u0443\u0442\u2026 (menya zovut\u2026)",
+        "how are you?": "\u043a\u0430\u043a \u0434\u0435\u043b\u0430? (kak dela?)",
+        "good morning": "\u0434\u043e\u0431\u0440\u043e\u0435 \u0443\u0442\u0440\u043e (dobroye utro)",
+        "excuse me": "\u0438\u0437\u0432\u0438\u043d\u0438\u0442\u0435 (izvinite)",
+        "I don't understand": "\u044f \u043d\u0435 \u043f\u043e\u043d\u0438\u043c\u0430\u044e (ya ne ponimayu)",
+        "help": "\u043f\u043e\u043c\u043e\u0433\u0438\u0442\u0435 (pomogite)",
+    },
 }
 
 
 def render_languages(st, ss) -> None:
     st.markdown("### \ud83d\udde3\ufe0f Language Lab")
-    st.caption("ASL (American Sign Language) \u00b7 plus spoken language starters")
+    st.caption("ASL \u00b7 Czech \u00b7 Russian \u00b7 and more spoken starters")
     mode = st.radio("Track", ["ASL", "Spoken languages"], horizontal=True, key="lang_mode")
     if mode == "ASL":
         st.markdown("#### ASL \u00b7 American Sign Language")
-        st.info("Signs are described in text so you can practise anywhere. Pair with a free video dictionary (e.g. Handspeak / Lifeprint) for motion.")
+        st.info("Signs described in text \u2014 pair with Handspeak / Lifeprint for motion.")
         tab1, tab2, tab3 = st.tabs(["Fingerspelling", "Phrases", "Quiz"])
         with tab1:
             letter = st.selectbox("Letter", list(ASL_FINGERSPELL.keys()))
@@ -122,12 +147,15 @@ def render_languages(st, ss) -> None:
             st.write(f"**{en}** \u2192 `{native}`")
         st.markdown("##### Quick quiz")
         items = list(vocab.items())
-        i = st.number_input("Card", 0, len(items) - 1, 0)
+        i = st.number_input("Card", 0, max(0, len(items) - 1), 0)
         en, native = items[int(i)]
         st.write(f"Translate: **{en}**")
         g = st.text_input("Your answer", key=f"sp_{lang}_{i}")
         if st.button("Check", key=f"sp_chk_{i}"):
-            if (g or "").strip().lower() in native.lower():
+            g_l = (g or "").strip().lower()
+            n_l = native.lower()
+            ok = g_l and (g_l in n_l or any(tok in g_l for tok in n_l.replace("(", " ").replace(")", " ").split() if len(tok) > 2))
+            if ok:
                 st.success("Nice!")
             else:
                 st.warning(f"Model answer: {native}")
