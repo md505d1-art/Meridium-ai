@@ -5,7 +5,7 @@ import tempfile
 import urllib.request
 from pathlib import Path
 
-_CACHE_VER = "v40-board-gambit"
+_CACHE_VER = "v41-board-welcome"
 _BASE = (
     "https://raw.githubusercontent.com/md505d1-art/Meridium-ai/"
     "e4324e37b75bc804cbc3dd2ffe7e08021399a4d2/app.py"
@@ -56,7 +56,7 @@ def _download() -> str:
     last_err = None
     for url in (_BASE, _CDN):
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "Meridium/40"})
+            req = urllib.request.Request(url, headers={"User-Agent": "Meridium/41"})
             with urllib.request.urlopen(req, timeout=90) as r:
                 text = r.read().decode("utf-8", errors="replace")
             if text and len(text) > 100000:
