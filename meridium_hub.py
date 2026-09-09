@@ -1,4 +1,4 @@
-"""Meridium hub v3 — Study + Languages with inline fallbacks; Gambits in Chess only."""
+"""Meridium hub v3 — Study + Languages; Gambits in Chess; Welcome popup."""
 from __future__ import annotations
 
 _STUDY = """
@@ -62,7 +62,10 @@ if st.session_state.get("view") == "languages":
         _i = _i % len(_items)
         _p, _a = _items[_i]
         st.info("Translate: **" + _p + "**")
-        _g = st.text_input("Answer", key="fb_lang_ans")
+        import random as _r
+        _opts = list({_a, "x", "y", "z"})
+        _r.Random(int(st.session_state.get("lang_i") or 0) * 17 + 3).shuffle(_opts)
+        _g = st.radio("Pick", _opts, key="fb_lang_ans")
         if st.button("Check", key="fb_lang_check"):
             if (_g or "").strip().lower() == _a.lower() or _a.lower() in (_g or "").lower():
                 st.session_state.lang_xp = int(st.session_state.lang_xp) + 10
@@ -107,6 +110,50 @@ def apply_learning_hub(code: str) -> str:
                         if j < len(code) and code[j] == "\n":
                             j += 1
                         code = code[:j] + boot + code[j:]
+                        break
+                i += 1
+
+    if "welcome_to_meridium_v1" not in code:
+        welcome = (
+            "\n# welcome_to_meridium_v1\n"
+            "if \"welcome_seen\" not in st.session_state:\n"
+            "    st.session_state.welcome_seen = False\n"
+            "if not st.session_state.welcome_seen:\n"
+            "    try:\n"
+            "        @st.dialog(\"Welcome to Meridium\")\n"
+            "        def _meridium_welcome_dlg():\n"
+            "            st.write(\"You have entered the residual channel.\")\n"
+            "            st.caption(\"Chat \u00b7 Chess \u00b7 Lab \u00b7 Drift \u00b7 Study \u00b7 Languages\")\n"
+            "            if st.button(\"Enter\", type=\"primary\", use_container_width=True, key=\"welcome_enter_btn\"):\n"
+            "                st.session_state.welcome_seen = True\n"
+            "                st.rerun()\n"
+            "        _meridium_welcome_dlg()\n"
+            "    except Exception:\n"
+            "        st.markdown(\n"
+            "            '<div style=\"padding:1rem 1.1rem;border-radius:16px;border:1px solid rgba(196,167,231,0.35);'\n"
+            "            'background:rgba(20,16,32,0.95);margin:0.5rem 0 1rem;'>'\n"
+            "            '<div style=\"font-size:1.25rem;font-weight:700;\">Welcome to Meridium</div>'\n"
+            "            '<div style=\"opacity:0.85;margin-top:0.35rem;\">You have entered the residual channel.</div></div>',\n"
+            "            unsafe_allow_html=True,\n"
+            "        )\n"
+            "        if st.button(\"Enter Meridium\", type=\"primary\", key=\"welcome_enter_fallback\"):\n"
+            "            st.session_state.welcome_seen = True\n"
+            "            st.rerun()\n"
+        )
+        idx = code.find("st.set_page_config(")
+        if idx >= 0:
+            depth = 0
+            i = idx + len("st.set_page_config")
+            while i < len(code):
+                if code[i] == "(":
+                    depth += 1
+                elif code[i] == ")":
+                    depth -= 1
+                    if depth == 0:
+                        j = i + 1
+                        if j < len(code) and code[j] == "\n":
+                            j += 1
+                        code = code[:j] + welcome + code[j:]
                         break
                 i += 1
 
