@@ -1,10 +1,9 @@
-"""Meridium Gambit Trainer — playable board + coach guidance."""
+"""Meridium Gambit Trainer — play board styled like Play mode + coach."""
 from __future__ import annotations
 
 import json
 import random
 from pathlib import Path
-from typing import Any, Dict, List, Optional
 
 try:
     import chess
@@ -15,16 +14,8 @@ _GAMBITS = None
 
 COACHES = {
     "Soju": {
-        "correct": [
-            "Yes — {move}. Hold the centre.",
-            "Good. {move} is the idea.",
-            "Exact. Continue.",
-        ],
-        "wrong": [
-            "Not that. Look for **{expected}**.",
-            "The line wants **{expected}**.",
-            "Try **{expected}**.",
-        ],
+        "correct": ["Yes — {move}. Hold the centre.", "Good. {move} is the idea.", "Exact. Continue."],
+        "wrong": ["Not that. Look for **{expected}**.", "The line wants **{expected}**.", "Try **{expected}**."],
         "hint": "Soju highlights the key squares.",
         "intro": "Soju sets the pieces. Play the main line on the board.",
     },
@@ -42,11 +33,7 @@ COACHES = {
     },
     "Jaime": {
         "correct": ["Nice! {move}.", "Well spotted — {move}.", "Yes! {move}."],
-        "wrong": [
-            "Almost — **{expected}**.",
-            "Not quite. **{expected}** keeps the initiative.",
-            "Try **{expected}**.",
-        ],
+        "wrong": ["Almost — **{expected}**.", "Not quite. **{expected}**.", "Try **{expected}**."],
         "hint": "Jaime points at activity over material.",
         "intro": "Jaime sets the puzzle. Make the move on the board.",
     },
@@ -103,53 +90,90 @@ def _board_at(line, ply):
     return board
 
 
-def _board_html(board, highlight=None):
-    hl = set(highlight or [])
-    rows = []
-    for rank in range(7, -1, -1):
-        cells = [
-            '<td style="width:16px;font-size:11px;color:#9ab;text-align:center;">%s</td>'
-            % RANKS[rank]
-        ]
-        for file in range(8):
-            sq = chess.square(file, rank)
-            name = chess.square_name(sq)
-            light = (rank + file) % 2 == 1
-            bg = "#ebecd0" if light else "#779556"
-            if name in hl:
-                bg = "#f6f669"
-            piece = ""
-            p = board.piece_at(sq)
-            if p:
-                piece = PIECES.get(p.symbol(), p.symbol())
-            cells.append(
-                '<td style="width:44px;height:44px;text-align:center;vertical-align:middle;'
-                'font-size:30px;background:%s;border:1px solid #2a2a2a;">%s</td>'
-                % (bg, piece)
-            )
-        rows.append("<tr>" + "".join(cells) + "</tr>")
-    footer = (
-        "<tr><td></td>"
-        + "".join(
-            '<td style="text-align:center;font-size:11px;color:#9ab;">%s</td>' % f
-            for f in FILES
-        )
-        + "</tr>"
-    )
-    return (
-        '<div style="overflow-x:auto"><table style="border-collapse:collapse;margin:8px auto;">'
-        + "".join(rows)
-        + footer
-        + "</table></div>"
-    )
-
-
 def _move_squares(board, san):
     try:
         mv = board.parse_san(san)
         return [chess.square_name(mv.from_square), chess.square_name(mv.to_square)]
     except Exception:
         return []
+
+
+def _legal_targets(board, from_sq: str):
+    out = set()
+    try:
+        fr = chess.parse_square(from_sq)
+    except Exception:
+        return out
+    for mv in board.legal_moves:
+        if mv.from_square == fr:
+            out.add(chess.square_name(mv.to_square))
+    return out
+
+
+def _board_html(board, selected=None, moves=None, highlight=None):
+    selected = selected or ""
+    moves = set(moves or [])
+    highlight = set(highlight or [])
+    squares = []
+    for rank in range(7, -1, -1):
+        for file in range(8):
+            sq = chess.square(file, rank)
+            name = chess.square_name(sq)
+            light = (rank + file) % 2 == 1
+            cls = "sq light" if light else "sq dark"
+            if name == selected:
+                cls += " sel"
+            if name in moves:
+                cls += " mov"
+            if name in highlight:
+                cls += " last"
+            p = board.piece_at(sq)
+            glyph = PIECES.get(p.symbol(), "") if p else ""
+            squares.append('<div class="%s" data-sq="%s">%s</div>' % (cls, name, glyph))
+
+    css = """
+    <style>
+      .gb-wrap { max-width: 440px; margin: 10px auto 6px; }
+      .gb-board {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        grid-template-rows: repeat(8, 1fr);
+        border: 2px solid rgba(167,139,250,0.4);
+        border-radius: 10px;
+        overflow: hidden;
+        user-select: none;
+        box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+      }
+      .gb-board .sq {
+        display: flex; align-items: center; justify-content: center;
+        font-size: clamp(22px, 5.5vw, 34px);
+        line-height: 1;
+        position: relative;
+      }
+      .gb-board .sq.light { background: #f0d9b5; }
+      .gb-board .sq.dark { background: #b58863; }
+      .gb-board .sq.sel { outline: 3px solid #a78bfa; outline-offset: -3px; }
+      .gb-board .sq.mov { box-shadow: inset 0 0 0 4px rgba(74,222,128,0.55); }
+      .gb-board .sq.last { box-shadow: inset 0 0 0 4px rgba(250,204,21,0.75); }
+      .gb-files {
+        display: grid; grid-template-columns: repeat(8, 1fr);
+        max-width: 440px; margin: 4px auto 0;
+        font-size: 11px; color: rgba(200,190,230,0.7); text-align: center;
+        font-family: ui-monospace, monospace;
+      }
+    </style>
+    """
+    files = "".join("<div>%s</div>" % f for f in FILES)
+    return (
+        css
+        + '<div class="gb-wrap"><div class="gb-board">'
+        + "".join(squares)
+        + '</div><div class="gb-files">'
+        + files
+        + "</div></div>"
+    )
 
 
 def _legal_sans(board):
@@ -182,7 +206,7 @@ def _auto_reply(ss, line, ply, student):
 
 def render_gambit_trainer(st, ss) -> None:
     st.markdown("### Gambit Board")
-    st.caption("Playable board \u00b7 coach highlights \u00b7 follow the line")
+    st.caption("Same board language as Play \u00b7 coach guided main line")
 
     if chess is None:
         st.error("python-chess missing — add it to requirements and reboot.")
@@ -209,8 +233,7 @@ def render_gambit_trainer(st, ss) -> None:
     student = _student_side(str(g.get("side") or "White"))
 
     st.markdown(
-        "**%s** \u00b7 %s \u00b7 ECO %s"
-        % (g.get("name", choice), g.get("side", ""), g.get("eco", ""))
+        "**%s** \u00b7 %s \u00b7 ECO %s" % (g.get("name", choice), g.get("side", ""), g.get("eco", ""))
     )
     st.info(g.get("idea") or "")
     st.caption(meta["intro"])
@@ -219,6 +242,7 @@ def render_gambit_trainer(st, ss) -> None:
         ss["gb_id"] = choice
         ss["gb_ply"] = 0
         ss["gb_msg"] = ""
+        ss["gb_sel"] = ""
     ply = int(ss.get("gb_ply") or 0)
     if ply < len(line):
         board_chk = _board_at(line, ply)
@@ -234,6 +258,7 @@ def render_gambit_trainer(st, ss) -> None:
         if st.button("Run again", key="gb_reset"):
             ss["gb_ply"] = 0
             ss["gb_msg"] = ""
+            ss["gb_sel"] = ""
             st.rerun()
         with st.expander("Full main line"):
             st.code(" ".join(line))
@@ -241,16 +266,20 @@ def render_gambit_trainer(st, ss) -> None:
 
     expected = line[ply]
     hl = _move_squares(board, expected) if show_hint else []
-    st.markdown(_board_html(board, highlight=hl), unsafe_allow_html=True)
+    sel = ss.get("gb_sel") or ""
+    targets = _legal_targets(board, sel) if sel else set()
+    st.markdown(
+        _board_html(board, selected=sel, moves=targets, highlight=hl),
+        unsafe_allow_html=True,
+    )
 
     side = "White" if board.turn == chess.WHITE else "Black"
     st.markdown(
-        "**Your move %d / %d** \u00b7 %s to play \u00b7 Coach **%s**"
+        "**Your move %d / %d** \u00b7 %s \u00b7 Coach **%s**"
         % (ply + 1, len(line), side, coach)
     )
     if show_hint and hl:
         st.caption(meta["hint"] + " \u00b7 " + " \u2192 ".join(hl) + " (" + expected + ")")
-
     if ss.get("gb_msg"):
         st.write(ss["gb_msg"])
 
@@ -258,6 +287,7 @@ def render_gambit_trainer(st, ss) -> None:
         msg = random.choice(meta["correct"]).format(move=expected, expected=expected)
         ss["gb_msg"] = coach + ": " + msg
         ss["gb_ply"] = ply + 1
+        ss["gb_sel"] = ""
         _auto_reply(ss, line, int(ss["gb_ply"]), student)
 
     def try_san(san):
@@ -274,48 +304,55 @@ def render_gambit_trainer(st, ss) -> None:
             ss["gb_msg"] = coach + ": " + msg
             st.error(ss["gb_msg"])
 
-    t1, t2, t3 = st.tabs(["Click squares", "Legal moves", "Type SAN"])
-
-    with t1:
-        st.caption("Choose **from** and **to** squares, then play.")
-        sqs = [f + r for r in RANKS for f in FILES]
-        a, b = st.columns(2)
-        with a:
-            fr = st.selectbox("From", [""] + sqs, key="gb_from")
-        with b:
-            to = st.selectbox("To", [""] + sqs, key="gb_to")
-        if st.button("Play on board", key="gb_go_sq", type="primary"):
+    st.markdown("**Select squares** (same idea as Play: piece, then destination)")
+    sqs = [f + r for r in RANKS for f in FILES]
+    a, b, c = st.columns([2, 2, 1])
+    with a:
+        fr = st.selectbox(
+            "From",
+            [""] + sqs,
+            index=([""] + sqs).index(sel) if sel in sqs else 0,
+            key="gb_from",
+        )
+        if fr != sel:
+            ss["gb_sel"] = fr
+    with b:
+        to_opts = [""] + (sorted(targets) if targets else sqs)
+        to = st.selectbox("To", to_opts, key="gb_to")
+    with c:
+        st.write("")
+        st.write("")
+        if st.button("Play", key="gb_go_sq", type="primary"):
             if not fr or not to:
                 st.warning("Pick both squares.")
             else:
                 uci = fr + to
                 try:
                     mv = chess.Move.from_uci(uci)
+                    piece = board.piece_at(mv.from_square)
                     if (
-                        board.piece_at(mv.from_square)
-                        and board.piece_at(mv.from_square).piece_type == chess.PAWN
+                        piece
+                        and piece.piece_type == chess.PAWN
                         and chess.square_rank(mv.to_square) in (0, 7)
                         and mv.promotion is None
                     ):
                         mv = chess.Move(mv.from_square, mv.to_square, promotion=chess.QUEEN)
-                    san = board.san(mv)
-                    try_san(san)
+                    try_san(board.san(mv))
                 except Exception:
                     try:
-                        mv = chess.Move.from_uci(uci + "q")
-                        try_san(board.san(mv))
+                        try_san(board.san(chess.Move.from_uci(uci + "q")))
                     except Exception as e:
                         st.error("Cannot play that: " + str(e))
 
+    t2, t3 = st.tabs(["Legal moves", "Type SAN"])
     with t2:
         legal = _legal_sans(board)
         pick = st.selectbox("Legal move", legal, key="gb_legal")
-        if st.button("Play selected", key="gb_go_legal", type="primary"):
+        if st.button("Play selected", key="gb_go_legal"):
             try_san(pick)
-
     with t3:
         typed = st.text_input("SAN", key="gb_san", placeholder="e.g. Nf3")
-        if st.button("Submit SAN", key="gb_go_san", type="primary"):
+        if st.button("Submit SAN", key="gb_go_san"):
             try_san(typed)
 
     with st.expander("Coach demonstrates"):
