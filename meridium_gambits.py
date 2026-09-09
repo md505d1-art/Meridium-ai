@@ -1,74 +1,66 @@
-"""Meridium Gambit Trainer — coach puzzle style (like Puzzle of the Day)."""
+"""Meridium Gambit Trainer — playable board + coach guidance."""
 from __future__ import annotations
 
 import json
 import random
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-_GAMBITS: Optional[Dict[str, Any]] = None
+try:
+    import chess
+except Exception:
+    chess = None
+
+_GAMBITS = None
 
 COACHES = {
     "Soju": {
-        "style": "calm and precise",
         "correct": [
-            "Yes. That is the idea — {move}. Hold the centre, keep developing.",
-            "Good. {move} is the main-line continuation. You are reading this well.",
-            "Exact. Soju would play {move} here without hesitation.",
+            "Yes — {move}. Hold the centre.",
+            "Good. {move} is the idea.",
+            "Exact. Continue.",
         ],
         "wrong": [
-            "Not that. The line wants **{expected}**. Slow down — what square is weak?",
-            "Close, but the coach line is **{expected}**. Try again.",
-            "That drifts. Main idea continues with **{expected}**.",
+            "Not that. Look for **{expected}**.",
+            "The line wants **{expected}**.",
+            "Try **{expected}**.",
         ],
-        "intro": "Soju sets the board. Find the natural developing move.",
+        "hint": "Soju highlights the key squares.",
+        "intro": "Soju sets the pieces. Play the main line on the board.",
     },
     "Voss": {
-        "style": "cryptic",
-        "correct": [
-            "The residual agrees. {move}. The line holds.",
-            "Signal clean. {move} was already written.",
-            "Yes — {move}. The archive marked this square.",
-        ],
-        "wrong": [
-            "Static. The correct continuation is **{expected}**.",
-            "That path diverges. Index says **{expected}**.",
-            "No. The fragment reads **{expected}**.",
-        ],
-        "intro": "Voss does not explain. The move either resonates or it does not.",
+        "correct": ["Residual agrees. {move}.", "Signal clean — {move}.", "Yes. {move}."],
+        "wrong": ["Static. Play **{expected}**.", "Divergent. **{expected}**.", "No. **{expected}**."],
+        "hint": "Voss marks the path without words.",
+        "intro": "Voss watches. Make the move that resonates.",
     },
     "Callaghan": {
-        "style": "blunt",
-        "correct": [
-            "Fine. {move}. Next.",
-            "Yes — {move}. Do not get cute.",
-            "That is it. {move}. Keep going.",
-        ],
-        "wrong": [
-            "Wrong. Play **{expected}**.",
-            "No. The book move is **{expected}**.",
-            "Stop guessing. **{expected}**.",
-        ],
-        "intro": "Callaghan waits. One clean move. No speeches.",
+        "correct": ["Fine. {move}.", "Yes — {move}.", "That is it. {move}."],
+        "wrong": ["Wrong. **{expected}**.", "No. **{expected}**.", "Play **{expected}**."],
+        "hint": "One clean move.",
+        "intro": "Callaghan waits. Play it on the board.",
     },
     "Jaime": {
-        "style": "warm coach",
-        "correct": [
-            "Nice! {move} is exactly what we wanted.",
-            "Well spotted — {move}. That is the gambit idea.",
-            "Yes! {move}. You are getting the pattern.",
-        ],
+        "correct": ["Nice! {move}.", "Well spotted — {move}.", "Yes! {move}."],
         "wrong": [
-            "Almost — the prepared line goes **{expected}**. You have this.",
-            "Not quite. Look for **{expected}** — development before greed.",
-            "Hmm. Main line is **{expected}**. Try once more.",
+            "Almost — **{expected}**.",
+            "Not quite. **{expected}** keeps the initiative.",
+            "Try **{expected}**.",
         ],
-        "intro": "Jaime smiles. Puzzle mode — find the move that keeps the initiative.",
+        "hint": "Jaime points at activity over material.",
+        "intro": "Jaime sets the puzzle. Make the move on the board.",
     },
 }
 
+PIECES = {
+    "K": "\u2654", "Q": "\u2655", "R": "\u2656", "B": "\u2657", "N": "\u2658", "P": "\u2659",
+    "k": "\u265a", "q": "\u265b", "r": "\u265c", "b": "\u265d", "n": "\u265e", "p": "\u265f",
+}
+FILES = "abcdefgh"
+RANKS = "12345678"
 
-def _load() -> Dict[str, Any]:
+
+def _load():
     global _GAMBITS
     if _GAMBITS is not None:
         return _GAMBITS
@@ -79,138 +71,261 @@ def _load() -> Dict[str, Any]:
         _GAMBITS = {
             "kings_gambit": {
                 "name": "King's Gambit", "eco": "C30", "side": "White",
-                "idea": "Sacrifice a wing pawn for centre control and rapid development.",
-                "moves": ["e4", "e5", "f4"],
+                "idea": "Sacrifice a wing pawn for centre control.",
                 "main_line": ["e4", "e5", "f4", "exf4", "Nf3"],
             },
             "queens_gambit": {
                 "name": "Queen's Gambit", "eco": "D06", "side": "White",
                 "idea": "Offer the c-pawn to dominate the centre.",
-                "moves": ["d4", "d5", "c4"],
                 "main_line": ["d4", "d5", "c4", "e6", "Nc3", "Nf6"],
             },
             "evans_gambit": {
                 "name": "Evans Gambit", "eco": "C51", "side": "White",
-                "idea": "Sacrifice a wing pawn for tempi against Black's king.",
-                "moves": ["e4", "e5", "Nf3", "Nc6", "Bc4", "Bc5", "b4"],
+                "idea": "Sacrifice a wing pawn for tempi.",
                 "main_line": ["e4", "e5", "Nf3", "Nc6", "Bc4", "Bc5", "b4", "Bxb4", "c3"],
             },
             "danish": {
                 "name": "Danish Gambit", "eco": "C21", "side": "White",
                 "idea": "Open lines fast with pawn sacrifices.",
-                "moves": ["e4", "e5", "d4", "exd4", "c3"],
                 "main_line": ["e4", "e5", "d4", "exd4", "c3", "dxc3", "Bc4"],
             },
         }
     return _GAMBITS
 
 
-def _distractors(expected: str, line: list, rng: random.Random) -> list:
-    pool = [
-        "Nf3", "Nc3", "Bc4", "Bb5", "d4", "c4", "f4", "b4", "a3", "h3",
-        "O-O", "Qh5", "Qf3", "d3", "c3", "e5", "exd5", "Bxf7+", "Ng5",
-    ]
-    opts = [expected]
-    for m in pool:
-        if m != expected and m not in opts:
-            opts.append(m)
-        if len(opts) >= 4:
+def _board_at(line, ply):
+    board = chess.Board()
+    for san in line[:ply]:
+        try:
+            board.push_san(san)
+        except Exception:
             break
-    for m in line:
-        if m != expected and m not in opts and len(opts) < 4:
-            opts.append(m)
-    rng.shuffle(opts)
-    if expected not in opts[:4]:
-        opts = [expected] + [x for x in opts if x != expected]
-    return opts[:4]
+    return board
+
+
+def _board_html(board, highlight=None):
+    hl = set(highlight or [])
+    rows = []
+    for rank in range(7, -1, -1):
+        cells = [
+            '<td style="width:16px;font-size:11px;color:#9ab;text-align:center;">%s</td>'
+            % RANKS[rank]
+        ]
+        for file in range(8):
+            sq = chess.square(file, rank)
+            name = chess.square_name(sq)
+            light = (rank + file) % 2 == 1
+            bg = "#ebecd0" if light else "#779556"
+            if name in hl:
+                bg = "#f6f669"
+            piece = ""
+            p = board.piece_at(sq)
+            if p:
+                piece = PIECES.get(p.symbol(), p.symbol())
+            cells.append(
+                '<td style="width:44px;height:44px;text-align:center;vertical-align:middle;'
+                'font-size:30px;background:%s;border:1px solid #2a2a2a;">%s</td>'
+                % (bg, piece)
+            )
+        rows.append("<tr>" + "".join(cells) + "</tr>")
+    footer = (
+        "<tr><td></td>"
+        + "".join(
+            '<td style="text-align:center;font-size:11px;color:#9ab;">%s</td>' % f
+            for f in FILES
+        )
+        + "</tr>"
+    )
+    return (
+        '<div style="overflow-x:auto"><table style="border-collapse:collapse;margin:8px auto;">'
+        + "".join(rows)
+        + footer
+        + "</table></div>"
+    )
+
+
+def _move_squares(board, san):
+    try:
+        mv = board.parse_san(san)
+        return [chess.square_name(mv.from_square), chess.square_name(mv.to_square)]
+    except Exception:
+        return []
+
+
+def _legal_sans(board):
+    out = []
+    for mv in board.legal_moves:
+        try:
+            out.append(board.san(mv))
+        except Exception:
+            pass
+    return sorted(set(out), key=lambda s: (len(s), s))
+
+
+def _norm(s):
+    return (s or "").strip().replace("0-0-0", "O-O-O").replace("0-0", "O-O")
+
+
+def _student_side(gambit_side: str):
+    return chess.WHITE if (gambit_side or "White").lower().startswith("w") else chess.BLACK
+
+
+def _auto_reply(ss, line, ply, student):
+    while ply < len(line):
+        board = _board_at(line, ply)
+        if board.turn == student:
+            break
+        ply += 1
+        ss["gb_ply"] = ply
+    return ply
 
 
 def render_gambit_trainer(st, ss) -> None:
-    st.markdown("### Gambit Puzzle")
-    st.caption("Coach-led \u00b7 like Puzzle of the Day \u00b7 find the move")
+    st.markdown("### Gambit Board")
+    st.caption("Playable board \u00b7 coach highlights \u00b7 follow the line")
 
-    data = _load()
-    if not data:
-        st.warning("No gambits loaded.")
+    if chess is None:
+        st.error("python-chess missing — add it to requirements and reboot.")
         return
 
-    coach_names = list(COACHES.keys())
-    c1, c2 = st.columns(2)
+    data = _load()
+    c1, c2, c3 = st.columns(3)
     with c1:
-        coach = st.selectbox("Coach", coach_names, key="gambit_coach")
+        coach = st.selectbox("Coach", list(COACHES.keys()), key="gb_coach")
     with c2:
         keys = list(data.keys())
         choice = st.selectbox(
             "Gambit",
             keys,
             format_func=lambda k: "%s (%s)" % (data[k].get("name", k), data[k].get("eco", "")),
-            key="gambit_pick",
+            key="gb_pick",
         )
+    with c3:
+        show_hint = st.checkbox("Highlight coach move", value=True, key="gb_hint")
 
     g = data[choice]
     line = list(g.get("main_line") or g.get("moves") or [])
-    coach_meta = COACHES[coach]
+    meta = COACHES[coach]
+    student = _student_side(str(g.get("side") or "White"))
 
-    st.markdown("**" + g.get("name", choice) + "** \u00b7 " + str(g.get("side", "")) + " \u00b7 ECO " + str(g.get("eco", "")))
+    st.markdown(
+        "**%s** \u00b7 %s \u00b7 ECO %s"
+        % (g.get("name", choice), g.get("side", ""), g.get("eco", ""))
+    )
     st.info(g.get("idea") or "")
-    st.caption(coach_meta["intro"])
+    st.caption(meta["intro"])
 
-    if "gambit_idx" not in ss:
-        ss["gambit_idx"] = 0
-    if "gambit_id" not in ss:
-        ss["gambit_id"] = choice
-    if "gambit_coach_seed" not in ss:
-        ss["gambit_coach_seed"] = random.randint(1, 10**9)
-    if ss.get("gambit_id") != choice:
-        ss["gambit_id"] = choice
-        ss["gambit_idx"] = 0
-        ss["gambit_coach_seed"] = random.randint(1, 10**9)
+    if ss.get("gb_id") != choice:
+        ss["gb_id"] = choice
+        ss["gb_ply"] = 0
+        ss["gb_msg"] = ""
+    ply = int(ss.get("gb_ply") or 0)
+    if ply < len(line):
+        board_chk = _board_at(line, ply)
+        if board_chk.turn != student:
+            ply = _auto_reply(ss, line, ply, student)
+            ply = int(ss.get("gb_ply") or ply)
 
-    idx = int(ss.get("gambit_idx") or 0)
-    if not line:
-        st.caption("No line for this entry.")
-        return
+    board = _board_at(line, ply)
 
-    if idx >= len(line):
+    if ply >= len(line):
         st.success(coach + ": Line complete. Well trained.")
-        if st.button("New puzzle run", key="gambit_reset"):
-            ss["gambit_idx"] = 0
-            ss["gambit_coach_seed"] = random.randint(1, 10**9)
+        st.markdown(_board_html(board), unsafe_allow_html=True)
+        if st.button("Run again", key="gb_reset"):
+            ss["gb_ply"] = 0
+            ss["gb_msg"] = ""
             st.rerun()
+        with st.expander("Full main line"):
+            st.code(" ".join(line))
         return
 
-    so_far = " ".join(line[:idx]) if idx else "(starting position)"
-    expected = line[idx]
-    st.markdown("**Position after:** `" + so_far + "`")
-    st.markdown("**Find move " + str(idx + 1) + "** \u2014 " + coach + " is watching.")
+    expected = line[ply]
+    hl = _move_squares(board, expected) if show_hint else []
+    st.markdown(_board_html(board, highlight=hl), unsafe_allow_html=True)
 
-    rng = random.Random(int(ss["gambit_coach_seed"]) + idx * 13)
-    opts = _distractors(expected, line, rng)
-    if opts and opts[0] == expected and len(opts) > 1:
-        for _ in range(5):
-            rng.shuffle(opts)
-            if opts[0] != expected:
-                break
+    side = "White" if board.turn == chess.WHITE else "Black"
+    st.markdown(
+        "**Your move %d / %d** \u00b7 %s to play \u00b7 Coach **%s**"
+        % (ply + 1, len(line), side, coach)
+    )
+    if show_hint and hl:
+        st.caption(meta["hint"] + " \u00b7 " + " \u2192 ".join(hl) + " (" + expected + ")")
 
-    mode = st.radio("Answer mode", ["Multiple choice", "Type SAN"], horizontal=True, key="gambit_mode")
-    guess = ""
-    if mode == "Multiple choice":
-        guess = st.radio("Candidate moves", opts, key="gambit_mc_%d_%s" % (idx, ss["gambit_coach_seed"]))
-    else:
-        guess = st.text_input("Your move (SAN)", key="gambit_san_%d" % idx, placeholder="e.g. Nf3")
+    if ss.get("gb_msg"):
+        st.write(ss["gb_msg"])
 
-    if st.button("Submit move", key="gambit_submit_%d" % idx, type="primary"):
-        def norm(s):
-            return (s or "").strip().replace("0-0-0", "O-O-O").replace("0-0", "O-O")
+    def commit_correct():
+        msg = random.choice(meta["correct"]).format(move=expected, expected=expected)
+        ss["gb_msg"] = coach + ": " + msg
+        ss["gb_ply"] = ply + 1
+        _auto_reply(ss, line, int(ss["gb_ply"]), student)
 
-        if norm(guess) == norm(expected):
-            msg = rng.choice(coach_meta["correct"]).format(move=expected, expected=expected)
-            st.success(coach + ": " + msg)
-            ss["gambit_idx"] = idx + 1
+    def try_san(san):
+        try:
+            board.parse_san(san)
+        except Exception:
+            st.error("Illegal move in this position.")
+            return
+        if _norm(san) == _norm(expected):
+            commit_correct()
             st.rerun()
         else:
-            msg = rng.choice(coach_meta["wrong"]).format(move=guess, expected=expected)
-            st.error(coach + ": " + msg)
+            msg = random.choice(meta["wrong"]).format(move=san, expected=expected)
+            ss["gb_msg"] = coach + ": " + msg
+            st.error(ss["gb_msg"])
 
-    with st.expander("Show full main line"):
-        st.code(" ".join(line))
+    t1, t2, t3 = st.tabs(["Click squares", "Legal moves", "Type SAN"])
+
+    with t1:
+        st.caption("Choose **from** and **to** squares, then play.")
+        sqs = [f + r for r in RANKS for f in FILES]
+        a, b = st.columns(2)
+        with a:
+            fr = st.selectbox("From", [""] + sqs, key="gb_from")
+        with b:
+            to = st.selectbox("To", [""] + sqs, key="gb_to")
+        if st.button("Play on board", key="gb_go_sq", type="primary"):
+            if not fr or not to:
+                st.warning("Pick both squares.")
+            else:
+                uci = fr + to
+                try:
+                    mv = chess.Move.from_uci(uci)
+                    if (
+                        board.piece_at(mv.from_square)
+                        and board.piece_at(mv.from_square).piece_type == chess.PAWN
+                        and chess.square_rank(mv.to_square) in (0, 7)
+                        and mv.promotion is None
+                    ):
+                        mv = chess.Move(mv.from_square, mv.to_square, promotion=chess.QUEEN)
+                    san = board.san(mv)
+                    try_san(san)
+                except Exception:
+                    try:
+                        mv = chess.Move.from_uci(uci + "q")
+                        try_san(board.san(mv))
+                    except Exception as e:
+                        st.error("Cannot play that: " + str(e))
+
+    with t2:
+        legal = _legal_sans(board)
+        pick = st.selectbox("Legal move", legal, key="gb_legal")
+        if st.button("Play selected", key="gb_go_legal", type="primary"):
+            try_san(pick)
+
+    with t3:
+        typed = st.text_input("SAN", key="gb_san", placeholder="e.g. Nf3")
+        if st.button("Submit SAN", key="gb_go_san", type="primary"):
+            try_san(typed)
+
+    with st.expander("Coach demonstrates"):
+        st.write("%s plays **%s** here." % (coach, expected))
+        if hl:
+            st.caption("Squares: " + " \u2192 ".join(hl))
+        if st.button("Play coach move for me", key="gb_coach_do"):
+            commit_correct()
+            st.rerun()
+
+    with st.expander("Line progress"):
+        st.code(" ".join(line[:ply]) if ply else "(start)")
+        st.caption("Full: " + " ".join(line))
