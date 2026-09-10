@@ -5,7 +5,7 @@ import tempfile
 import urllib.request
 from pathlib import Path
 
-_CACHE_VER = "v41-board-welcome"
+_CACHE_VER = "v42-welcome-fix"
 _BASE = (
     "https://raw.githubusercontent.com/md505d1-art/Meridium-ai/"
     "e4324e37b75bc804cbc3dd2ffe7e08021399a4d2/app.py"
@@ -44,9 +44,10 @@ def _patch(text: str) -> str:
     for mod_name, fn_name in steps:
         try:
             mod = __import__(mod_name, fromlist=[fn_name])
-            text = _strip(getattr(mod, fn_name)(text))
-            compile(text, "p_" + fn_name, "exec")
-            text.encode("utf-8")
+            new = _strip(getattr(mod, fn_name)(text))
+            compile(new, "p_" + fn_name, "exec")
+            new.encode("utf-8")
+            text = new
         except Exception:
             pass
     return text
@@ -56,7 +57,7 @@ def _download() -> str:
     last_err = None
     for url in (_BASE, _CDN):
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "Meridium/41"})
+            req = urllib.request.Request(url, headers={"User-Agent": "Meridium/42"})
             with urllib.request.urlopen(req, timeout=90) as r:
                 text = r.read().decode("utf-8", errors="replace")
             if text and len(text) > 100000:
@@ -70,12 +71,14 @@ def _load() -> str:
     try:
         if _cache.exists() and _cache.stat().st_size > 200000:
             cached = _strip(_cache.read_text(encoding="utf-8", errors="replace"))
-            if "study_back_v3" in cached or 'view == "study"' in cached:
+            if "welcome_to_meridium_v1" in cached or 'view == "study"' in cached:
+                compile(cached, "cached", "exec")
                 return cached
     except Exception:
         pass
     text = _patch(_strip(_download()))
     try:
+        compile(text, "runtime", "exec")
         _cache.write_text(text, encoding="utf-8")
     except Exception:
         pass
