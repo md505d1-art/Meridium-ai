@@ -1,4 +1,4 @@
-"""Meridium Void Reliquary — free animated atmospheres with custom UI."""
+"""Meridium Void Reliquary — free animated atmospheres (always equippable)."""
 from __future__ import annotations
 
 import json
@@ -11,10 +11,11 @@ except Exception:
         return ""
 
     def _css_for(theme_id):
-        return "body, .stApp { background: #0a0810 !important; }"
+        return (
+            "html,body,.stApp,[data-testid=\"stAppViewContainer\"]{"
+            "background:#0a0810!important;}"
+        )
 
-# All free. Act like regular themes — equip anytime.
-# IDs match meridium_theme_fx packs for live canvas + custom UI chrome.
 THEMES = {
     "default": {
         "name": "Meridium Default",
@@ -68,7 +69,6 @@ THEMES = {
     },
 }
 
-# Map short ids → FX engine ids when they differ
 _FX_ALIAS = {
     "aurora": "aurora_north",
     "sakura": "ember_sakura",
@@ -136,7 +136,6 @@ def set_user_theme(username: str, theme_id: str) -> None:
     u = prefs.get(username) or {}
     u["active"] = theme_id
     u["theme"] = theme_id
-    # Always own everything — free regular themes
     u["owned"] = list(THEMES.keys())
     prefs[username] = u
     save_theme_prefs(prefs)
@@ -163,18 +162,19 @@ def apply_theme_to_app(st, theme_id: str) -> None:
             import streamlit.components.v1 as components
 
             components.html(html, height=0, scrolling=False)
+            return
     except Exception:
-        try:
-            st.markdown(
-                "<style id='meridium-theme'>" + _css_for(fx) + "</style>",
-                unsafe_allow_html=True,
-            )
-        except Exception:
-            pass
+        pass
+    try:
+        st.markdown(
+            "<style id='meridium-theme'>" + _css_for(fx) + "</style>",
+            unsafe_allow_html=True,
+        )
+    except Exception:
+        pass
 
 
 def render_theme_shop(st, ss) -> None:
-    """Void Reliquary — free equip · animated atmospheres."""
     user = (ss.get("username") or "anon").strip() or "anon"
     active = ss.get("active_theme") or get_user_theme(user)
     if active not in THEMES:
@@ -215,7 +215,6 @@ def render_theme_shop(st, ss) -> None:
                     ):
                         set_user_theme(user, tid)
                         ss["active_theme"] = tid
-                        # keep classic theme slot in sync when possible
                         try:
                             ss["theme"] = tid
                         except Exception:
@@ -237,13 +236,14 @@ def render_theme_shop(st, ss) -> None:
 
 
 def apply_theme_shop_routes(code: str) -> str:
-    """Register themes view + Void Reliquary entry inside Drift Counter."""
-    # Themes page handler
-    if 'view == "themes"' not in code and "view == 'themes'" not in code:
+    """Inject themes view + buttons on Drift and Home. Always runs."""
+
+    # --- Themes view (idempotent) ---
+    if "themes_back_v45" not in code:
         handler = (
-            '\nif st.session_state.view == "themes":\n'
-            '    if st.button("← Back", key="themes_back_v3"):\n'
-            '        st.session_state.view = st.session_state.get("_themes_from") or "drift"\n'
+            '\nif st.session_state.get("view") == "themes":\n'
+            '    if st.button("← Back", key="themes_back_v45"):\n'
+            '        st.session_state.view = st.session_state.get("_themes_from") or "home"\n'
             '        st.rerun()\n'
             '    try:\n'
             '        from meridium_themes import render_theme_shop, apply_theme_to_app, get_user_theme\n'
@@ -254,54 +254,64 @@ def apply_theme_shop_routes(code: str) -> str:
             '        render_theme_shop(st, st.session_state)\n'
             '    except Exception as _te:\n'
             '        st.error("Void Reliquary offline: " + str(_te))\n'
+            '        st.exception(_te)\n'
             '    st.stop()\n'
         )
+        inserted = False
         for a in (
-            'if st.session_state.view == "drift":',
-            "if st.session_state.view == 'drift':",
             'if st.session_state.view == "home":',
+            "if st.session_state.view == 'home':",
+            'if st.session_state.get("view") == "home":',
+            'if st.session_state.view == "drift":',
         ):
             if a in code:
                 code = code.replace(a, handler + "\n" + a, 1)
+                inserted = True
                 break
-        else:
+        if not inserted:
             code = code + handler
 
-    # Entry button inside Drift Counter shop tab
+    # --- Button inside Drift Counter ---
     if "drift_to_void_reliquary" not in code:
         inject = (
             '\n        if st.button("◈ Enter Void Reliquary", key="drift_to_void_reliquary", use_container_width=True):\n'
             '            st.session_state._themes_from = "drift"\n'
             '            st.session_state.view = "themes"\n'
             '            st.rerun()\n'
-            '        st.caption("Animated atmospheres · free equip · custom chrome")\n'
+            '        st.caption("Animated atmospheres · free equip")\n'
             '        st.divider()\n'
         )
-        needle = (
-            'with t_shop:\n'
-            '        st.caption("Spend Residuum on palettes, type, lore, and latent modules.")'
-        )
+        needle = 'st.caption("Spend Residuum on palettes, type, lore, and latent modules.")'
         if needle in code:
+            # place just before the caption inside t_shop
+            code = code.replace(needle, inject + "        " + needle, 1)
+        elif 't_shop, t_quests, t_inv = st.tabs(["Counter", "Fieldwork", "Holdings"])' in code:
             code = code.replace(
-                needle,
-                'with t_shop:\n'
-                + inject
-                + '        st.caption("Spend Residuum on palettes, type, lore, and latent modules.")',
+                't_shop, t_quests, t_inv = st.tabs(["Counter", "Fieldwork", "Holdings"])',
+                't_shop, t_quests, t_inv = st.tabs(["Counter", "Fieldwork", "Holdings"])\n'
+                '    with t_shop:\n'
+                + inject.replace("\n        ", "\n        "),
                 1,
             )
-        else:
-            # broader fallback near Drift Counter render
-            for alt in (
-                't_shop, t_quests, t_inv = st.tabs(["Counter", "Fieldwork", "Holdings"])',
-                "t_shop, t_quests, t_inv = st.tabs(['Counter', 'Fieldwork', 'Holdings'])",
-            ):
-                if alt in code:
-                    code = code.replace(
-                        alt,
-                        alt
-                        + '\n    # void reliquary entry is injected into t_shop when present\n',
-                        1,
-                    )
-                    break
+
+    # --- Home shortcut (always visible) ---
+    if "home_void_reliquary_v45" not in code:
+        home_btn = (
+            '\n    if st.button("◈ Void Reliquary", key="home_void_reliquary_v45", use_container_width=True):\n'
+            '        st.session_state._themes_from = "home"\n'
+            '        st.session_state.view = "themes"\n'
+            '        st.rerun()\n'
+        )
+        for m in (
+            'if st.session_state.view == "home":',
+            "if st.session_state.view == 'home':",
+            'if st.session_state.get("view") == "home":',
+        ):
+            if m in code:
+                # insert after the home if line
+                idx = code.find(m)
+                end = code.find("\n", idx) + 1
+                code = code[:end] + home_btn + code[end:]
+                break
 
     return code

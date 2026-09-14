@@ -1,4 +1,4 @@
-"""Meridium polish: profile, achievements, onboarding, mobile, PWA, analytics, pulses."""
+"""Meridium polish: profile, achievements, onboarding, mobile, PWA, analytics, free themes."""
 from __future__ import annotations
 
 import json
@@ -28,7 +28,10 @@ def _data() -> Path:
         return meridium_data_dir()
     except Exception:
         d = Path(__file__).resolve().parent / "data"
-        d.mkdir(parents=True, exist_ok=True)
+        try:
+            d.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            pass
         return d
 
 
@@ -95,8 +98,8 @@ def sync_session_to_profile(ss) -> None:
     try:
         from arg_explore import greenhouse_state
 
-        st = greenhouse_state(user)
-        if int(st.get("streak") or 0) >= 3:
+        stt = greenhouse_state(user)
+        if int(stt.get("streak") or 0) >= 3:
             ach.add("plant_3")
     except Exception:
         pass
@@ -227,11 +230,11 @@ PWA_HTML = """
 
 
 def apply_polish(code: str) -> str:
-    if "meridium_polish_applied_v3_free" in code:
-        return code
+    # Version marker used by bootcache to know patches applied
+    marker = "meridium_polish_applied_v45"
 
     boot = (
-        "\n# meridium_polish_applied_v3_free\n"
+        "\n# " + marker + "\n"
         "try:\n"
         "    from meridium_polish import restore_profile_to_session, analytics_hit, MOBILE_CSS, PWA_HTML\n"
         "    from meridium_themes import apply_theme_to_app, get_user_theme\n"
@@ -244,8 +247,40 @@ def apply_polish(code: str) -> str:
         "    analytics_hit(\"boot\", _uid)\n"
         "except Exception:\n"
         "    pass\n"
+        # Unlock every classic + secret theme so the colour palette is never locked
+        "try:\n"
+        "    _all = []\n"
+        "    try:\n"
+        "        _all.extend(list(THEMES.keys()))\n"
+        "    except Exception:\n"
+        "        pass\n"
+        "    try:\n"
+        "        _all.extend(list(SECRET_THEMES.keys()))\n"
+        "    except Exception:\n"
+        "        pass\n"
+        "    try:\n"
+        "        _all.extend(list(OWNER_THEMES.keys()))\n"
+        "    except Exception:\n"
+        "        pass\n"
+        "    if _all:\n"
+        "        _have = list(st.session_state.get(\"unlocked_themes\") or [])\n"
+        "        for _n in _all:\n"
+        "            if _n not in _have:\n"
+        "                _have.append(_n)\n"
+        "        st.session_state.unlocked_themes = _have\n"
+        "except Exception:\n"
+        "    pass\n"
     )
-    if "meridium_polish_applied" not in code:
+
+    if marker not in code:
+        # strip older markers so we don't stack boots forever
+        for old in (
+            "# meridium_polish_applied_v3_free",
+            "# meridium_polish_applied_v2_void",
+            "# meridium_polish_applied",
+        ):
+            code = code.replace(old, "# meridium_polish_legacy", 1)
+
         placed = False
         idx = code.find("st.set_page_config(")
         if idx >= 0:
@@ -267,17 +302,17 @@ def apply_polish(code: str) -> str:
                 i += 1
         if not placed:
             code = boot + code
-    else:
-        for old in (
-            "# meridium_polish_applied_v2_void",
-            "# meridium_polish_applied",
-        ):
-            if old in code:
-                code = code.replace(old, "# meridium_polish_applied_v3_free", 1)
-                break
+
+    # Always re-run theme routes (idempotent)
+    try:
+        from meridium_themes import apply_theme_shop_routes
+
+        code = apply_theme_shop_routes(code)
+    except Exception:
+        pass
 
     home_extra = (
-        "\n    # polish home (Void Reliquary lives under Drift Counter)\n"
+        "\n    # polish home v45\n"
         "    try:\n"
         "        from meridium_polish import (\n"
         "            sync_session_to_profile, mark_onboarded, daily_seed, export_save, import_save, ACHIEVEMENTS,\n"
@@ -286,7 +321,6 @@ def apply_polish(code: str) -> str:
         "        if not st.session_state.get(\"onboarded\"):\n"
         "            with st.expander(\"Welcome to Meridium\", expanded=True):\n"
         "                st.write(\"1) Set a name if you can  ·  2) Secure a lab marker  ·  3) Enter the Complex\")\n"
-        "                st.write(\"Chess is optional. The Complex is the other half of the site.\")\n"
         "                if st.button(\"Got it — enter\", key=\"onboard_ok\"):\n"
         "                    mark_onboarded(st.session_state)\n"
         "                    st.rerun()\n"
@@ -295,7 +329,6 @@ def apply_polish(code: str) -> str:
         "            for _a in st.session_state.pop(\"_pulse_ach\", []):\n"
         "                _meta = ACHIEVEMENTS.get(_a, {})\n"
         "                st.toast(\"Achievement: \" + str(_meta.get(\"name\") or _a), icon=\"✨\")\n"
-        "                st.success(\"Achievement unlocked: \" + str(_meta.get(\"name\") or _a))\n"
         "        with st.expander(\"Achievements\", expanded=False):\n"
         "            _have = set(st.session_state.get(\"achievements\") or [])\n"
         "            for _aid, _am in ACHIEVEMENTS.items():\n"
@@ -312,16 +345,14 @@ def apply_polish(code: str) -> str:
         "        pass\n"
     )
 
-    if "polish home (Void Reliquary" not in code:
-        for m in ['if st.session_state.view == "home":', "if st.session_state.view == 'home':"]:
+    if "polish home v45" not in code:
+        for m in (
+            'if st.session_state.view == "home":',
+            "if st.session_state.view == 'home':",
+            'if st.session_state.get("view") == "home":',
+        ):
             if m in code:
                 code = code.replace(m, m + home_extra, 1)
                 break
 
-    try:
-        from meridium_themes import apply_theme_shop_routes
-
-        code = apply_theme_shop_routes(code)
-    except Exception:
-        pass
     return code
