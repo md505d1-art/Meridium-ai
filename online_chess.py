@@ -1,5 +1,6 @@
 """Online chess lobby: match codes + public open-games list + JSON store."""
 from __future__ import annotations
+
 import json
 import time
 import uuid
@@ -7,13 +8,27 @@ from pathlib import Path
 
 
 def _dir() -> Path:
-    d = Path(__file__).resolve().parent / "data" / "online_chess"
-    d.mkdir(parents=True, exist_ok=True)
+    try:
+        from meridium_paths import meridium_data_dir
+
+        d = meridium_data_dir() / "online_chess"
+    except Exception:
+        d = Path(__file__).resolve().parent / "data" / "online_chess"
+    try:
+        d.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        import tempfile
+
+        d = Path(tempfile.gettempdir()) / "meridium_online_chess"
+        try:
+            d.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            pass
     return d
 
 
 def _path(code: str) -> Path:
-    safe = "".join(c for c in (code or "").upper() if c.isalnum())[:12]
+    safe = "".join(c for c in (code or "").upper() if c.isalnum())[:12] or "INVALID"
     return _dir() / f"{safe}.json"
 
 
@@ -31,7 +46,10 @@ def create_match(name: str = "Player", public: bool = True) -> str:
         "notify_guest": False,
         "last_move_by": None,
     }
-    _path(code).write_text(json.dumps(data), encoding="utf-8")
+    try:
+        _path(code).write_text(json.dumps(data), encoding="utf-8")
+    except Exception:
+        pass
     return code
 
 
@@ -48,7 +66,10 @@ def join_match(code: str, name: str = "Guest"):
         data["guest"] = name
         data["status"] = "active"
         data["notify_host"] = True
-        p.write_text(json.dumps(data), encoding="utf-8")
+        try:
+            p.write_text(json.dumps(data), encoding="utf-8")
+        except Exception:
+            return None
     return data
 
 
@@ -65,23 +86,34 @@ def load_match(code: str):
 def list_open_matches(limit: int = 20) -> list:
     out = []
     now = time.time()
-    for p in sorted(_dir().glob("*.json"), key=lambda x: -x.stat().st_mtime):
+    try:
+        files = sorted(_dir().glob("*.json"), key=lambda x: -x.stat().st_mtime)
+    except Exception:
+        return []
+    for p in files:
         try:
             data = json.loads(p.read_text(encoding="utf-8"))
         except Exception:
             continue
-        if data.get("status") == "waiting" and now - float(data.get("created") or 0) > 7200:
+        created = float(data.get("created") or 0)
+        if data.get("status") == "waiting" and now - created > 7200:
             try:
                 p.unlink()
             except Exception:
                 pass
             continue
-        if data.get("status") == "waiting" and data.get("public", True) and not data.get("guest"):
-            out.append({
-                "code": data.get("code"),
-                "host": data.get("host"),
-                "age_s": int(now - float(data.get("created") or now)),
-            })
+        if (
+            data.get("status") == "waiting"
+            and data.get("public", True)
+            and not data.get("guest")
+        ):
+            out.append(
+                {
+                    "code": data.get("code"),
+                    "host": data.get("host"),
+                    "age_s": int(now - created),
+                }
+            )
         if len(out) >= limit:
             break
     return out
@@ -91,7 +123,10 @@ def push_move(code: str, move: str, by: str):
     p = _path(code)
     if not p.exists():
         return None
-    data = json.loads(p.read_text(encoding="utf-8"))
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return None
     data.setdefault("moves", []).append({"move": move, "by": by, "t": time.time()})
     data["last_move_by"] = by
     if by == data.get("host"):
@@ -100,7 +135,10 @@ def push_move(code: str, move: str, by: str):
     else:
         data["notify_host"] = True
         data["notify_guest"] = False
-    p.write_text(json.dumps(data), encoding="utf-8")
+    try:
+        p.write_text(json.dumps(data), encoding="utf-8")
+    except Exception:
+        return None
     return data
 
 
@@ -108,12 +146,18 @@ def clear_notify(code: str, role: str) -> None:
     p = _path(code)
     if not p.exists():
         return
-    data = json.loads(p.read_text(encoding="utf-8"))
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return
     if role == "host":
         data["notify_host"] = False
     else:
         data["notify_guest"] = False
-    p.write_text(json.dumps(data), encoding="utf-8")
+    try:
+        p.write_text(json.dumps(data), encoding="utf-8")
+    except Exception:
+        pass
 
 
 def leave_match(code: str, role: str) -> None:
@@ -131,16 +175,19 @@ def leave_match(code: str, role: str) -> None:
             pass
         return
     data["status"] = "ended"
-    p.write_text(json.dumps(data), encoding="utf-8")
+    try:
+        p.write_text(json.dumps(data), encoding="utf-8")
+    except Exception:
+        pass
 
 
 def apply_online(code: str) -> str:
-    if "Online Play \u00b7 Open lobby" in code or "list_open_matches" in code:
+    if "Online Play · Open lobby" in code or "list_open_matches" in code:
         return code
     block = (
         "\n    # === Online matchmaking (public lobby + codes) ===\n"
-        "    with st.expander(\"Online Play \u00b7 Open lobby\", expanded=True):\n"
-        "        st.caption(\"Challenge anyone on the site \u2014 open games appear below. Or share a private code.\")\n"
+        "    with st.expander(\"Online Play · Open lobby\", expanded=True):\n"
+        "        st.caption(\"Challenge anyone on the site — open games appear below. Or share a private code.\")\n"
         "        from online_chess import (\n"
         "            create_match, join_match, load_match, push_move, clear_notify,\n"
         "            list_open_matches, leave_match,\n"
@@ -155,19 +202,19 @@ def apply_online(code: str) -> str:
         "        st.markdown(\"##### Open games\")\n"
         "        _opens = list_open_matches()\n"
         "        if not _opens:\n"
-        "            st.caption(\"No open games right now \u2014 create one.\")\n"
+        "            st.caption(\"No open games right now — create one.\")\n"
         "        else:\n"
         "            for _g in _opens:\n"
         "                _gc1, _gc2, _gc3 = st.columns([2, 2, 1])\n"
         "                with _gc1:\n"
         "                    st.write(f\"**{_g.get('host') or 'Host'}**\")\n"
         "                with _gc2:\n"
-        "                    st.caption(f\"code `{_g.get('code')}` \u00b7 {_g.get('age_s', 0)}s ago\")\n"
+        "                    st.caption(f\"code `{_g.get('code')}` · {_g.get('age_s', 0)}s ago\")\n"
         "                with _gc3:\n"
         "                    if st.button(\"Join\", key=f\"on_join_open_{_g.get('code')}\"):\n"
         "                        _jd = join_match(str(_g.get(\"code\")), st.session_state.online_name)\n"
         "                        if _jd is None:\n"
-        "                            st.error(\"Gone \u2014 refresh.\")\n"
+        "                            st.error(\"Gone — refresh.\")\n"
         "                        else:\n"
         "                            st.session_state.online_code = _jd[\"code\"]\n"
         "                            st.session_state.online_role = \"guest\"\n"
@@ -202,13 +249,13 @@ def apply_online(code: str) -> str:
         "                st.warning(\"Match expired.\")\n"
         "                st.session_state.online_code = None\n"
         "            else:\n"
-        "                st.info(f\"Match **{data['code']}** \u00b7 {data.get('status')} \u00b7 host: {data.get('host')} \u00b7 guest: {data.get('guest') or 'waiting\u2026'}\")\n"
+        "                st.info(f\"Match **{data['code']}** · {data.get('status')} · host: {data.get('host')} · guest: {data.get('guest') or 'waiting…'}\")\n"
         "                role = st.session_state.online_role\n"
         "                if role == \"host\" and data.get(\"notify_host\"):\n"
-        "                    st.toast(f\"Opponent moved! ({data.get('last_move_by')})\", icon=\"\u265f\")\n"
+        "                    st.toast(f\"Opponent moved! ({data.get('last_move_by')})\", icon=\"♟\")\n"
         "                    clear_notify(data[\"code\"], \"host\")\n"
         "                if role == \"guest\" and data.get(\"notify_guest\"):\n"
-        "                    st.toast(f\"Opponent moved! ({data.get('last_move_by')})\", icon=\"\u265f\")\n"
+        "                    st.toast(f\"Opponent moved! ({data.get('last_move_by')})\", icon=\"♟\")\n"
         "                    clear_notify(data[\"code\"], \"guest\")\n"
         "                move_txt = st.text_input(\"Send move (e.g. e2e4)\", key=\"on_move_txt\")\n"
         "                if st.button(\"Send move\", key=\"on_send\") and move_txt:\n"
@@ -216,7 +263,7 @@ def apply_online(code: str) -> str:
         "                    st.success(\"Move sent.\")\n"
         "                    st.rerun()\n"
         "                if data.get(\"moves\"):\n"
-        "                    st.write(\"Moves:\", \" \u00b7 \".join(m[\"move\"] for m in data[\"moves\"][-16:]))\n"
+        "                    st.write(\"Moves:\", \" · \".join(m[\"move\"] for m in data[\"moves\"][-16:]))\n"
         "                if st.button(\"Leave match\", key=\"on_leave\"):\n"
         "                    try:\n"
         "                        leave_match(data[\"code\"], role or \"guest\")\n"
@@ -227,7 +274,7 @@ def apply_online(code: str) -> str:
         "                    st.rerun()\n"
         "                st.caption(\"Stay on this page and refresh / send moves to sync.\")\n"
     )
-    if "st.components.v1.html(" in code and "Online Play \u00b7 Open lobby" not in code:
+    if "st.components.v1.html(" in code and "Online Play · Open lobby" not in code:
         code = code.replace(
             "st.components.v1.html(",
             block + "\n    st.components.v1.html(",

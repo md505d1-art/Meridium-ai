@@ -22,9 +22,14 @@ ACHIEVEMENTS = {
 
 
 def _data() -> Path:
-    d = Path(__file__).resolve().parent / "data"
-    d.mkdir(parents=True, exist_ok=True)
-    return d
+    try:
+        from meridium_paths import meridium_data_dir
+
+        return meridium_data_dir()
+    except Exception:
+        d = Path(__file__).resolve().parent / "data"
+        d.mkdir(parents=True, exist_ok=True)
+        return d
 
 
 def _profile_path(user: str) -> Path:
@@ -62,7 +67,9 @@ def save_profile(user: str, prof: dict) -> None:
 def sync_session_to_profile(ss) -> None:
     user = (ss.get("username") or "anon").strip() or "anon"
     prof = load_profile(user)
-    g = list(dict.fromkeys((prof.get("glitches_found") or []) + list(ss.get("glitches_found") or [])))
+    g = list(
+        dict.fromkeys((prof.get("glitches_found") or []) + list(ss.get("glitches_found") or []))
+    )
     prof["glitches_found"] = g
     ss["glitches_found"] = g
     ach = set(prof.get("achievements") or []) | set(ss.get("achievements") or [])
@@ -98,7 +105,6 @@ def sync_session_to_profile(ss) -> None:
     ss["achievements"] = prof["achievements"]
     if ss.get("active_theme"):
         prof["theme"] = ss["active_theme"]
-    # keep Residuum in profile if present in session
     if "residuum" in ss:
         try:
             prof["residuum"] = int(ss["residuum"])
@@ -119,7 +125,6 @@ def restore_profile_to_session(ss) -> None:
         ss["active_theme"] = prof.get("theme") or "default"
     if prof.get("onboarded"):
         ss["onboarded"] = True
-    # seed Residuum from profile only if session has none yet
     if "residuum" not in ss and "residuum" in prof:
         try:
             ss["residuum"] = int(prof.get("residuum") or 0)
@@ -155,7 +160,12 @@ def import_save(ss, raw: str) -> str:
 def analytics_hit(event: str, user: str = "") -> None:
     try:
         with (_data() / "analytics.jsonl").open("a", encoding="utf-8") as f:
-            f.write(json.dumps({"t": datetime.now(timezone.utc).isoformat(), "e": event, "u": user}) + "\n")
+            f.write(
+                json.dumps(
+                    {"t": datetime.now(timezone.utc).isoformat(), "e": event, "u": user}
+                )
+                + "\n"
+            )
     except Exception:
         pass
 
@@ -163,7 +173,9 @@ def analytics_hit(event: str, user: str = "") -> None:
 def analytics_summary(limit: int = 200) -> dict:
     counts = {}
     try:
-        lines = (_data() / "analytics.jsonl").read_text(encoding="utf-8").strip().splitlines()[-limit:]
+        lines = (_data() / "analytics.jsonl").read_text(encoding="utf-8").strip().splitlines()[
+            -limit:
+        ]
         for ln in lines:
             try:
                 o = json.loads(ln)
@@ -186,15 +198,15 @@ def daily_seed() -> str:
         "Equip a theme from the Void Reliquary.",
         "Click the star chart in order.",
         "Claim Fieldwork rewards at the Drift Counter.",
-        "Spend Residuum in the Void Reliquary.",
+        "Try a new atmosphere in the Void Reliquary.",
     ]
     return seeds[int(date.today().strftime("%Y%m%d")) % len(seeds)]
 
 
 MOBILE_CSS = """
-<style id=\"meridium-mobile\">
+<style id="meridium-mobile">
 @media (max-width: 768px) {
-  .stApp [data-testid=\"stHorizontalBlock\"] { flex-wrap: wrap !important; }
+  .stApp [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; }
   .stButton > button { min-height: 2.6rem; font-size: 1rem !important; }
   .block-container { padding: 0.8rem 0.7rem 5rem !important; max-width: 100% !important; }
   h1 { font-size: 1.45rem !important; }
@@ -208,19 +220,18 @@ MOBILE_CSS = """
 """
 
 PWA_HTML = """
-<meta name=\"apple-mobile-web-app-capable\" content=\"yes\" />
-<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black-translucent\" />
-<meta name=\"theme-color\" content=\"#7c3aed\" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#7c3aed" />
 """
 
 
 def apply_polish(code: str) -> str:
-    # Always allow re-application after theme system changes
-    if "meridium_polish_applied_v2_void" in code:
+    if "meridium_polish_applied_v3_free" in code:
         return code
 
     boot = (
-        "\n# meridium_polish_applied_v2_void\n"
+        "\n# meridium_polish_applied_v3_free\n"
         "try:\n"
         "    from meridium_polish import restore_profile_to_session, analytics_hit, MOBILE_CSS, PWA_HTML\n"
         "    from meridium_themes import apply_theme_to_app, get_user_theme\n"
@@ -234,7 +245,7 @@ def apply_polish(code: str) -> str:
         "except Exception:\n"
         "    pass\n"
     )
-    if "meridium_polish_applied_v2_void" not in code and "meridium_polish_applied" not in code:
+    if "meridium_polish_applied" not in code:
         placed = False
         idx = code.find("st.set_page_config(")
         if idx >= 0:
@@ -256,13 +267,17 @@ def apply_polish(code: str) -> str:
                 i += 1
         if not placed:
             code = boot + code
-    elif "meridium_polish_applied_v2_void" not in code:
-        # upgrade old marker
-        code = code.replace("# meridium_polish_applied", "# meridium_polish_applied_v2_void", 1)
+    else:
+        for old in (
+            "# meridium_polish_applied_v2_void",
+            "# meridium_polish_applied",
+        ):
+            if old in code:
+                code = code.replace(old, "# meridium_polish_applied_v3_free", 1)
+                break
 
-    # Home polish WITHOUT Theme shop expander or Open Theme atelier button
     home_extra = (
-        "\n    # polish home (no theme shop — use Drift Counter → Void Reliquary)\n"
+        "\n    # polish home (Void Reliquary lives under Drift Counter)\n"
         "    try:\n"
         "        from meridium_polish import (\n"
         "            sync_session_to_profile, mark_onboarded, daily_seed, export_save, import_save, ACHIEVEMENTS,\n"
@@ -297,28 +312,10 @@ def apply_polish(code: str) -> str:
         "        pass\n"
     )
 
-    # Remove old Theme shop / atelier injections if present
-    for dead in (
-        'with st.expander("Theme shop", expanded=False):',
-        "with st.expander('Theme shop', expanded=False):",
-        'key="home_theme_atelier"',
-        "key='home_theme_atelier'",
-        'Open Theme atelier',
-        'Theme atelier',
-    ):
-        if dead in code and "Void Reliquary" not in code:
-            # leave structural code; the routes soft-retire the keys
-            pass
-
-    if "polish home (no theme shop" not in code:
+    if "polish home (Void Reliquary" not in code:
         for m in ['if st.session_state.view == "home":', "if st.session_state.view == 'home':"]:
             if m in code:
-                # strip previous polish home block if it still has Theme shop
-                if "Theme shop" in code or "home_theme_atelier" in code:
-                    # replace the whole old home polish if we can find it; otherwise just add new
-                    code = code.replace(m, m + home_extra, 1)
-                else:
-                    code = code.replace(m, m + home_extra, 1)
+                code = code.replace(m, m + home_extra, 1)
                 break
 
     try:

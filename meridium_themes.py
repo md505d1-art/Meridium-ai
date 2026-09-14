@@ -1,4 +1,4 @@
-"""Meridium Void Reliquary — atmospheric themes."""
+"""Meridium Void Reliquary — free animated atmospheres with custom UI."""
 from __future__ import annotations
 
 import json
@@ -9,62 +9,85 @@ try:
 except Exception:
     def theme_engine_html(theme_id):
         return ""
+
     def _css_for(theme_id):
         return "body, .stApp { background: #0a0810 !important; }"
 
+# All free. Act like regular themes — equip anytime.
+# IDs match meridium_theme_fx packs for live canvas + custom UI chrome.
 THEMES = {
     "default": {
         "name": "Meridium Default",
-        "desc": "Clean dark violet base",
+        "desc": "Clean dark violet base · the original signal",
         "preview": "#1a1028",
-        "price": 0,
-        "tier": "free",
     },
     "rainy_kyoto": {
         "name": "Rainy Kyoto",
-        "desc": "Rain, fog, thunder over a quiet town",
-        "preview": "#1a2030",
-        "price": 80,
-        "tier": "premium",
+        "desc": "Lantern night · layered rain · fog · distant thunder",
+        "preview": "#1a2238",
     },
     "neon_tokyo": {
         "name": "Neon Tokyo",
-        "desc": "Scanlines, neon pink and cyan",
-        "preview": "#1a0520",
-        "price": 90,
-        "tier": "premium",
+        "desc": "Magenta / cyan district · scanlines · electric haze",
+        "preview": "#1a0a28",
+    },
+    "deep_ocean": {
+        "name": "Deep Ocean",
+        "desc": "Abyss blue · god rays · rising plankton",
+        "preview": "#0a2a40",
     },
     "aurora": {
-        "name": "Aurora",
-        "desc": "Northern lights wash",
-        "preview": "#0a1a18",
-        "price": 70,
-        "tier": "standard",
+        "name": "Aurora North",
+        "desc": "Green-violet curtains · polar night · soft stars",
+        "preview": "#0a1228",
     },
     "sakura": {
-        "name": "Sakura Night",
-        "desc": "Petals in the dark",
-        "preview": "#1a1018",
-        "price": 60,
-        "tier": "standard",
+        "name": "Ember Sakura",
+        "desc": "Falling petals · warm dusk · rising embers",
+        "preview": "#4a2030",
     },
     "static_void": {
         "name": "Static Void",
-        "desc": "CRT noise and deep black",
-        "preview": "#050508",
-        "price": 75,
-        "tier": "standard",
+        "desc": "CRT snow · phosphor bloom · signal drop",
+        "preview": "#111111",
+    },
+    "golden_hour": {
+        "name": "Golden Hour",
+        "desc": "Sun haze · dust motes · long amber light",
+        "preview": "#4a3020",
+    },
+    "cyber_rain": {
+        "name": "Cyber Rain",
+        "desc": "Matrix glyphs · green phosphor · cascading code",
+        "preview": "#021a0a",
+    },
+    "paper_lantern": {
+        "name": "Paper Lantern",
+        "desc": "Warm floating lights · soft flicker · quiet festival",
+        "preview": "#2a2218",
     },
 }
+
+# Map short ids → FX engine ids when they differ
+_FX_ALIAS = {
+    "aurora": "aurora_north",
+    "sakura": "ember_sakura",
+}
+
+
+def _fx_id(theme_id: str) -> str:
+    return _FX_ALIAS.get(theme_id or "default", theme_id or "default")
 
 
 def _data_dir() -> Path:
     try:
         from meridium_paths import meridium_data_dir
+
         return meridium_data_dir()
     except Exception:
-        import tempfile
         import os
+        import tempfile
+
         if os.environ.get("STREAMLIT_SERVER_HEADLESS"):
             d = Path(tempfile.gettempdir()) / "meridium_data"
         else:
@@ -102,88 +125,63 @@ def save_theme_prefs(prefs: dict) -> None:
 def get_user_theme(username: str) -> str:
     prefs = load_theme_prefs()
     u = prefs.get(username) or prefs.get("anon") or {}
-    tid = u.get("active") or "default"
+    tid = u.get("active") or u.get("theme") or "default"
     return tid if tid in THEMES else "default"
 
 
 def set_user_theme(username: str, theme_id: str) -> None:
+    if theme_id not in THEMES:
+        theme_id = "default"
     prefs = load_theme_prefs()
     u = prefs.get(username) or {}
     u["active"] = theme_id
-    owned = list(u.get("owned") or ["default"])
-    if theme_id not in owned:
-        owned.append(theme_id)
-    u["owned"] = owned
+    u["theme"] = theme_id
+    # Always own everything — free regular themes
+    u["owned"] = list(THEMES.keys())
     prefs[username] = u
     save_theme_prefs(prefs)
 
 
 def get_owned_themes(username: str) -> list:
-    prefs = load_theme_prefs()
-    u = prefs.get(username) or {}
-    owned = list(u.get("owned") or ["default"])
-    if "default" not in owned:
-        owned.insert(0, "default")
-    return owned
+    return list(THEMES.keys())
 
 
 def unlock_theme_purchase(username: str, theme_id: str) -> None:
-    prefs = load_theme_prefs()
-    u = prefs.get(username) or {}
-    owned = list(u.get("owned") or ["default"])
-    if theme_id not in owned:
-        owned.append(theme_id)
-    u["owned"] = owned
-    prefs[username] = u
-    save_theme_prefs(prefs)
+    set_user_theme(username, theme_id)
 
 
 def unlocked_themes(ss, username: str) -> list:
-    return get_owned_themes(username)
+    return list(THEMES.keys())
 
 
 def apply_theme_to_app(st, theme_id: str) -> None:
+    tid = theme_id or "default"
+    fx = _fx_id(tid)
     try:
-        html = theme_engine_html(theme_id or "default")
+        html = theme_engine_html(fx)
         if html:
             import streamlit.components.v1 as components
+
             components.html(html, height=0, scrolling=False)
     except Exception:
         try:
             st.markdown(
-                "<style id='meridium-theme'>" + _css_for(theme_id or "default") + "</style>",
+                "<style id='meridium-theme'>" + _css_for(fx) + "</style>",
                 unsafe_allow_html=True,
             )
         except Exception:
             pass
 
 
-def _get_residuum(ss) -> int:
-    for key in ("residuum", "drift_residuum", "currency", "balance"):
-        v = ss.get(key)
-        if isinstance(v, (int, float)):
-            return int(v)
-    if "residuum" not in ss:
-        ss["residuum"] = 100
-    return int(ss.get("residuum") or 0)
-
-
-def _spend_residuum(ss, amount: int) -> bool:
-    bal = _get_residuum(ss)
-    if bal < amount:
-        return False
-    ss["residuum"] = bal - amount
-    return True
-
-
 def render_theme_shop(st, ss) -> None:
-    st.markdown("### Void Reliquary")
-    st.caption("Atmospheric themes \u00b7 Residuum")
+    """Void Reliquary — free equip · animated atmospheres."""
     user = (ss.get("username") or "anon").strip() or "anon"
-    bal = _get_residuum(ss)
-    st.metric("Residuum", bal)
-    owned = set(get_owned_themes(user))
     active = ss.get("active_theme") or get_user_theme(user)
+    if active not in THEMES:
+        active = "default"
+
+    st.markdown("### ◈ Void Reliquary")
+    st.caption("Living atmospheres · free to equip · custom motion and chrome")
 
     ids = list(THEMES.keys())
     for i in range(0, len(ids), 2):
@@ -191,34 +189,46 @@ def render_theme_shop(st, ss) -> None:
         for j, tid in enumerate(ids[i : i + 2]):
             meta = THEMES[tid]
             with cols[j]:
-                st.markdown("**" + meta["name"] + "**")
-                st.caption(meta.get("desc") or "")
-                st.caption(
-                    "Tier: "
-                    + str(meta.get("tier"))
-                    + " \u00b7 "
-                    + str(meta.get("price"))
-                    + " Residuum"
+                color = meta.get("preview", "#222")
+                st.markdown(
+                    f"<div style='height:72px;border-radius:16px;margin-bottom:8px;"
+                    f"background:linear-gradient(135deg,{color} 0%,#0a0a0a 100%);"
+                    f"border:1px solid rgba(255,255,255,0.14);"
+                    f"box-shadow:0 0 28px {color}44;'></div>",
+                    unsafe_allow_html=True,
                 )
-                if tid in owned:
-                    if active == tid:
-                        st.success("Active")
-                    elif st.button("Apply", key="theme_apply_" + tid):
+                st.markdown(f"**{meta['name']}**")
+                st.caption(meta.get("desc") or "")
+                if active == tid:
+                    st.button(
+                        "Equipped ✓",
+                        key=f"theme_eq_{tid}",
+                        disabled=True,
+                        use_container_width=True,
+                    )
+                else:
+                    if st.button(
+                        "Equip",
+                        key=f"theme_eq_{tid}",
+                        use_container_width=True,
+                        type="primary",
+                    ):
                         set_user_theme(user, tid)
                         ss["active_theme"] = tid
+                        # keep classic theme slot in sync when possible
+                        try:
+                            ss["theme"] = tid
+                        except Exception:
+                            pass
+                        try:
+                            from meridium_polish import sync_session_to_profile
+
+                            sync_session_to_profile(ss)
+                        except Exception:
+                            pass
                         apply_theme_to_app(st, tid)
+                        st.success(f"Atmosphere: {meta['name']}")
                         st.rerun()
-                else:
-                    price = int(meta.get("price") or 0)
-                    if st.button("Unlock (" + str(price) + ")", key="theme_buy_" + tid):
-                        if price <= 0 or _spend_residuum(ss, price):
-                            unlock_theme_purchase(user, tid)
-                            set_user_theme(user, tid)
-                            ss["active_theme"] = tid
-                            st.success("Unlocked " + meta["name"])
-                            st.rerun()
-                        else:
-                            st.warning("Not enough Residuum")
 
     try:
         apply_theme_to_app(st, active)
@@ -227,4 +237,71 @@ def render_theme_shop(st, ss) -> None:
 
 
 def apply_theme_shop_routes(code: str) -> str:
+    """Register themes view + Void Reliquary entry inside Drift Counter."""
+    # Themes page handler
+    if 'view == "themes"' not in code and "view == 'themes'" not in code:
+        handler = (
+            '\nif st.session_state.view == "themes":\n'
+            '    if st.button("← Back", key="themes_back_v3"):\n'
+            '        st.session_state.view = st.session_state.get("_themes_from") or "drift"\n'
+            '        st.rerun()\n'
+            '    try:\n'
+            '        from meridium_themes import render_theme_shop, apply_theme_to_app, get_user_theme\n'
+            '        _th = st.session_state.get("active_theme") or get_user_theme(\n'
+            '            st.session_state.get("username") or "anon"\n'
+            '        )\n'
+            '        apply_theme_to_app(st, _th)\n'
+            '        render_theme_shop(st, st.session_state)\n'
+            '    except Exception as _te:\n'
+            '        st.error("Void Reliquary offline: " + str(_te))\n'
+            '    st.stop()\n'
+        )
+        for a in (
+            'if st.session_state.view == "drift":',
+            "if st.session_state.view == 'drift':",
+            'if st.session_state.view == "home":',
+        ):
+            if a in code:
+                code = code.replace(a, handler + "\n" + a, 1)
+                break
+        else:
+            code = code + handler
+
+    # Entry button inside Drift Counter shop tab
+    if "drift_to_void_reliquary" not in code:
+        inject = (
+            '\n        if st.button("◈ Enter Void Reliquary", key="drift_to_void_reliquary", use_container_width=True):\n'
+            '            st.session_state._themes_from = "drift"\n'
+            '            st.session_state.view = "themes"\n'
+            '            st.rerun()\n'
+            '        st.caption("Animated atmospheres · free equip · custom chrome")\n'
+            '        st.divider()\n'
+        )
+        needle = (
+            'with t_shop:\n'
+            '        st.caption("Spend Residuum on palettes, type, lore, and latent modules.")'
+        )
+        if needle in code:
+            code = code.replace(
+                needle,
+                'with t_shop:\n'
+                + inject
+                + '        st.caption("Spend Residuum on palettes, type, lore, and latent modules.")',
+                1,
+            )
+        else:
+            # broader fallback near Drift Counter render
+            for alt in (
+                't_shop, t_quests, t_inv = st.tabs(["Counter", "Fieldwork", "Holdings"])',
+                "t_shop, t_quests, t_inv = st.tabs(['Counter', 'Fieldwork', 'Holdings'])",
+            ):
+                if alt in code:
+                    code = code.replace(
+                        alt,
+                        alt
+                        + '\n    # void reliquary entry is injected into t_shop when present\n',
+                        1,
+                    )
+                    break
+
     return code
